@@ -3,26 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login | Organ Donation System</title>
+  <title>Register | Organ Donation System</title>
   <!-- need both below for local and flask application of css-->
   <link rel="stylesheet" href="/static/style.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 </head>
 <body>
   <div class="login-container">
-    <h1>Organ Donation System</h1>
+    <h1>Welcome to the<br>Organ Donation System</h1>
     <div class="login-box">
-      <h2>Login</h2>
+      <h2>Register</h2>
       <form action="/submit" method="POST">
         <input type="text" name="username" placeholder="Username" required>
         <input type="password" name="password" placeholder="Password" required>
         <div class="button-group">
-          <button type="submit" class="login-btn">Login</button>
+          <button type="submit" class="register-btn">Register</button>
         </div>
       </form>
-      <div class="button-group">
-        <a href="{{ url_for('register') }}" class="register-btn">Register</a>
-      </div>
     </div>
   </div>
 </body>
