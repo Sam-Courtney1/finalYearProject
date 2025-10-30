@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+application = Flask(__name__)
 
-app.secret_key = 'test'
+application.secret_key = 'test'
 
 def get_db_connection():
     try:
@@ -23,27 +23,27 @@ def get_db_connection():
         print("Database connection error", e)
         return None
 
-@app.route('/')
+@application.route('/')
 def index():
     return render_template('login.html')
 
-@app.route('/register')
+@application.route('/register')
 def register():
     return render_template('register.html')
 
-@app.route('/homepage')
+@application.route('/homepage')
 def homepage():
     if 'username' in session:
         return render_template('homepage.html', username=session['username'])
     else:
         return redirect(url_for('index'))
 
-@app.route('/logout')
+@application.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
 
-@app.route('/login', methods=['POST'])
+@application.route('/login', methods=['POST'])
 def login():
     username = request.form['username']
     password = request.form['password']
@@ -70,7 +70,7 @@ def login():
         print("Login error:", e)
         return f"Error: {e}"
 
-@app.route('/register_user', methods=['POST'])
+@application.route('/register_user', methods=['POST'])
 def submit():
     username = request.form['username']
     password = request.form['password']
@@ -93,4 +93,4 @@ def submit():
         return f"Error: {e}"
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80)
+    application.run(host='0.0.0.0', port=80)
