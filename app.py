@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, session , url_for 
 import psycopg2
 import os
 from dotenv import load_dotenv
@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
+
+app.secret_key = 'test'
 
 def get_db_connection():
     try:
@@ -29,7 +31,46 @@ def index():
 def register():
     return render_template('register.html')
 
-@app.route('/submit', methods=['POST'])
+@app.route('/homepage')
+def homepage():
+    if 'username' in session:
+        return render_template('homepage.html', username=session['username'])
+    else:
+        return redirect(url_for('index'))
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form['username']
+    password = request.form['password']
+
+    conn = get_db_connection()
+    if conn is None:
+        return "Database connection failed."
+
+    try:
+        cur = conn.cursor()
+        """Error: not all arguments converted during string formatting
+        comma is needed below, if removed it is treated as a string """
+        cur.execute("SELECT password FROM users WHERE username = %s", (username)) 
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if user and user[0] == password:
+            session['username'] = username
+            return redirect(url_for('homepage'))
+        else:
+            return redirect(url_for('index'))
+    except Exception as e:
+        print("Login error:", e)
+        return f"Error: {e}"
+
+@app.route('/register_user', methods=['POST'])
 def submit():
     username = request.form['username']
     password = request.form['password']

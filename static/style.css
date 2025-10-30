@@ -1,7 +1,6 @@
-body {
+.background {
   margin: 0;
   font-family: 'Segoe UI';
-  background: linear-gradient(to right, #0c9467, #45c48b);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -16,15 +15,15 @@ body {
 .login-box {
   background: white;
   color: #333;
-  padding: 32px;              
+  padding: 32px;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   width: 300px;
   margin: 20px auto;
 }
 
 .login-box h2 {
-  margin-bottom: 24px;        
+  margin-bottom: 24px;
   color: #0b8a60;
 }
 
@@ -32,28 +31,30 @@ input[type="text"],
 input[type="password"] {
   width: 90%;
   padding: 14px;
-  margin: 8px 0;              
+  margin: 8px 0;
   border: 1px solid #ccc;
   border-radius: 8px;
-  font-size: 16px;            
+  font-size: 16px;
 }
 
 .button-group {
-  margin-top: 12px;  
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  align-items: center;        
+  align-items: center;
 }
 
-button , a {
+button,
+a {
   width: 45%;
-  padding: 10px;              
-  margin: 8px;               
+  padding: 10px;
+  margin: 8px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 16px;     
-  text-decoration: none; /* Needed to remove underscore from register button*/      
+  font-size: 16px;
+  text-decoration: none;
+  /* Needed to remove underscore from register button*/
 }
 
 .login-btn {
@@ -66,4 +67,9 @@ button , a {
   color: white;
   display: block;
   align-content: center;
+}
+
+.heading-text {
+
+  color: #135e3c;
 }

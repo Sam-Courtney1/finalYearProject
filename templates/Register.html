@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,19 +10,26 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
 </head>
+<!-- Add in check to make usernames unique-->
+
 <body>
-  <div class="login-container">
-    <h1>Welcome to the<br>Organ Donation System</h1>
-    <div class="login-box">
-      <h2>Register</h2>
-      <form action="/submit" method="POST">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <div class="button-group">
-          <button type="submit" class="register-btn">Register</button>
-        </div>
-      </form>
+  <div class="background">
+    <div class="login-container">
+      <div class="heading-text">
+        <h1>Welcome to the<br>Organ Donation System</h1>
+      </div>
+      <div class="login-box">
+        <h2>Register</h2>
+        <form action="/register_user" method="POST">
+          <input type="text" name="username" placeholder="Username" required>
+          <input type="password" name="password" placeholder="Password" required>
+          <div class="button-group">
+            <button type="submit" class="register-btn">Register</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </body>
+
 </html>
