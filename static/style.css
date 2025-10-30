@@ -73,3 +73,15 @@ a {
 
   color: #135e3c;
 }
+
+.flash {
+  background-color: #f7d9db;
+  color: #6d1c24;
+  border: 1px solid #f0c1c6;
+  padding: 10px;
+  border-radius: 8px;
+  width: 90%;
+  margin: 10px auto;
+  text-align: center;
+  font-size: 14px;
+}

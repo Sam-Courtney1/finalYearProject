@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session , url_for 
+from flask import Flask, render_template, request, redirect, session , url_for , flash
 import psycopg2
 import os
 from dotenv import load_dotenv
@@ -56,7 +56,7 @@ def login():
         cur = conn.cursor()
         """Error: not all arguments converted during string formatting
         comma is needed below, if removed it is treated as a string """
-        cur.execute("SELECT password FROM users WHERE username = %s", (username)) 
+        cur.execute("SELECT password FROM users WHERE username = %s", (username,)) 
         user = cur.fetchone()
         cur.close()
         conn.close()
@@ -82,12 +82,22 @@ def submit():
 
     try:
         cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+
+        existing_user = cur.fetchone()
+        if existing_user:
+            flash("Username already exists. Please choose another.")
+            cur.close()
+            conn.close()
+            return redirect(url_for('register'))
+
         cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
         conn.commit()
+        session['username'] = username
         cur.close()
         conn.close()
         print("Data inserted successfully")
-        return "Data saved successfully to RDS"
+        return redirect(url_for('homepage'))
     except Exception as e:
         print("Insert error:", e)
         return f"Error: {e}"
