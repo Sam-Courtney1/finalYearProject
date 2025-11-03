@@ -31,6 +31,10 @@ def index():
 def register():
     return render_template('register.html')
 
+@application.route('/questionnaire')
+def questionnaire():
+    return render_template('questionnaire.html')
+
 @application.route('/homepage')
 def homepage():
     if 'username' in session:
@@ -56,13 +60,15 @@ def login():
         cur = conn.cursor()
         """Error: not all arguments converted during string formatting
         comma is needed below, if removed it is treated as a string """
-        cur.execute("SELECT password FROM users WHERE username = %s", (username,)) 
+        cur.execute("SELECT id, password FROM users WHERE username = %s", (username,)) 
         user = cur.fetchone()
         cur.close()
         conn.close()
 
-        if user and user[0] == password:
+        if user and user[1] == password:
+            session['user_id'] = user[0]
             session['username'] = username
+            print(f"Logged in user: {username} (ID: {user[0]})")
             return redirect(url_for('homepage'))
         else:
             return redirect(url_for('index'))
@@ -101,6 +107,35 @@ def submit():
     except Exception as e:
         print("Insert error:", e)
         return f"Error: {e}"
+    
+
+@application.route('/questionnaire', methods=['POST'])
+def submitQuestionnaire():
+    user_id = session.get('user_id')
+    blood_type = request.form['blood_type']
+    organ = request.form['organ']
+    address = request.form['address']
+    consent = 'consent' in request.form
+    
+    conn = get_db_connection()
+    if conn is None:
+        return "Database connection failed."
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+                        INSERT INTO questionnaire (user_id, blood_type, organ, address, consent)
+                        VALUES (%s, %s, %s, %s, %s)
+                     """
+                        ,(user_id, blood_type, organ, address, consent))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return redirect(url_for('homepage'))
+    except Exception as e:
+        print("Error submitting questionnare form", e)
+        return f"Error {e}"
+    
 
 if __name__ == '__main__':
     application.run(host='0.0.0.0', port=80)

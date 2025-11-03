@@ -1,3 +1,7 @@
+.ms-auto {
+    font-size: 22px;
+}
+
 .background {
   margin: 0;
   font-family: 'Segoe UI';
@@ -20,13 +24,6 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   width: 300px;
   margin: 20px auto;
-  border: 2px solid transparent;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-.login-box:hover {
-  border-color: #000000;
-  box-shadow: 0 0 10px rgba(0,0,0, 0.4);
 }
 
 .login-box h2 {
@@ -42,14 +39,6 @@ input[type="password"] {
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 16px;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-input[type="text"]:focus,
-input[type="password"]:focus {
-  border-color: rgb(2, 123, 253);
-  box-shadow: 0 0 6px rgba(2, 123, 253, 0.5);
-  outline: none;
 }
 
 .button-group {
@@ -106,8 +95,4 @@ button{
   margin: 10px auto;
   text-align: center;
   font-size: 14px;
-}
-
-.ms-auto {
-  font-size: 22px;
 }
