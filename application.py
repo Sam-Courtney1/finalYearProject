@@ -100,6 +100,18 @@ def submit():
         cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
         conn.commit()
         session['username'] = username
+
+        """
+        Below is needed to assign user_id for the seesion, the only other place you have it is in
+        Login functoin above, was getting errors in the db with no user id in the questionnare table
+        Look into return function when you insert the record, probably a way to get it without a second query
+        """
+
+        cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+        user = cur.fetchone()
+        session['user_id'] = user[0]
+
+
         cur.close()
         conn.close()
         print("Data inserted successfully")
