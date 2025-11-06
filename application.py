@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, session , url_for ,
 import psycopg2
 import os
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash
+
 
 load_dotenv()
 
@@ -65,7 +67,7 @@ def login():
         cur.close()
         conn.close()
 
-        if user and user[1] == password:
+        if user and check_password_hash(user[1] , password):
             session['user_id'] = user[0]
             session['username'] = username
             print(f"Logged in user: {username} (ID: {user[0]})")
@@ -96,8 +98,9 @@ def submit():
             cur.close()
             conn.close()
             return redirect(url_for('register'))
-
-        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
+        
+        hashed_password = generate_password_hash(password)
+        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
         conn.commit()
         session['username'] = username
 
@@ -124,6 +127,9 @@ def submit():
 @application.route('/questionnaire', methods=['POST'])
 def submitQuestionnaire():
     user_id = session.get('user_id')
+    first_name = request.form['first_name']
+    age = request.form['age']
+    address = request.form['address']
     blood_type = request.form['blood_type']
     organ = request.form['organ']
     address = request.form['address']
@@ -135,11 +141,43 @@ def submitQuestionnaire():
     
     try:
         cur = conn.cursor()
-        cur.execute("""
-                        INSERT INTO questionnaire (user_id, blood_type, organ, address, consent)
-                        VALUES (%s, %s, %s, %s, %s)
-                     """
-                        ,(user_id, blood_type, organ, address, consent))
+        
+        cur.execute(
+            """
+            INSERT INTO submissions (user_id, consent)
+            VALUES (%s, %s)
+            RETURNING submission_id;
+            """,
+
+            (user_id, consent))
+        
+        submission_id = cur.fetchone()[0]   
+
+        cur.execute(
+            """
+            INSERT INTO pii (submission_id, first_name_enc, address_enc)
+            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+            """, 
+            (submission_id, first_name, os.getenv("APP_ENC_KEY", "test"),
+            address, os.getenv("APP_ENC_KEY", "test")))
+
+        cur.execute(
+            """
+            INSERT INTO medical_data (submission_id, blood_type_enc, organ_enc)
+            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+            """,
+            (submission_id, blood_type, os.getenv("APP_ENC_KEY", "test"),
+            organ, os.getenv("APP_ENC_KEY", "test")))
+
+        cur.execute(
+            """
+            INSERT INTO demographic_data (submission_id, age)
+            VALUES (%s, %s);
+            """,
+            (submission_id, age))
+
+
+
         conn.commit()
         cur.close()
         conn.close()

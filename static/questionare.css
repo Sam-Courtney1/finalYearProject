@@ -7,8 +7,11 @@
   font-family: 'Segoe UI';
   display: flex;
   justify-content: center;
-  align-items: center;
-  height: 100vh;
+  align-items: flex-start;
+  height: 100px;
+  padding-top: 20px;      
+  padding-bottom: 80px; 
+ 
 }
 
 .login-container {
@@ -22,7 +25,7 @@
   padding: 32px;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  width: 300px;
+  width: 600px;
   margin: 20px auto;
 }
 
