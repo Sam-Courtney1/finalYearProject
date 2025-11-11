@@ -1,0 +1,59 @@
+from flask import Blueprint, render_template, request, redirect, url_for, session
+from application.services.authentication import register_user, authenticate_user
+from data.user_database import find_by_username
+
+"""
+auth_bp is an object of Blueprint that stores its name (auth_bp) 
+The module where it is definined is inside of __name__
+And all routes that belong to it
+"""
+
+auth_bp = Blueprint('auth_bp', __name__)
+
+# Below are all the routes and actions that are assigned to auth_bp
+# These include displaying pages to users and allowing them to login and register
+
+@auth_bp.route('/')
+def login_page():
+    return render_template('login.html')
+
+@auth_bp.route('/register')
+def register_page():
+    return render_template('register.html')
+
+@auth_bp.route('/register_user', methods = ['POST'])
+def register():
+    username = request.form['username']
+    password = request.form['password']
+    # The register_user function inserts a user into the database
+    register_user(username, password)
+    session['username'] = username
+    # make a second call to get the id. This is needed for entries
+    # to be accteped into the database throught the questionnaire
+    user = find_by_username(username)
+    if user:
+        session['user_id'] = user[0]
+        return redirect(url_for('home_bp.homepage')) 
+    else:
+        return redirect(url_for('auth_bp.login_page')) 
+
+@auth_bp.route('/login', methods = ['POST'])
+def login():
+    username = request.form['username']
+    password = request.form['password']
+    # Make a call to the authenticate_user function and the user_id
+    # of the linked account is stored in user_id
+    user_id = authenticate_user(username, password)
+    if user_id:
+        session['user_id'] = user_id
+        session['username'] = username
+        return redirect(url_for('home_bp.homepage'))
+    else:
+        return redirect(url_for('auth_bp.login_page'))
+
+@auth_bp.route('/logout')
+def logout():
+    # This clears the session data including the user_id and username
+    # This logs out the user and returns them to the login page
+    session.clear()
+    return redirect(url_for('auth_bp.login_page'))

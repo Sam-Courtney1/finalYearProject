@@ -15,9 +15,9 @@
 <div class="bg-white">
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('homepage') }}">Home</a>
+            <a class="navbar-brand" href="{{ url_for('home_bp.homepage') }}">Home</a>
             <div class="ms-auto">
-                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">Logout</a>
             </div>
         </div>
     </nav>
@@ -33,7 +33,7 @@
             </div>
             <div class="login-box">
                 <h2>Please answer all questions</h2>
-                <form action="{{ url_for('submitQuestionnaire') }}" method="POST">
+                <form action="{{ url_for('questionnaire_bp.submit_questionnaire') }}" method="POST">
 
 
                     <input type="text" name="first_name" placeholder="First Name" required>
@@ -86,7 +86,7 @@
                     knowledge
 
                     <div class="button-group">
-                        <button href="{{ url_for('homepage') }}" class="register-btn">Submit</button>
+                        <button href="{{ url_for('home_bp.homepage') }}" class="register-btn">Submit</button>
                     </div>
                 </form>
             </div>
