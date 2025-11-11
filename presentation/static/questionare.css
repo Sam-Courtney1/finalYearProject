@@ -99,3 +99,7 @@ button{
   text-align: center;
   font-size: 14px;
 }
+
+nav {
+  border-bottom: 1px solid black;  
+}

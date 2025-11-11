@@ -111,3 +111,47 @@ button{
 .ms-auto {
   font-size: 22px;
 }
+
+.homepage-main {
+
+  text-align: center;
+  font-size: 30px;
+}
+
+h1 {
+  font-size: 40px;
+  padding-bottom: 15px;
+}
+
+.access_button {
+
+  background-color: #0b8a60;
+
+}
+
+.delete_button{
+
+  background-color: red;
+
+}
+
+.main-content-display{
+
+  text-align: center;
+  padding-top: 20px;
+
+}
+
+.table-container {
+
+  display: flex;
+  justify-content: center;    
+  margin: 40px auto;           
+  max-width: 1200px;       
+  padding-top: 30px;     
+}
+
+nav {
+  border-bottom: 1px solid black;  
+  margin-bottom: 30px;
+}

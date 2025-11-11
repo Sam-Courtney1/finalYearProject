@@ -25,11 +25,13 @@ def create_app():
     app.secret_key = os.getenv("APP_ENC_KEY", "test")
 
     # Import Blueprints
-    from application.routes.pages_and_actions import auth_bp
+    from application.routes.pages_and_actions import auth_bp, pages_bp
     from application.routes.questionnaire_routes import questionnaire_bp
     from application.routes.home_route import home_bp
 
+
     # Register Blueprints
+    app.register_blueprint(pages_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(questionnaire_bp)
     app.register_blueprint(home_bp)
