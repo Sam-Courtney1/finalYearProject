@@ -33,61 +33,31 @@
             </div>
             <div class="login-box">
                 <h2>Please answer all questions</h2>
-                <form action="{{ url_for('questionnaire_bp.submit_questionnaire') }}" method="POST">
-
-
-                    <input type="text" name="first_name" placeholder="First Name" required>
-                    <label for="first_name_category">Category:</label>
-                    <select name="first_name_category" id="first_name_category" required>
-                        <option value="" disabled selected hidden>Select category</option>
-                        <option value="PII">PII</option>
-                    </select>
-
-                    <input type="text" name="age" placeholder="Age" required>
-                    <label for="Age_category">Category:</label>
-                    <select name="Age_category" id="Age_category" required>
-                        <option value="" disabled selected hidden>Select category</option>
-                        <option value="Demographic">Demographic</option>
-                    </select>
-
-
-                    <input type="text" name="address" placeholder="Address" required>
-                    <label for="address_category">Category:</label>
-                    <select name="address_category" id="address_category" required>
-                        <option value="" disabled selected hidden>Select category</option>
-                        <option value="PII">PII</option>
-                    </select>
-
-                    <input type="text" name="blood_type" placeholder="Blood Type" required>
-                    <label for="blood_category">Category:</label>
-                    <select name="blood_category" id="blood_category" required>
-                        <option value="" disabled selected hidden>Select category</option>
-                        <option value="Medical">Medical</option>
-                    </select>
-
-                    <input type="text" name="organ" placeholder="Organ" required>
-                    <label for="organ_category">Category:</label>
-                    <select name="organ_category" id="organ_category" required>
-                        <option value="" disabled selected hidden>Select category</option>
-                        <option value="Medical">Medical</option>
-                    </select>
-
-                    <!-- <input type="text" name="Feedback" placeholder="Feedback">
-                    <label for="Feedback">Category:</label>
-                    <select name="Feedback" id="Feedback" required>
-                        <option value="" disabled selected hidden>Select category</option>
-                        <option value="Feedback">Feedback / non sensitive </option>
-                    </select> -->
-
-
-                    <br><br>
-                    <input type="checkbox" name="consent" placeholder="consent" required>
-                    I consent to the use of my data and that all categories chosen are correct to the best of my
-                    knowledge
-
-                    <div class="button-group">
-                        <button href="{{ url_for('home_bp.homepage') }}" class="register-btn">Submit</button>
+                <form action="{{ url_for('questionnaire_bp.questionnaire_form', client_id = client_id) }}" method="POST">
+                    {% for f in static_fields %}
+                    <div class="mb-3">
+                        <label>{{ f[1] }}</label>
+                        <input type="{{ f[2] }}" name="{{ f[0] }}" class="form-control" required>
                     </div>
+                    {% endfor %}
+
+
+                    <!-- Dynamic fields added by clients -->
+                    {% for f in dynamic_fields %}
+                    <div class="mb-3">
+                        <label>{{ f[1] }}</label>
+                        <input type="{{ f[2] }}" name="field_{{ f[0] }}" class="form-control" required>
+                    </div>
+                    {% endfor %}
+
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="consent" required>
+                        <label class="form-check-label">I consent to the use of my data and that all categories chosen
+                            are correct to the best of my knowledge</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-success mt-3">Submit</button>
                 </form>
             </div>
         </div>

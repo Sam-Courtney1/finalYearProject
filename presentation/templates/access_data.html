@@ -15,7 +15,7 @@
             <a class="navbar-brand" href="{{ url_for('home_bp.homepage') }}">Home</a>
             <div class="ms-auto d-flex align-items-center">
                 <a class="navbar-brand me-3"
-                    href="{{ url_for('questionnaire_bp.questionnaire_form') }}">Questionnaire</a>
+                    href="{{ url_for('questionnaire_bp.select_client') }}">Questionnaire</a>
                 <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">Logout</a>
             </div>
         </div>
@@ -23,48 +23,78 @@
 
 
     <div class="main-content-display">
-        <h2>Your Stored Information</h2>
-        {% if data %}
-            <p>This is the data currently held in our system related to your account </p>
-        {% endif %}
-    </div>
+        <h2 class="text-center mb-4">Your Stored Information</h2>
 
-    <!--Print out the table with the users info, look to change the css in the classes / have only one class
-    Slightly messy how it is noww-->
+        <!--If there is static data , age , name or address then print them here, otherwise
+        check for dynamic data below in the next if statment-->
+        {% if static_data %}
+        <p class="text-center text-muted">
+            This section shows your securely stored personal data in our system.
+        </p>
 
-    <div class="table-container">
-        {% if data %}
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Consent</th>
-                    <th>First Name</th>
-                    <th>Address</th>
-                    <th>Blood Type</th>
-                    <th>Organ</th>
-                    <th>Age</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in data %}
-                <tr>
-                    <td>{{ row[0] }}</td>
-                    <td>{{ row[1] }}</td>
-                    <td>{{ row[2] }}</td>
-                    <td>{{ row[3] }}</td>
-                    <td>{{ row[4] }}</td>
-                    <td>{{ row[5] }}</td>
-                    <td>{{ row[6] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive mt-4">
+            <h4>Core Information</h4>
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Consent</th>
+                        <th>First Name</th>
+                        <th>Address</th>
+                        <th>Age</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in static_data %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        <td>{{ 'Yes' if row[1] else 'No' }}</td>
+                        <td>{{ row[2] }}</td>
+                        <td>{{ row[3] }}</td>
+                        <td>{{ row[4] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
-        <p>No data found for your account.</p>
+        <p class="text-center mt-4">No core data found for your account.</p>
         {% endif %}
 
+        <!-- Same as above , check for dynamic fields, ie those that are made by the client
+         and if there is none then print no data which can be seen below -->
+        {% if dynamic_data %}
+        <div class="table-responsive mt-5">
+            <h4>Per company Data</h4>
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Company</th>
+                        <th>Field Label</th>
+                        <th>Categorie</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in dynamic_data %}
+                    <tr>
+                        <td>{{ f[0] }}</td>
+                        <td>{{ f[1] }}</td>
+                        <td>{{ f[2] }}</td>
+                        <td>{{ f[3] }}</td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if not static_data and not dynamic_data %}
+        <p class="text-center mt-5">No stored data was found for this account.</p>
+        {% endif %}
     </div>
 </body>
 
 </html>
+

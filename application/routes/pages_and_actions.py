@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from application.services.authentication import register_user, authenticate_user
 from data.user_database import find_by_username, get_user_data, delete_user
 
@@ -26,6 +26,15 @@ def register_page():
 def register():
     username = request.form['username']
     password = request.form['password']
+    # Check to see if username already exists
+    existing_user = find_by_username(username)
+    if existing_user:
+        flash("Username already exists. Please choose another.")
+        return redirect(url_for('auth_bp.register_page'))
+    else:
+        pass
+    
+
     # The register_user function inserts a user into the database
     register_user(username, password)
     session['username'] = username
@@ -72,8 +81,8 @@ def right_to_access():
     else:
         user_id = session['user_id']
     
-    data = get_user_data(user_id)
-    return render_template('access_data.html', data = data)
+    static_data, dynamic_data = get_user_data(user_id)
+    return render_template('access_data.html', static_data = static_data, dynamic_data = dynamic_data)
 
 
 
@@ -87,3 +96,4 @@ def right_to_forget():
     delete_user(user_id)
     session.clear()
     return redirect(url_for('auth_bp.login_page'))
+
