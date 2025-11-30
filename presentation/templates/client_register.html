@@ -18,8 +18,8 @@
         <h1>Welcome to the<br>Client Reister</h1>
       </div>
       <div class="login-box">
+        <a href="{{ url_for('client_login') }}" class="back-arrow">&larr;</a>
         <h2>Register</h2>
-        <!-- Same as in client questionnaire, need to not loop, worked ok when you only had 1 message but neo its an issue-->
         {% for message in get_flashed_messages() %}
         <p class="flash">{{ message }}</p>
         {% endfor %}

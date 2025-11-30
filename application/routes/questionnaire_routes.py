@@ -46,11 +46,10 @@ def questionnaire_form(client_id):
     cur.close()
     conn.close()
 
-    static_fields = [
-        ("first_name", "First Name", "text", "PII"),
-        ("age", "Age", "number", "Demographic"),
-        ("address", "Address", "text", "PII")
-    ]
+    # Redundant for now as I want core info to only appear once
+    # No longer appears in questionnaires as a must answer field
+    # Not removing yet as it will be used in the coming weeks
+    static_fields = []
 
     return render_template(
         'questionnaire.html',

@@ -14,8 +14,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('home_bp.homepage') }}">Home</a>
             <div class="ms-auto d-flex align-items-center">
-                <a class="navbar-brand me-3"
-                    href="{{ url_for('questionnaire_bp.select_client') }}">Questionnaire</a>
+                <a class="navbar-brand me-3" href="{{ url_for('questionnaire_bp.select_client') }}">Questionnaire</a>
                 <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">Logout</a>
             </div>
         </div>
@@ -27,18 +26,12 @@
 
         <!--If there is static data , age , name or address then print them here, otherwise
         check for dynamic data below in the next if statment-->
-        {% if static_data %}
-        <p class="text-center text-muted">
-            This section shows your securely stored personal data in our system.
-        </p>
 
         <div class="table-responsive mt-4">
             <h4>Core Information</h4>
             <table class="table table-bordered align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Username</th>
-                        <th>Consent</th>
                         <th>First Name</th>
                         <th>Address</th>
                         <th>Age</th>
@@ -48,53 +41,51 @@
                     {% for row in static_data %}
                     <tr>
                         <td>{{ row[0] }}</td>
-                        <td>{{ 'Yes' if row[1] else 'No' }}</td>
+                        <td>{{ row[1] }}</td>
                         <td>{{ row[2] }}</td>
-                        <td>{{ row[3] }}</td>
-                        <td>{{ row[4] }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        {% else %}
-        <p class="text-center mt-4">No core data found for your account.</p>
-        {% endif %}
 
         <!-- Same as above , check for dynamic fields, ie those that are made by the client
          and if there is none then print no data which can be seen below -->
         {% if dynamic_data %}
-        <div class="table-responsive mt-5">
-            <h4>Per company Data</h4>
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Company</th>
-                        <th>Field Label</th>
-                        <th>Categorie</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for f in dynamic_data %}
-                    <tr>
-                        <td>{{ f[0] }}</td>
-                        <td>{{ f[1] }}</td>
-                        <td>{{ f[2] }}</td>
-                        <td>{{ f[3] }}</td>
+        <div class="mt-5">
+            <h4 class="text-center mb-4">Per company Data</h4>
 
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {% for company, group in dynamic_data|groupby(0) %}
+            <div class="card mb-4">
+                <div class="card-header fw-bold">
+                    {{ company }} 
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Field Label</th>
+                                <th>Category</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in group %}
+                            <tr>
+                                <td>{{ row[1] }}</td> 
+                                <td>{{ row[2] }}</td> 
+                                <td>{{ row[3] }}</td> 
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
         </div>
         {% endif %}
 
-        {% if not static_data and not dynamic_data %}
-        <p class="text-center mt-5">No stored data was found for this account.</p>
-        {% endif %}
     </div>
 </body>
 
 </html>
-

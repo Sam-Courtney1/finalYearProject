@@ -24,17 +24,7 @@ def handle_questionnaire_submission(user_id,client_id, form_data):
     
     submission_id = cur.fetchone()[0]
     key = os.getenv("APP_ENC_KEY")
-
-    cur.execute("""
-                INSERT INTO pii (submission_id, first_name_enc, address_enc)
-                VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
-                """, (submission_id, form_data["first_name"], key, form_data["address"], key))
-
-    cur.execute("""
-                INSERT INTO demographic_data (submission_id, age)
-                VALUES (%s, %s);
-                """, (submission_id, form_data["age"]))
-
+    
     """
     This for loop goes through client made fields and goes through the key pai values 
     Ie the name of the field and the value entered by the user

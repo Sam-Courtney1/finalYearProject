@@ -29,10 +29,10 @@ def client_login():
         if client and check_password_hash(client[2], password):
             session["client_id"] = client[0]
             session["client_username"] = client[1]
-            flash(f"Welcome back, {client[1]}")
             return redirect(url_for("client_dashboard"))
         else:
             flash("Invalid username or password.")
+            return render_template("client_login.html")
     else:
         return render_template("client_login.html")
 
@@ -61,7 +61,7 @@ def client_register():
         session["client_id"] = client_id
         session["client_username"] = username
 
-        flash("Client registered successfully! Please log in.")
+
         return redirect(url_for("client_dashboard"))
     else:
         return render_template("client_register.html")
@@ -74,7 +74,6 @@ which will logout the user and redirect them to the login page
 @clients.route("/logout")
 def client_logout():
     session.clear()
-    flash("You have been logged out.")
     return redirect(url_for("client_login"))
 
 
@@ -119,7 +118,6 @@ def client_questionnaire():
         field_type = request.form["field_type"]
         category = request.form["category"]
         insert_field(client_id, label, field_type, category)
-        flash("Field added successfully.")
         return redirect(url_for("client_questionnaire"))
     else:
         fields = get_fields_for_client(client_id)
@@ -136,7 +134,6 @@ def client_delete_field(field_id):
 
     client_id = session["client_id"]
     delete_field(field_id, client_id)
-    flash("Field deleted.")
     return redirect(url_for("client_questionnaire"))
 
 

@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from application.services.authentication import register_user, authenticate_user
-from data.user_database import find_by_username, get_user_data, delete_user
+from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only
+from data.db_connection import get_db_connection
+import os
 
 """
 auth_bp is an object of Blueprint that stores its name (auth_bp) 
@@ -26,14 +28,14 @@ def register_page():
 def register():
     username = request.form['username']
     password = request.form['password']
+    age        = request.form['age']
+    address    = request.form['address']
+
     # Check to see if username already exists
     existing_user = find_by_username(username)
     if existing_user:
         flash("Username already exists. Please choose another.")
-        return redirect(url_for('auth_bp.register_page'))
-    else:
-        pass
-    
+        return redirect(url_for('auth_bp.register_page'))    
 
     # The register_user function inserts a user into the database
     register_user(username, password)
@@ -41,11 +43,41 @@ def register():
     # make a second call to get the id. This is needed for entries
     # to be accteped into the database throught the questionnaire
     user = find_by_username(username)
-    if user:
-        session['user_id'] = user[0]
-        return redirect(url_for('home_bp.homepage')) 
-    else:
+    if not user:
         return redirect(url_for('auth_bp.login_page')) 
+    
+    session['user_id'] = user[0]
+    user_id = user[0]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO submissions (user_id, client_id, consent)
+        VALUES (%s, NULL, FALSE)
+        RETURNING submission_id;
+    """, (user_id,))
+    submission_id = cur.fetchone()[0]
+
+    key = os.getenv("APP_ENC_KEY")
+
+    cur.execute("""
+        INSERT INTO pii (submission_id, first_name_enc, address_enc)
+        VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+    """, (submission_id, username, key, address, key))
+
+    cur.execute("""
+        INSERT INTO demographic_data (submission_id, age)
+        VALUES (%s, %s);
+    """, (submission_id, age))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for('home_bp.homepage'))
+
+
 
 @auth_bp.route('/login', methods = ['POST'])
 def login():
@@ -59,6 +91,7 @@ def login():
         session['username'] = username
         return redirect(url_for('home_bp.homepage'))
     else:
+        flash("Username or password is incorrect. Please register an account or login with valid credentials")
         return redirect(url_for('auth_bp.login_page'))
 
 @auth_bp.route('/logout')
@@ -97,3 +130,12 @@ def right_to_forget():
     session.clear()
     return redirect(url_for('auth_bp.login_page'))
 
+@pages_bp.route('/delete_user_data', methods=['POST'])
+def delete_user_data():
+    if 'user_id' not in session:
+        return redirect(url_for('auth_bp.login_page'))
+    else:
+        user_id = session['user_id']
+
+    delete_user_data_only(user_id)
+    return redirect(url_for('home_bp.homepage'))

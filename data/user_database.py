@@ -43,8 +43,6 @@ def get_user_data(user_id):
 
     cur.execute("""
         SELECT 
-            u.username,
-            s.consent,
             pgp_sym_decrypt(p.first_name_enc::bytea, %s) AS first_name,
             pgp_sym_decrypt(p.address_enc::bytea, %s) AS address,
             d.age
@@ -52,8 +50,9 @@ def get_user_data(user_id):
         JOIN submissions s ON u.id = s.user_id
         LEFT JOIN pii p ON s.submission_id = p.submission_id
         LEFT JOIN demographic_data d ON s.submission_id = d.submission_id
-        WHERE u.id = %s;
-    """, (key, key, user_id))
+        WHERE u.id = %s
+                AND s.client_id IS NULL;
+    """, (key, key, user_id)) 
     # Static fields are the fields which are always used ie age , name and address
     static_data = cur.fetchall()
 
@@ -99,6 +98,24 @@ def delete_user(user_id):
                 delete from users where id = %s
                 """, (user_id,))
     
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def delete_user_data_only(user_id):
+    """
+    Delete all stored data but not the users account
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Deleting submissions will cascade to pii, demographic_data, answers, etc.
+    cur.execute("""
+        DELETE FROM submissions
+        WHERE user_id = %s;
+    """, (user_id,))
+
     conn.commit()
     cur.close()
     conn.close()

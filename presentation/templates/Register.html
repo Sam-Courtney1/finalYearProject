@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
 </head>
-<!-- Add in check to make usernames unique-->
 
 <body>
   <div class="background">
@@ -19,13 +18,16 @@
         <h1>Welcome to the<br>Organ Donation System</h1>
       </div>
       <div class="login-box">
-        <h2>Register</h2><!-- FIX THIS TO NOT LOOP-->
+        <a href="{{ url_for('auth_bp.login_page') }}" class="back-arrow">&larr;</a>
+        <h2>Register</h2>
         {% for message in get_flashed_messages() %}
           <p class="flash">{{ message }}</p>
         {% endfor %}
         <form action="/register_user" method="POST">
-          <input type="text" name="username" placeholder="Username" required>
+          <input type="text" name="username" placeholder="Name" required>
           <input type="password" name="password" placeholder="Password" required>
+          <input type="number" name="age" placeholder="Age" min="0" required> 
+          <input type="text" name="address" placeholder="Address" required>
           <div class="button-group">
             <button type="submit" class="register-btn">Register</button>
           </div>
