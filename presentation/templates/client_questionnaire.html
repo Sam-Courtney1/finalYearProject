@@ -21,8 +21,6 @@
 
   <div class="container mt-4">
     <h2>Questionnaire Editor</h2>
-    <!--Fix the below, looping through messages prints irrelivant messages
-    need to fix to only print the correct one-->
     {% for message in get_flashed_messages() %}
     <p class="flash">{{ message }}</p>
     {% endfor %}
