@@ -4,27 +4,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register | Organ Donation System</title>
+  <title>Client Register | Organ Donation System</title>
   <!-- need both below for local and flask application of css-->
   <link rel="stylesheet" href="/static/style.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
 </head>
-<!-- Add in check to make usernames unique-->
 
 <body>
   <div class="background">
     <div class="login-container">
       <div class="heading-text">
-        <h1>Welcome to the<br>Organ Donation System</h1>
+        <h1>Welcome to the<br>Client Reister</h1>
       </div>
       <div class="login-box">
+        <a href="{{ url_for('client_login') }}" class="back-arrow">&larr;</a>
         <h2>Register</h2>
         {% for message in get_flashed_messages() %}
-          <p class="flash">{{ message }}</p>
+        <p class="flash">{{ message }}</p>
         {% endfor %}
-        <form action="/register_user" method="POST">
-          <input type="text" name="username" placeholder="Username" required>
+        <form action="/register" method="POST">
+          <input type="text" name="username" placeholder="Company" required>
           <input type="password" name="password" placeholder="Password" required>
           <div class="button-group">
             <button type="submit" class="register-btn">Register</button>

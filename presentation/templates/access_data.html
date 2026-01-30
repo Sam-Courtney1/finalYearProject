@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Data | Organ Donation System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('home_bp.homepage') }}">Home</a>
+            <div class="ms-auto d-flex align-items-center">
+                <a class="navbar-brand me-3" href="{{ url_for('questionnaire_bp.select_client') }}">Questionnaire</a>
+                <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+
+    <div class="main-content-display">
+        <h2 class="text-center mb-4">Your Stored Information</h2>
+
+        <!--If there is static data , age , name or address then print them here, otherwise
+        check for dynamic data below in the next if statment-->
+
+        <div class="table-responsive mt-4">
+            <h4>Core Information</h4>
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>First Name</th>
+                        <th>Address</th>
+                        <th>Age</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in static_data %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        <td>{{ row[1] }}</td>
+                        <td>{{ row[2] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Same as above , check for dynamic fields, ie those that are made by the client
+         and if there is none then print no data which can be seen below -->
+        {% if dynamic_data %}
+        <div class="mt-5">
+            <h4 class="text-center mb-4">Per company Data</h4>
+
+            {% for company, group in dynamic_data|groupby(0) %}
+            <div class="card mb-4">
+                <div class="card-header fw-bold">
+                    {{ company }} 
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Field Label</th>
+                                <th>Category</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in group %}
+                            <tr>
+                                <td>{{ row[1] }}</td> 
+                                <td>{{ row[2] }}</td> 
+                                <td>{{ row[3] }}</td> 
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+</body>
+
+</html>
