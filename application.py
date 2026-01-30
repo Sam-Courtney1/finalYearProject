@@ -18,10 +18,11 @@ functions and new pages such as login or homapage
 
 def create_app():
     load_dotenv()
-    app = Flask(__name__,
+    application = Flask(__name__,
                 template_folder = os.path.join('presentation', 'templates'),
                 static_folder = os.path.join('presentation', 'static')
                 )
+    app = application
     app.secret_key = os.getenv("APP_ENC_KEY", "test")
 
     # Import Blueprints
