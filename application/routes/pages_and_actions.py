@@ -22,7 +22,7 @@ def login_page():
 
 @auth_bp.route('/register')
 def register_page():
-    return render_template('register.html')
+    return render_template('client_register.html')
 
 @auth_bp.route('/register_user', methods = ['POST'])
 def register():
