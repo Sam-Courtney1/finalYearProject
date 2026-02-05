@@ -18,7 +18,7 @@
         <h1>Welcome to the<br>Client Reister</h1>
       </div>
       <div class="login-box">
-        <a href="{{ url_for('client_login') }}" class="back-arrow">&larr;</a>
+        <a href="{{ url_for('auth_bp.login') }}" class="back-arrow">&larr;</a>
         <h2>Register</h2>
         {% for message in get_flashed_messages() %}
         <p class="flash">{{ message }}</p>
