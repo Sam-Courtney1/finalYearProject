@@ -1,0 +1,182 @@
+/* Audit Dashboard Styles */
+/* GDPR Article 32 - Security of Processing */
+
+/* Stat Cards */
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+
+.stat-card.success {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.stat-card.warning {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-card.info {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+/* Chain Integrity Status */
+.chain-status {
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.chain-valid {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.chain-invalid {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Action Badges */
+.action-badge {
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  border-radius: 15px;
+}
+
+.action-login {
+  background-color: #28a745;
+  color: white;
+}
+
+.action-logout {
+  background-color: #6c757d;
+  color: white;
+}
+
+.action-view {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.action-create {
+  background-color: #007bff;
+  color: white;
+}
+
+.action-update {
+  background-color: #ffc107;
+  color: black;
+}
+
+.action-delete {
+  background-color: #dc3545;
+  color: white;
+}
+
+.action-export {
+  background-color: #6f42c1;
+  color: white;
+}
+
+.action-login_failed {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Log Table */
+.log-table {
+  font-size: 0.9rem;
+}
+
+.log-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.log-table th {
+  background-color: #343a40;
+  color: white;
+  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+}
+
+.details-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Filter Form */
+.filter-form {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+/* Table Container - fixes scroll issue */
+.audit-table-container {
+  max-height: 500px;
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+}
+
+/* Activity Location Map */
+.map-section {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #dee2e6;
+}
+
+#activity-map {
+  height: 350px;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  z-index: 1;
+}
+
+.map-info-bar {
+  background-color: #343a40;
+  color: white;
+  padding: 8px 15px;
+  border-radius: 0 0 8px 8px;
+  font-size: 0.85rem;
+}
+
+/* Clickable IP addresses */
+.ip-locate-link {
+  color: #007bff;
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px dashed #007bff;
+}
+
+.ip-locate-link:hover {
+  color: #0056b3;
+  border-bottom-color: #0056b3;
+}
+
+/* Back Button - grey to stand out on dark navbar */
+.btn-back-dashboard {
+  background-color: #6194d6;
+  border-color: #6c757d;
+  color: white;
+}
+
+.btn-back-dashboard:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
+  color: white;
+}

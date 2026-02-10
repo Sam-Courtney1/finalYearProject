@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"c:\\\\Users\\\\C22314173\\\\OneDrive - Technological University Dublin\\\\4th year\\\\final year project\\\\code folder\\\\finalYearProject\" log --oneline -10)",
+      "Bash(powershell -Command:*)"
+    ]
+  }
+}
