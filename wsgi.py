@@ -52,6 +52,10 @@ def create_app():
     from data.audit_database import create_audit_table
     create_audit_table()
 
+    # Run database migrations for new columns
+    from data.migrations import run_migrations
+    run_migrations()
+
     return app
 
 

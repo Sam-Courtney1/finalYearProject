@@ -1,0 +1,55 @@
+{% extends "base_user.html" %}
+
+{% block title %}Edit Answers | Organ Donation System{% endblock %}
+
+{% block content %}
+<div class="page-container mt-5">
+    <h2 class="text-center mb-4"><i class="bi bi-pencil-square me-2"></i>Edit Your Answers</h2>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="alert alert-modern text-center">
+        {% for message in messages %}
+        <p class="mb-0">{{ message }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form action="{{ url_for('questionnaire_bp.save_edited_submission', submission_id=submission_id) }}"
+                  method="POST">
+
+                {% for f in fields %}
+                <div class="mb-3">
+                    <label class="form-label">
+                        {{ f[1] }}
+                        {% if f[3] in ['PII', 'Medical'] %}
+                        <span class="badge bg-info">
+                            <i class="bi bi-lock-fill me-1"></i>Encrypted
+                        </span>
+                        {% endif %}
+                    </label>
+                    <input type="{{ f[2] }}" name="field_{{ f[0] }}"
+                           class="form-control" value="{{ f[4] }}" required>
+                </div>
+                {% endfor %}
+
+                <p class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Some fields that use one-way encryption cannot be displayed or edited here.
+                </p>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-lg"></i>Save Changes
+                    </button>
+                    <a href="{{ url_for('questionnaire_bp.select_submission_to_edit') }}"
+                       class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
