@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 
@@ -24,17 +25,32 @@ def create_app():
                 )
     app.secret_key = os.getenv("APP_ENC_KEY", "test")
 
+    # Allows the mobile app to make requests to /api/ routes from a different device
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+
     # Import Blueprints
     from application.routes.pages_and_actions import auth_bp, pages_bp
     from application.routes.questionnaire_routes import questionnaire_bp
     from application.routes.home_route import home_bp
-
+    from application.routes.client_routes import client_bp
+    from application.routes.admin_routes import admin_bp
 
     # Register Blueprints
     app.register_blueprint(pages_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(questionnaire_bp)
     app.register_blueprint(home_bp)
+    # Client routes are prefixed with /client
+    app.register_blueprint(client_bp, url_prefix='/client')
+    # Admin routes for audit dashboard, prefixed with /admin
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    # Mobile app API routes, all start with /api/
+    from application.routes.api_routes import api_bp
+    app.register_blueprint(api_bp, url_prefix='/api')
+
+    # Initialize audit logging table
+    from data.audit_database import create_audit_table
+    create_audit_table()
 
     return app
 

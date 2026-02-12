@@ -2,6 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from application.services.authentication import register_user, authenticate_user
 from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only
 from data.db_connection import get_db_connection
+from application.services.audit_service import (
+    audit_log, log_login_success, log_login_failed, log_logout,
+    log_data_create, log_data_delete
+)
 import os
 
 """
@@ -22,7 +26,7 @@ def login_page():
 
 @auth_bp.route('/register')
 def register_page():
-    return render_template('client_register.html')
+    return render_template('Register.html')
 
 @auth_bp.route('/register_user', methods = ['POST'])
 def register():
@@ -75,6 +79,10 @@ def register():
     cur.close()
     conn.close()
 
+    # Log new user registration
+    log_data_create('users', user_id, {'action': 'registration'})
+    log_login_success(user_id, 'user')
+
     return redirect(url_for('home_bp.homepage'))
 
 
@@ -89,13 +97,20 @@ def login():
     if user_id:
         session['user_id'] = user_id
         session['username'] = username
+        # Log successful login for audit trail
+        log_login_success(user_id, 'user')
         return redirect(url_for('home_bp.homepage'))
     else:
+        # Log failed login attempt for security monitoring
+        log_login_failed(username, 'user')
         flash("Username or password is incorrect. Please register an account or login with valid credentials")
         return redirect(url_for('auth_bp.login_page'))
 
 @auth_bp.route('/logout')
 def logout():
+    # Log logout before clearing session (need user_id)
+    if 'user_id' in session:
+        log_logout(session['user_id'], 'user')
     # This clears the session data including the user_id and username
     # This logs out the user and returns them to the login page
     session.clear()
@@ -108,34 +123,41 @@ and also allows them to delete there account
 """
 
 @pages_bp.route('/right_to_access', methods = ['GET'])
+@audit_log('view', 'user_data')
 def right_to_access():
     if 'user_id' not in session:
         return redirect(url_for('auth_bp.login_page'))
     else:
         user_id = session['user_id']
-    
+
     static_data, dynamic_data = get_user_data(user_id)
     return render_template('access_data.html', static_data = static_data, dynamic_data = dynamic_data)
 
 
 
 @pages_bp.route('/right_to_forget', methods = ['POST'])
+@audit_log('delete', 'users')
 def right_to_forget():
     if 'user_id' not in session:
         return redirect(url_for('auth_bp.login_page'))
     else:
         user_id = session['user_id']
 
+    # Log deletion before actually deleting (for audit trail)
+    log_data_delete('users', user_id, {'action': 'right_to_forget', 'complete_deletion': True})
     delete_user(user_id)
     session.clear()
     return redirect(url_for('auth_bp.login_page'))
 
 @pages_bp.route('/delete_user_data', methods=['POST'])
+@audit_log('delete', 'submissions')
 def delete_user_data():
     if 'user_id' not in session:
         return redirect(url_for('auth_bp.login_page'))
     else:
         user_id = session['user_id']
 
+    # Log data deletion 
+    log_data_delete('submissions', user_id, {'action': 'delete_data_only', 'account_preserved': True})
     delete_user_data_only(user_id)
     return redirect(url_for('home_bp.homepage'))

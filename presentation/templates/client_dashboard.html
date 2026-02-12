@@ -12,10 +12,11 @@
 <body>
   <nav class="navbar navbar-light bg-light">
     <div class="container-fluid">
-      <a class="navbar-brand" href="{{ url_for('client_dashboard') }}">Dashboard</a>
+      <a class="navbar-brand" href="{{ url_for('client_bp.client_dashboard') }}">Dashboard</a>
       <div class="ms-auto">
-        <a href="{{ url_for('client_questionnaire') }}" class="me-3">Edit Questionnaire</a>
-        <a href="{{ url_for('client_logout') }}">Logout</a>
+        <a href="{{ url_for('client_bp.client_questionnaire') }}" class="me-3">Edit Questionnaire</a>
+        <a href="{{ url_for('admin_bp.audit_dashboard') }}" class="me-3">Audit Logs</a>
+        <a href="{{ url_for('client_bp.client_logout') }}">Logout</a>
       </div>
     </div>
   </nav>

@@ -12,9 +12,9 @@
 <body>
   <nav class="navbar navbar-light bg-light">
     <div class="container-fluid">
-      <a class="navbar-brand" href="{{ url_for('client_dashboard') }}">Dashboard</a>
+      <a class="navbar-brand" href="{{ url_for('client_bp.client_dashboard') }}">Dashboard</a>
       <div class="ms-auto">
-        <a href="{{ url_for('client_logout') }}">Logout</a>
+        <a href="{{ url_for('client_bp.client_logout') }}">Logout</a>
       </div>
     </div>
   </nav>
@@ -63,7 +63,7 @@
           <td>{{ f[2] }}</td>
           <td>{{ f[3] }}</td>
           <td>
-            <form method="POST" action="{{ url_for('client_delete_field', field_id=f[0]) }}">
+            <form method="POST" action="{{ url_for('client_bp.client_delete_field', field_id=f[0]) }}">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
           </td>
