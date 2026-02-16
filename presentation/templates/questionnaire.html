@@ -1,17 +1,19 @@
 {% extends "base_user.html" %}
 
-{% block title %}Questionnaire | Organ Donation System{% endblock %}
+{% block title %}{{ client_name }} - {{ questionnaire_name }} | Organ Donation System{% endblock %}
 
 {% block content %}
 <div class="auth-background">
     <div class="questionnaire-container">
         <div class="auth-heading">
-            <h1>Questionnaire</h1>
+            <h1>{{ client_name }}</h1>
+            <h4 style="color: var(--text-secondary); margin-top: 10px;">{{ questionnaire_name }}</h4>
         </div>
         <div class="questionnaire-card">
             <h2>Please answer all questions</h2>
-            <form action="{{ url_for('questionnaire_bp.questionnaire_form', client_id = client_id) }}"
+            <form action="{{ url_for('questionnaire_bp.questionnaire_form', client_id=client_id, questionnaire_name=questionnaire_name) }}"
                   method="POST" class="questionnaire-form">
+                <input type="hidden" name="client_id" value="{{ client_id }}">
                 {% for f in static_fields %}
                 <div class="mb-3">
                     <label>{{ f[1] }}</label>

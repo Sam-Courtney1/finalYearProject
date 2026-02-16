@@ -8,8 +8,8 @@
     <p class="text-center text-muted mb-4">
         Under GDPR Article 7(3), you have the right to withdraw your consent at any time.
         Withdrawing consent will prevent the organisation from accessing your data,
-        but your data will be kept so you can re-give consent later.
-        To permanently delete your data, use the "Right to Forget" option on the homepage.
+        but your data will be kept so you can re-give consent later.<br>
+        You can also permanently delete individual submissions using the Delete button.
     </p>
 
     {% with messages = get_flashed_messages() %}
@@ -28,14 +28,17 @@
             <thead>
                 <tr>
                     <th>Organisation</th>
+                    <th>Questionnaire</th>
                     <th>Status</th>
                     <th>Action</th>
+                    <th>Delete</th>
                 </tr>
             </thead>
             <tbody>
                 {% for s in submissions %}
                 <tr>
                     <td>{{ s[2] }}</td>
+                    <td>{{ s[4] }}</td>
                     <td>
                         {% if s[3] %}
                         <span class="status-badge status-badge-withdrawn">
@@ -64,6 +67,15 @@
                             </button>
                         </form>
                         {% endif %}
+                    </td>
+                    <td>
+                        <form action="{{ url_for('pages_bp.delete_submission_route', submission_id=s[0]) }}"
+                              method="POST" style="display:inline;"
+                              onsubmit="return confirm('Are you sure you want to permanently delete this submission? This will remove all your answers for {{ s[2] }} - {{ s[4] }}. This action cannot be undone.');">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-trash3 me-1"></i>Delete
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}

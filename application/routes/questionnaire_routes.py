@@ -21,36 +21,45 @@ The questionnaire_form accepts an arugment of client id to identify which compan
 form it is processing. If a post request is recieved then the form will send the data to 
 the server to be processed and if it recieves a get request it will display the questionaire page
 """
-@questionnaire_bp.route('/questionnaire/<int:client_id>', methods = ['GET', 'POST'])
+@questionnaire_bp.route('/questionnaire/<int:client_id>/<questionnaire_name>', methods = ['GET', 'POST'])
 @audit_log('view', 'questionnaire_fields')
-def questionnaire_form(client_id):
+def questionnaire_form(client_id, questionnaire_name):
+    """
+    Display and submit a specific questionnaire for a client.
+    URL now includes questionnaire_name to distinguish between multiple questionnaires.
+    """
     if 'user_id' not in session:
         return redirect(url_for('auth_bp.login_page'))
-    else:
-        pass
 
     if request.method == 'POST':
         user_id = session['user_id']
-        handle_questionnaire_submission(user_id, client_id, request.form)
+        handle_questionnaire_submission(user_id, client_id, questionnaire_name, request.form)
         # Log questionnaire submission
         log_data_create('questionnaire_submission', user_id, {
             'client_id': client_id,
+            'questionnaire_name': questionnaire_name,
             'fields_submitted': len([k for k in request.form.keys() if k != 'client_id'])
         })
+        flash(f"Questionnaire '{questionnaire_name}' submitted successfully!")
         return redirect(url_for('home_bp.homepage'))
-    else:
-        pass
 
+    # GET request: fetch fields for this specific questionnaire
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
                 SELECT field_id, field_label, field_type, category
                 FROM questionnaire_fields
-                WHERE client_id = %s
+                WHERE client_id = %s AND questionnaire_name = %s
                 ORDER BY field_id;
-                """, (client_id,))
-    
+                """, (client_id, questionnaire_name))
+
     fields = cur.fetchall()
+
+    # Get client name for display
+    cur.execute("SELECT username FROM clients WHERE client_id = %s", (client_id,))
+    client_name_row = cur.fetchone()
+    client_name = client_name_row[0] if client_name_row else "Unknown"
+
     cur.close()
     conn.close()
 
@@ -63,48 +72,50 @@ def questionnaire_form(client_id):
         'questionnaire.html',
         static_fields = static_fields,
         dynamic_fields = fields,
-        client_id = client_id
+        client_id = client_id,
+        questionnaire_name = questionnaire_name,
+        client_name = client_name
     )
 
-@questionnaire_bp.route('/questionnaire', methods = ['POST'])
-def submit_questionnaire():
-    # If somehow the user gets to this page and is not logged in
-    # Then no use_id will be in session so return them to be logged in
-    # Double security as users cannot type in the url extension to get to this page
-    if 'user_id' not in session:
-        return redirect(url_for('auth_bp.login_page'))
-    else:
-        pass
-    # Adding in client id so the form is linked to the correct client
-    client_id = int(request.form["client_id"])
-    handle_questionnaire_submission(session['user_id'], client_id,request.form)
-    # Log questionnaire submission
-    log_data_create('questionnaire_submission', session['user_id'], {
-        'client_id': client_id,
-        'fields_submitted': len([k for k in request.form.keys() if k != 'client_id'])
-    })
-    return redirect(url_for('home_bp.homepage'))
+# Note: The old /questionnaire POST route is now redundant
+# Submissions are handled by the route above with client_id and questionnaire_name
 
 """
-The below function passes a list of clinets to the questionnare selection page
-This is the page with the drop down menu, this is how that menu is populated
+The below function shows all available questionnaires grouped by client/organization.
+Displays organization name with their available questionnaires.
 """
 @questionnaire_bp.route('/questionnaire', methods=['GET'])
 @audit_log('view', 'questionnaire_selection')
-def select_client():
+def select_questionnaire():
     if 'user_id' not in session:
         return redirect(url_for('auth_bp.login_page'))
-    else:
-        pass
 
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT client_id, username FROM clients ORDER BY username;")
-    clients = cur.fetchall()
+
+    # Get all distinct questionnaires with client info
+    cur.execute("""
+        SELECT DISTINCT c.client_id, c.username, qf.questionnaire_name
+        FROM clients c
+        JOIN questionnaire_fields qf ON c.client_id = qf.client_id
+        ORDER BY c.username, qf.questionnaire_name;
+    """)
+
+    questionnaires = cur.fetchall()
     cur.close()
     conn.close()
 
-    return render_template('questionnaire_select.html', clients = clients)
+    # Group by client for better UX
+    clients_dict = {}
+    for client_id, client_name, q_name in questionnaires:
+        if client_name not in clients_dict:
+            clients_dict[client_name] = {
+                'client_id': client_id,
+                'questionnaires': []
+            }
+        clients_dict[client_name]['questionnaires'].append(q_name)
+
+    return render_template('questionnaire_select.html', clients = clients_dict)
 
 
 """

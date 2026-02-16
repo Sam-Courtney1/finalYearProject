@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Client Portal | Organ Donation System{% endblock %}
+{% block body_class %}client-landing-page{% endblock %}
+
+{% block flash_messages %}{% endblock %}
+
+{% block content %}
+<div class="cl-wrapper">
+
+    <!-- Background grid -->
+    <div class="cl-bg-grid" aria-hidden="true"></div>
+
+    <!-- Ambient glow orbs -->
+    <div class="cl-orb cl-orb--primary" aria-hidden="true"></div>
+    <div class="cl-orb cl-orb--accent" aria-hidden="true"></div>
+    <div class="cl-orb cl-orb--subtle" aria-hidden="true"></div>
+
+    <!-- Particle network -->
+    <canvas id="cl-particles" class="cl-particles-canvas"></canvas>
+
+    <!-- Foreground content -->
+    <div class="cl-content">
+
+    <!-- Navigation -->
+    <nav class="cl-nav">
+        <div class="cl-nav__brand">
+            <i class="bi bi-heart-pulse"></i>
+            Organ Donation System
+        </div>
+        <div class="cl-nav__links">
+            <a href="{{ url_for('client_bp.client_login') }}" class="cl-nav--active">Portal</a>
+            <a href="{{ url_for('client_bp.client_register') }}" class="cl-nav__cta">Get Started</a>
+        </div>
+    </nav>
+
+    <!-- Hero content -->
+    <div class="cl-hero">
+
+        <!-- Glass badges -->
+        <div class="cl-badges">
+            <div class="cl-badge">
+                <i class="bi bi-shield-check"></i>
+                GDPR Compliant
+            </div>
+            <div class="cl-badge">
+                <i class="bi bi-graph-up-arrow"></i>
+                Real-time Audit
+            </div>
+            <div class="cl-badge">
+                <i class="bi bi-lock"></i>
+                End-to-End Encrypted
+            </div>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="cl-headline">
+            <span class="cl-headline--gradient">Compliance Made</span><br>
+            <span class="cl-headline--accent">Effortless.</span>
+        </h1>
+
+        <p class="cl-subtext">
+            Manage donor questionnaires, track consent in real time, and maintain
+            a tamper-proof audit trail. Built for organisations that take data
+            protection seriously.
+        </p>
+
+        <!-- Login card -->
+        <div class="cl-login-card">
+            <h2>Client Sign In</h2>
+
+            {% for message in get_flashed_messages() %}
+            <div class="flash-message">
+                <i class="bi bi-exclamation-triangle"></i>{{ message }}
+            </div>
+            {% endfor %}
+
+            <form action="{{ url_for('client_bp.client_login') }}" method="POST">
+                <input type="text" name="username" placeholder="Company" required
+                       autocomplete="username">
+                <input type="password" name="password" placeholder="Password" required
+                       autocomplete="current-password">
+                <div class="button-group">
+                    <button type="submit" class="login-btn">
+                        <i class="bi bi-box-arrow-in-right"></i>Sign In
+                    </button>
+                </div>
+            </form>
+            <div class="button-group">
+                <a href="{{ url_for('client_bp.client_register') }}" class="register-btn">
+                    <i class="bi bi-building-add"></i>Register Organisation
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trust bar -->
+    <div class="cl-trust">
+        <div class="cl-trust__item">
+            <i class="bi bi-database-lock"></i>
+            pgcrypto AES-256
+        </div>
+        <div class="cl-trust__item">
+            <i class="bi bi-clipboard-check"></i>
+            Immutable Audit Logs
+        </div>
+        <div class="cl-trust__item">
+            <i class="bi bi-person-x"></i>
+            Right to Forget
+        </div>
+        <div class="cl-trust__item">
+            <i class="bi bi-globe-europe-africa"></i>
+            GDPR Article 17
+        </div>
+    </div>
+
+    </div><!-- /.cl-content -->
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='client_landing.js') }}"></script>
+{% endblock %}

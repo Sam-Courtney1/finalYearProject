@@ -12,16 +12,25 @@ Submision_id is added into pii aswell as first name and addess which are both en
 
 Submissoin_id and age are put into the demographic_data table as plain text
 """
-def handle_questionnaire_submission(user_id,client_id, form_data):
+def handle_questionnaire_submission(user_id, client_id, questionnaire_name, form_data):
+    """
+    Handles questionnaire submission with questionnaire_name parameter.
+
+    Parameters:
+        user_id: int
+        client_id: int
+        questionnaire_name: str - The specific questionnaire being filled
+        form_data: dict - Form data including field values and consent
+    """
     conn = get_db_connection()
     cur = conn.cursor()
-    
+
     cur.execute("""
-                INSERT INTO submissions (user_id, client_id, consent)
-                VALUES (%s, %s, %s)
+                INSERT INTO submissions (user_id, client_id, questionnaire_name, consent)
+                VALUES (%s, %s, %s, %s)
                 RETURNING submission_id;
-                """, (user_id, client_id, 'consent' in form_data))
-    
+                """, (user_id, client_id, questionnaire_name, 'consent' in form_data))
+
     submission_id = cur.fetchone()[0]
     key = os.getenv("APP_ENC_KEY")
     

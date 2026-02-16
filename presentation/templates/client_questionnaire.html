@@ -1,16 +1,31 @@
 {% extends "base_client.html" %}
 
-{% block title %}Questionnaire Editor | Organ Donation System{% endblock %}
+{% block title %}Edit {{ questionnaire_name }} | Organ Donation System{% endblock %}
 
 {% block content %}
 <div class="page-container mt-4">
-    <h2 class="text-center mb-4"><i class="bi bi-pencil-square me-2"></i>Questionnaire Editor</h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('client_bp.client_dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('client_bp.client_questionnaire_list') }}">Questionnaires</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ questionnaire_name }}</li>
+        </ol>
+    </nav>
 
-    {% for message in get_flashed_messages() %}
-    <div class="flash-message">
-        <i class="bi bi-exclamation-triangle"></i>{{ message }}
-    </div>
-    {% endfor %}
+    <h2 class="text-center mb-4">
+        <i class="bi bi-pencil-square me-2"></i>{{ questionnaire_name }}
+    </h2>
+    <p class="text-center text-muted mb-4">Add and manage fields for this questionnaire</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-modern alert-{{ category }} text-center">
+            <p class="mb-0">{{ message }}</p>
+        </div>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
 
     <form method="POST" class="row g-2 mb-4">
         <div class="col-md-4">

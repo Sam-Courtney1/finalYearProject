@@ -9,9 +9,14 @@
     <p class="subtitle-text">Use the navigation above to manage your questionnaire and view audit logs.</p>
 
     <div class="homepage-actions" style="margin-top: 40px;">
-        <form action="{{ url_for('client_bp.client_questionnaire') }}" method="GET">
+        <form action="{{ url_for('client_bp.client_questionnaire_list') }}" method="GET">
             <button type="submit" class="action-btn action-btn-primary">
-                <i class="bi bi-pencil-square"></i>Edit Questionnaire
+                <i class="bi bi-list-ul"></i>Manage Questionnaires
+            </button>
+        </form>
+        <form action="{{ url_for('client_bp.client_questionnaire_list') }}" method="GET">
+            <button type="submit" class="action-btn action-btn-success">
+                <i class="bi bi-table"></i>View Submission Data
             </button>
         </form>
         <form action="{{ url_for('admin_bp.audit_dashboard') }}" method="GET">

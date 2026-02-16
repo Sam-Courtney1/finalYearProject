@@ -6,7 +6,7 @@ from application.services.audit_service import (
     audit_log, log_login_success, log_login_failed, log_logout,
     log_data_create, log_data_delete, log_data_update
 )
-from data.submission_database import get_user_submissions, withdraw_consent, reinstate_consent
+from data.submission_database import get_user_submissions, withdraw_consent, reinstate_consent, delete_single_submission
 import os
 
 """
@@ -23,7 +23,7 @@ pages_bp = Blueprint('pages_bp', __name__)
 
 @auth_bp.route('/')
 def login_page():
-    return render_template('login.html')
+    return render_template('landing.html')
 
 @auth_bp.route('/register')
 def register_page():
@@ -220,3 +220,33 @@ def reinstate_consent_route(submission_id):
         flash("Could not reinstate consent. Submission not found.")
 
     return redirect(url_for('pages_bp.consent_management'))
+
+
+@pages_bp.route('/delete_submission/<int:submission_id>', methods=['POST'])
+@audit_log('delete', 'submissions')
+def delete_submission_route(submission_id):
+    """
+    Deletes a single questionnaire submission and all related data.
+    Uses soft deletion for audit trail while hard deleting sensitive data.
+    """
+    if 'user_id' not in session:
+        return redirect(url_for('auth_bp.login_page'))
+
+    user_id = session['user_id']
+    result = delete_single_submission(submission_id, user_id)
+
+    if result and result['success']:
+        # Log deletion with full context for audit trail
+        log_data_delete('submissions', submission_id, {
+            'action': 'delete_single_submission',
+            'user_id': user_id,
+            'client_name': result['client_name'],
+            'answers_deleted': result['answers_deleted'],
+            'deletion_type': 'user_initiated'
+        })
+        flash(f"Submission for '{result['client_name']}' has been permanently deleted.")
+    else:
+        flash("Could not delete submission. Submission not found or access denied.")
+
+    # Redirect back to the referring page (consent management or edit page)
+    return redirect(request.referrer or url_for('pages_bp.consent_management'))
