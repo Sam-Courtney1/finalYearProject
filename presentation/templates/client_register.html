@@ -1,38 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base_auth.html" %}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Client Register | Organ Donation System</title>
-  <!-- need both below for local and flask application of css-->
-  <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% block title %}Client Register | Organ Donation System{% endblock %}
+{% block auth_title %}Welcome to the<br>Client Register{% endblock %}
+{% block card_title %}Register{% endblock %}
 
-</head>
+{% block auth_back %}
+<a href="{{ url_for('client_bp.client_login') }}" class="back-arrow">
+    <i class="bi bi-arrow-left"></i>
+</a>
+{% endblock %}
 
-<body>
-  <div class="background">
-    <div class="login-container">
-      <div class="heading-text">
-        <h1>Welcome to the<br>Client Reister</h1>
-      </div>
-      <div class="login-box">
-        <a href="{{ url_for('client_bp.client_login') }}" class="back-arrow">&larr;</a>
-        <h2>Register</h2>
-        {% for message in get_flashed_messages() %}
-        <p class="flash">{{ message }}</p>
-        {% endfor %}
-        <form action="{{ url_for('client_bp.client_register') }}" method="POST">
-          <input type="text" name="username" placeholder="Company" required>
-          <input type="password" name="password" placeholder="Password" required>
-          <div class="button-group">
-            <button type="submit" class="register-btn">Register</button>
-          </div>
-        </form>
-      </div>
+{% block card_content %}
+<form action="{{ url_for('client_bp.client_register') }}" method="POST">
+    <input type="text" name="username" placeholder="Company" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <div class="button-group">
+        <button type="submit" class="register-btn">
+            <i class="bi bi-building-add"></i>Register
+        </button>
     </div>
-  </div>
-</body>
-
-</html>
+</form>
+{% endblock %}

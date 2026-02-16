@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block body_class %}client-page{% endblock %}
+
+{% block navbar %}
+<nav class="navbar navbar-expand-lg navbar-modern">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('client_bp.client_dashboard') }}">
+            <i class="bi bi-building"></i>Dashboard
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#clientNav"
+                aria-controls="clientNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="clientNav">
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('client_bp.client_questionnaire_list') }}">
+                    <i class="bi bi-list-ul"></i>Manage Questionnaires
+                </a>
+                <a class="nav-link" href="{{ url_for('admin_bp.audit_dashboard') }}">
+                    <i class="bi bi-graph-up"></i>Audit Logs
+                </a>
+                <a class="nav-link" href="{{ url_for('client_bp.client_logout') }}">
+                    <i class="bi bi-box-arrow-right"></i>Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+{% endblock %}

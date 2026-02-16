@@ -7,7 +7,11 @@ from data.db_connection import get_db_connection
 from application.services.log_form_data import handle_questionnaire_submission
 from application.services.audit_service import (
     audit_log, log_login_success, log_login_failed, log_logout,
-    log_data_create, log_data_delete
+    log_data_create, log_data_delete, log_data_update
+)
+from data.submission_database import (
+    get_user_submissions, get_submission_answers, update_submission_answers,
+    withdraw_consent, reinstate_consent, delete_single_submission
 )
 import os
 
@@ -216,29 +220,56 @@ def api_delete_data():
 @token_required
 @audit_log('view', 'questionnaire_selection')
 def api_list_clients():
-    """Returns a list of all organisations the user can fill questionnaires for"""
+    """
+    Returns list of all organizations with their questionnaires.
+    Format: [{"client_id": 1, "name": "HSE", "questionnaires": ["Cardio Health", "Diabetes Study"]}, ...]
+    """
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT client_id, username FROM clients ORDER BY username;")
-    clients = cur.fetchall()
+
+    # Get all distinct questionnaires with client info
+    cur.execute("""
+        SELECT DISTINCT c.client_id, c.username, qf.questionnaire_name
+        FROM clients c
+        JOIN questionnaire_fields qf ON c.client_id = qf.client_id
+        ORDER BY c.username, qf.questionnaire_name;
+    """)
+
+    results = cur.fetchall()
     cur.close()
     conn.close()
 
-    client_list = [{"client_id": c[0], "name": c[1]} for c in clients]
+    # Group questionnaires by client
+    clients_dict = {}
+    for client_id, client_name, q_name in results:
+        if client_id not in clients_dict:
+            clients_dict[client_id] = {
+                "client_id": client_id,
+                "name": client_name,
+                "questionnaires": []
+            }
+        clients_dict[client_id]["questionnaires"].append(q_name)
+
+    client_list = list(clients_dict.values())
     return jsonify({"clients": client_list}), 200
 
 
-@api_bp.route('/questionnaire/<int:client_id>', methods=['GET'])
+@api_bp.route('/questionnaire/<int:client_id>/<questionnaire_name>', methods=['GET'])
 @token_required
 @audit_log('view', 'questionnaire_fields')
-def api_get_questionnaire(client_id):
-    """Returns the questionnaire fields for a specific client so the app can build the form"""
+def api_get_questionnaire(client_id, questionnaire_name):
+    """
+    Returns the questionnaire fields for a specific client's specific questionnaire.
+    Mobile app uses this to build the form.
+    """
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         SELECT field_id, field_label, field_type, category
-        FROM questionnaire_fields WHERE client_id = %s ORDER BY field_id;
-    """, (client_id,))
+        FROM questionnaire_fields
+        WHERE client_id = %s AND questionnaire_name = %s
+        ORDER BY field_id;
+    """, (client_id, questionnaire_name))
     fields = cur.fetchall()
     cur.close()
     conn.close()
@@ -250,14 +281,19 @@ def api_get_questionnaire(client_id):
         "category": f[3]
     } for f in fields]
 
-    return jsonify({"client_id": client_id, "fields": field_list}), 200
+    return jsonify({
+        "client_id": client_id,
+        "questionnaire_name": questionnaire_name,
+        "fields": field_list
+    }), 200
 
 
-@api_bp.route('/questionnaire/<int:client_id>', methods=['POST'])
+@api_bp.route('/questionnaire/<int:client_id>/<questionnaire_name>', methods=['POST'])
 @token_required
-def api_submit_questionnaire(client_id):
+def api_submit_questionnaire(client_id, questionnaire_name):
     """
-    Submits questionnaire answers for a specific client
+    Submits questionnaire answers for a specific client's specific questionnaire.
+    Request body: {"consent": true, "fields": {"field_id": "value", ...}}
     """
     data = request.get_json()
     if not data:
@@ -268,18 +304,183 @@ def api_submit_questionnaire(client_id):
 
     user_id = session['user_id']
 
+    # Build form dict in the format handle_questionnaire_submission expects
     form_dict = {}
     fields = data.get('fields', {})
     for field_id, value in fields.items():
         form_dict[f"field_{field_id}"] = value
     form_dict['consent'] = 'on'
 
-    handle_questionnaire_submission(user_id, client_id, form_dict)
+    handle_questionnaire_submission(user_id, client_id, questionnaire_name, form_dict)
 
     log_data_create('questionnaire_submission', user_id, {
         'client_id': client_id,
+        'questionnaire_name': questionnaire_name,
         'fields_submitted': len(fields),
         'source': 'mobile_api'
     })
 
     return jsonify({"message": "Questionnaire submitted successfully"}), 201
+
+
+# Edit answers endpoints
+
+@api_bp.route('/submissions', methods=['GET'])
+@token_required
+@audit_log('view', 'submissions')
+def api_list_submissions():
+    """Returns list of user's questionnaire submissions with client info and questionnaire names"""
+    user_id = session['user_id']
+    submissions = get_user_submissions(user_id)
+
+    submission_list = [{
+        "submission_id": s[0],
+        "client_id": s[1],
+        "client_name": s[2],
+        "consent_withdrawn": s[3],
+        "questionnaire_name": s[4]
+    } for s in submissions]
+
+    return jsonify({"submissions": submission_list}), 200
+
+
+@api_bp.route('/submissions/<int:submission_id>/answers', methods=['GET'])
+@token_required
+@audit_log('view', 'answers')
+def api_get_submission_answers(submission_id):
+    """Returns current decrypted answers for a submission (excluding Hashed fields)"""
+    user_id = session['user_id']
+    answers = get_submission_answers(submission_id, user_id)
+
+    if answers is None:
+        return jsonify({"error": "Submission not found or access denied"}), 404
+
+    field_list = [{
+        "field_id": a[0],
+        "field_label": a[1],
+        "field_type": a[2],
+        "category": a[3],
+        "value": a[4]
+    } for a in answers]
+
+    return jsonify({"submission_id": submission_id, "fields": field_list}), 200
+
+
+@api_bp.route('/submissions/<int:submission_id>/answers', methods=['PUT'])
+@token_required
+@audit_log('update', 'answers')
+def api_update_submission_answers(submission_id):
+    """
+    Updates answers for a submission.
+    Request body: {"fields": {"<field_id>": "<new_value>", ...}}
+    """
+    data = request.get_json()
+    if not data or 'fields' not in data:
+        return jsonify({"error": "Request body must contain 'fields' dict"}), 400
+
+    user_id = session['user_id']
+    updated_fields = data['fields']
+
+    count = update_submission_answers(submission_id, user_id, updated_fields)
+
+    if count is None:
+        return jsonify({"error": "Submission not found or access denied"}), 404
+
+    log_data_update('answers', submission_id, {
+        'action': 'questionnaire_edit',
+        'fields_updated': count,
+        'field_ids': list(updated_fields.keys()),
+        'source': 'mobile_api'
+    })
+
+    return jsonify({"message": "Answers updated", "fields_updated": count}), 200
+
+
+# Consent management endpoints
+
+@api_bp.route('/consent', methods=['GET'])
+@token_required
+@audit_log('view', 'consent_status')
+def api_list_consent_status():
+    """Returns consent status for all of user's submissions with questionnaire names"""
+    user_id = session['user_id']
+    submissions = get_user_submissions(user_id)
+
+    consent_list = [{
+        "submission_id": s[0],
+        "client_id": s[1],
+        "client_name": s[2],
+        "consent_withdrawn": s[3],
+        "questionnaire_name": s[4]
+    } for s in submissions]
+
+    return jsonify({"consents": consent_list}), 200
+
+
+@api_bp.route('/submissions/<int:submission_id>/consent/withdraw', methods=['POST'])
+@token_required
+@audit_log('update', 'submissions')
+def api_withdraw_consent(submission_id):
+    """Withdraws consent for a specific submission"""
+    user_id = session['user_id']
+    success = withdraw_consent(submission_id, user_id)
+
+    if not success:
+        return jsonify({"error": "Submission not found or access denied"}), 404
+
+    log_data_update('submissions', submission_id, {
+        'action': 'consent_withdrawn',
+        'user_id': user_id,
+        'source': 'mobile_api'
+    })
+
+    return jsonify({"message": "Consent withdrawn"}), 200
+
+
+@api_bp.route('/submissions/<int:submission_id>/consent/reinstate', methods=['POST'])
+@token_required
+@audit_log('update', 'submissions')
+def api_reinstate_consent(submission_id):
+    """Re-gives consent for a previously withdrawn submission"""
+    user_id = session['user_id']
+    success = reinstate_consent(submission_id, user_id)
+
+    if not success:
+        return jsonify({"error": "Submission not found or access denied"}), 404
+
+    log_data_update('submissions', submission_id, {
+        'action': 'consent_reinstated',
+        'user_id': user_id,
+        'source': 'mobile_api'
+    })
+
+    return jsonify({"message": "Consent reinstated"}), 200
+
+
+@api_bp.route('/submissions/<int:submission_id>', methods=['DELETE'])
+@token_required
+@audit_log('delete', 'submissions')
+def api_delete_submission(submission_id):
+    """
+    Deletes a single submission and all related data (mobile API version).
+    DELETE /api/submissions/<submission_id>
+    Returns: 200 with success message, or 404 if not found/access denied
+    """
+    user_id = session['user_id']
+    result = delete_single_submission(submission_id, user_id)
+
+    if result and result['success']:
+        log_data_delete('submissions', submission_id, {
+            'action': 'delete_single_submission',
+            'user_id': user_id,
+            'client_name': result['client_name'],
+            'answers_deleted': result['answers_deleted'],
+            'deletion_type': 'user_initiated',
+            'source': 'mobile_api'
+        })
+        return jsonify({
+            "message": f"Submission for '{result['client_name']}' deleted successfully",
+            "client_name": result['client_name']
+        }), 200
+    else:
+        return jsonify({"error": "Submission not found or access denied"}), 404

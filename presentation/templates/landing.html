@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Organ Donation System | GDPR-Compliant Data Protection{% endblock %}
+{% block body_class %}landing-page{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block flash_messages %}{% endblock %}
+
+{% block content %}
+<div class="landing-wrapper">
+
+    <!-- Layer 1: Background data grid (plaintext) -->
+    <div id="data-grid" class="landing-data-grid" aria-hidden="true"></div>
+
+    <!-- Layer 2: Background data grid (encrypted - revealed by spotlight) -->
+    <div id="data-grid-encrypted" class="landing-data-grid landing-data-grid--encrypted" aria-hidden="true"></div>
+
+    <!-- Layer 3: Subtle animated grid lines -->
+    <canvas id="grid-canvas" class="landing-grid-canvas"></canvas>
+
+    <!-- Layer 4: Cursor echo trails -->
+    <canvas id="spotlight-canvas" class="landing-spotlight-canvas"></canvas>
+
+    <!-- Layer 5: Foreground content -->
+    <div class="landing-content">
+
+        <!-- Navigation -->
+        <nav class="landing-nav">
+            <div class="landing-nav__brand" data-invertible>
+                <i class="bi bi-heart-pulse"></i>
+                <span>Organ Donation System</span>
+            </div>
+            <div class="landing-nav__links">
+            </div>
+        </nav>
+
+        <!-- Hero section -->
+        <div class="landing-hero">
+            <div class="landing-hero__text" data-parallax-speed="0.04">
+                <h1 class="landing-hero__title" data-invertible>
+                    Your Data.<br>
+                    <span class="landing-hero__title--accent">Encrypted. Protected. Yours.</span>
+                </h1>
+                <p class="landing-hero__tagline">
+                    A GDPR-compliant organ donation platform where every personal field
+                    is encrypted at rest with AES-256 via pgcrypto. Move your cursor
+                    to reveal what encryption looks like.
+                </p>
+            </div>
+
+            <!-- Login card -->
+            <div class="landing-login" data-parallax-speed="0.02">
+                <div class="landing-login__card">
+                    <h2>Sign In</h2>
+
+                    {% for message in get_flashed_messages() %}
+                    <div class="flash-message">
+                        <i class="bi bi-exclamation-triangle"></i>{{ message }}
+                    </div>
+                    {% endfor %}
+
+                    <form action="{{ url_for('auth_bp.login') }}" method="POST">
+                        <input type="text" name="username" placeholder="Username" required
+                               autocomplete="username">
+                        <input type="password" name="password" placeholder="Password" required
+                               autocomplete="current-password">
+                        <div class="button-group">
+                            <button type="submit" class="login-btn">
+                                <i class="bi bi-box-arrow-in-right"></i>Login
+                            </button>
+                        </div>
+                    </form>
+                    <div class="button-group">
+                        <a href="{{ url_for('auth_bp.register_page') }}" class="register-btn">
+                            <i class="bi bi-person-plus"></i>Register
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature badges -->
+        <div class="landing-features">
+            <div class="landing-feature-badge">
+                <i class="bi bi-shield-lock"></i>
+                <span>AES-256 Encryption</span>
+            </div>
+            <div class="landing-feature-badge">
+                <i class="bi bi-database-lock"></i>
+                <span>pgcrypto at Rest</span>
+            </div>
+            <div class="landing-feature-badge">
+                <i class="bi bi-clipboard-check"></i>
+                <span>Full Audit Trail</span>
+            </div>
+            <div class="landing-feature-badge">
+                <i class="bi bi-person-x"></i>
+                <span>Right to Forget</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='landing.js') }}"></script>
+{% endblock %}

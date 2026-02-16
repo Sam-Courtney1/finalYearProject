@@ -1,10 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from data.client_database import insert_client, find_client_by_username
-from data.questionnaire_client import insert_field, get_fields_for_client, delete_field
+from data.questionnaire_client import insert_field, get_fields_for_client, delete_field, get_questionnaires_for_client, questionnaire_name_exists
+from data.submission_database import get_submissions_for_questionnaire
 from application.services.audit_service import (
     log_login_success, log_login_failed, log_logout,
-    log_data_create, log_data_delete
+    log_data_create, log_data_delete, log_data_access
 )
 
 """
@@ -39,9 +40,9 @@ def client_login():
             # Log failed client login attempt
             log_login_failed(username, 'client')
             flash("Invalid username or password.")
-            return render_template("client_login.html")
+            return render_template("client_landing.html")
     else:
-        return render_template("client_login.html")
+        return render_template("client_landing.html")
 
 
 @client_bp.route("/register", methods=["GET", "POST"])
@@ -98,10 +99,51 @@ def client_dashboard():
     )
 
 
-@client_bp.route("/questionnaire", methods=["GET", "POST"])
-def client_questionnaire():
+@client_bp.route("/questionnaires", methods=["GET"])
+def client_questionnaire_list():
     """
-    Questionnaire editor for clients to add/view fields.
+    Shows all questionnaires for this client with ability to create new ones.
+    """
+    if "client_id" not in session:
+        return redirect(url_for("client_bp.client_login"))
+
+    client_id = session["client_id"]
+    questionnaires = get_questionnaires_for_client(client_id)
+
+    return render_template("client_questionnaire_list.html", questionnaires=questionnaires)
+
+
+@client_bp.route("/questionnaire/create", methods=["GET", "POST"])
+def client_create_questionnaire():
+    """
+    Create a new questionnaire (just the name initially).
+    """
+    if "client_id" not in session:
+        return redirect(url_for("client_bp.client_login"))
+
+    if request.method == "POST":
+        questionnaire_name = request.form["questionnaire_name"].strip()
+        client_id = session["client_id"]
+
+        if not questionnaire_name:
+            flash("Questionnaire name cannot be empty.", "danger")
+            return render_template("client_create_questionnaire.html")
+
+        # Check if name already exists for this client
+        if questionnaire_name_exists(client_id, questionnaire_name):
+            flash(f"A questionnaire named '{questionnaire_name}' already exists. Please choose a different name.", "danger")
+            return render_template("client_create_questionnaire.html")
+
+        flash(f"Questionnaire '{questionnaire_name}' created successfully! Now add fields below.", "success")
+        return redirect(url_for("client_bp.client_questionnaire_editor", questionnaire_name=questionnaire_name))
+
+    return render_template("client_create_questionnaire.html")
+
+
+@client_bp.route("/questionnaire/<questionnaire_name>", methods=["GET", "POST"])
+def client_questionnaire_editor(questionnaire_name):
+    """
+    Questionnaire field editor for a specific questionnaire.
     GET: Display the questionnaire editor with existing fields
     POST: Add a new field to the questionnaire
     """
@@ -114,17 +156,24 @@ def client_questionnaire():
         label = request.form["label"]
         field_type = request.form["field_type"]
         category = request.form["category"]
-        insert_field(client_id, label, field_type, category)
+
+        insert_field(client_id, questionnaire_name, label, field_type, category)
+
         # Log questionnaire field creation
         log_data_create('questionnaire_fields', client_id, {
+            'questionnaire_name': questionnaire_name,
             'label': label,
             'field_type': field_type,
             'category': category
         })
-        return redirect(url_for("client_bp.client_questionnaire"))
+
+        flash(f"Field '{label}' added successfully.", "success")
+        return redirect(url_for("client_bp.client_questionnaire_editor", questionnaire_name=questionnaire_name))
     else:
-        fields = get_fields_for_client(client_id)
-        return render_template("client_questionnaire.html", fields=fields)
+        fields = get_fields_for_client(client_id, questionnaire_name)
+        return render_template("client_questionnaire.html",
+                               fields=fields,
+                               questionnaire_name=questionnaire_name)
 
 
 @client_bp.route("/delete_field/<int:field_id>", methods=["POST"])
@@ -139,4 +188,42 @@ def client_delete_field(field_id):
     # Log field deletion before deleting
     log_data_delete('questionnaire_fields', field_id, {'client_id': client_id})
     delete_field(field_id, client_id)
-    return redirect(url_for("client_bp.client_questionnaire"))
+    # Redirect back to referring page (the questionnaire editor)
+    return redirect(request.referrer or url_for("client_bp.client_questionnaire_list"))
+
+
+@client_bp.route("/questionnaire/<questionnaire_name>/data", methods=["GET"])
+def client_view_submissions(questionnaire_name):
+    """
+    View anonymised submission data for a specific questionnaire.
+    Shows all fields except Hashed, with respondents anonymised as
+    'Respondent 1', 'Respondent 2', etc.
+    Only shows data where consent is active and submission is not deleted.
+    """
+    if "client_id" not in session:
+        return redirect(url_for("client_bp.client_login"))
+
+    client_id = session["client_id"]
+
+    # Verify the questionnaire belongs to this client
+    if not questionnaire_name_exists(client_id, questionnaire_name):
+        flash("Questionnaire not found.")
+        return redirect(url_for("client_bp.client_questionnaire_list"))
+
+    column_headers, submissions_data = get_submissions_for_questionnaire(
+        client_id, questionnaire_name
+    )
+
+    # Audit log: client is viewing submission data (GDPR Art. 30)
+    log_data_access(client_id, 'submissions', details={
+        'action': 'client_view_submissions',
+        'questionnaire_name': questionnaire_name,
+        'respondent_count': len(submissions_data)
+    })
+
+    return render_template(
+        "client_view_submissions.html",
+        questionnaire_name=questionnaire_name,
+        column_headers=column_headers,
+        submissions=submissions_data
+    )

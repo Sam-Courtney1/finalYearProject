@@ -1,0 +1,363 @@
+(function () {
+    'use strict';
+
+    // ── Fake donor records (Irish names, Dublin addresses) ──────────────
+    const RECORDS = [
+        { first_name: "Sarah Murphy", address: "12 Grafton St, Dublin 2", age: 34, blood_type: "O+", organ: "Kidney", consent: true },
+        { first_name: "James O'Brien", address: "8 Baggot St Lower, Dublin 2", age: 28, blood_type: "A-", organ: "Liver", consent: true },
+        { first_name: "Aoife Kelly", address: "45 Parnell Sq, Dublin 1", age: 41, blood_type: "B+", organ: "Heart", consent: true },
+        { first_name: "Ciaran Byrne", address: "3 Camden Row, Dublin 8", age: 55, blood_type: "AB+", organ: "Lung", consent: true },
+        { first_name: "Niamh Walsh", address: "67 Merrion Sq, Dublin 2", age: 23, blood_type: "O-", organ: "Pancreas", consent: true },
+        { first_name: "Sean Doyle", address: "19 Capel St, Dublin 1", age: 47, blood_type: "A+", organ: "Kidney", consent: true },
+        { first_name: "Roisin Brennan", address: "88 Thomas St, Dublin 8", age: 31, blood_type: "B-", organ: "Cornea", consent: true },
+        { first_name: "Padraig Ryan", address: "22 Pearse St, Dublin 2", age: 62, blood_type: "AB-", organ: "Liver", consent: true },
+        { first_name: "Sinead Flanagan", address: "5 Harcourt Rd, Dublin 2", age: 29, blood_type: "O+", organ: "Heart", consent: true },
+        { first_name: "Eoin McCarthy", address: "14 Aungier St, Dublin 2", age: 38, blood_type: "A+", organ: "Lung", consent: true },
+        { first_name: "Orla Connolly", address: "31 Dame St, Dublin 2", age: 44, blood_type: "B+", organ: "Kidney", consent: true },
+        { first_name: "Declan Hughes", address: "9 Dorset St, Dublin 1", age: 51, blood_type: "O-", organ: "Pancreas", consent: true },
+        { first_name: "Aisling Daly", address: "77 Ranelagh Rd, Dublin 6", age: 26, blood_type: "A-", organ: "Cornea", consent: true },
+        { first_name: "Cormac Nolan", address: "42 Clanbrassil St, Dublin 8", age: 33, blood_type: "AB+", organ: "Liver", consent: true },
+        { first_name: "Maeve Gallagher", address: "56 Rathmines Rd, Dublin 6", age: 39, blood_type: "B-", organ: "Heart", consent: true },
+        { first_name: "Fionn Casey", address: "11 Kevin St, Dublin 8", age: 45, blood_type: "O+", organ: "Kidney", consent: true },
+        { first_name: "Saoirse Quinn", address: "28 Wexford St, Dublin 2", age: 22, blood_type: "A+", organ: "Lung", consent: true },
+        { first_name: "Darragh Moran", address: "63 North Circular Rd, D7", age: 57, blood_type: "AB-", organ: "Pancreas", consent: true },
+        { first_name: "Grainne Duffy", address: "4 Mountjoy Sq, Dublin 1", age: 36, blood_type: "B+", organ: "Cornea", consent: true },
+        { first_name: "Conor Healy", address: "91 Harold's Cross Rd, D6W", age: 42, blood_type: "O-", organ: "Liver", consent: true },
+        { first_name: "Caoimhe Reilly", address: "17 Eccles St, Dublin 7", age: 30, blood_type: "A-", organ: "Heart", consent: true },
+        { first_name: "Liam Fitzpatrick", address: "35 Gardiner St, Dublin 1", age: 48, blood_type: "AB+", organ: "Kidney", consent: true },
+        { first_name: "Clodagh Power", address: "50 Phibsborough Rd, D7", age: 25, blood_type: "B-", organ: "Lung", consent: true },
+        { first_name: "Ronan Kearney", address: "73 South Circular Rd, D8", age: 53, blood_type: "O+", organ: "Pancreas", consent: true },
+        { first_name: "Eimear Smyth", address: "6 Leeson St Lower, Dublin 2", age: 27, blood_type: "A+", organ: "Cornea", consent: true },
+        { first_name: "Tadhg Murray", address: "38 Inchicore Rd, Dublin 8", age: 60, blood_type: "AB-", organ: "Liver", consent: true },
+        { first_name: "Ciara Whelan", address: "21 Drumcondra Rd, Dublin 9", age: 35, blood_type: "B+", organ: "Heart", consent: true },
+        { first_name: "Donal Barry", address: "84 Clontarf Rd, Dublin 3", age: 43, blood_type: "O-", organ: "Kidney", consent: true },
+        { first_name: "Siobhan Kavanagh", address: "15 Sandymount Ave, Dublin 4", age: 32, blood_type: "A-", organ: "Lung", consent: true },
+        { first_name: "Oisin Dempsey", address: "47 Ballsbridge Tce, Dublin 4", age: 50, blood_type: "AB+", organ: "Pancreas", consent: true }
+    ];
+
+    const FIELD_ORDER = ['first_name', 'address', 'age', 'blood_type', 'organ', 'consent'];
+    // Fields that are NOT encrypted in real pgcrypto DB
+    const UNENCRYPTED_FIELDS = new Set(['age', 'consent']);
+
+    // ── Encryption simulation ──────────────────────────────────────────
+    function generateEncryptedValue(plaintext) {
+        var hex = '0123456789abcdef';
+        var len = Math.max(String(plaintext).length * 2, 20);
+        var result = '\\xc30d04';
+        for (var i = 0; i < len; i++) {
+            result += hex[Math.floor(Math.random() * 16)];
+        }
+        return result;
+    }
+
+    // Pre-generate encrypted versions for consistency
+    var encryptedCache = [];
+    RECORDS.forEach(function (record) {
+        var encrypted = {};
+        FIELD_ORDER.forEach(function (field) {
+            if (UNENCRYPTED_FIELDS.has(field)) {
+                encrypted[field] = String(record[field]);
+            } else {
+                encrypted[field] = generateEncryptedValue(record[field]);
+            }
+        });
+        encryptedCache.push(encrypted);
+    });
+
+    // ── State ──────────────────────────────────────────────────────────
+    var targetX = -200, targetY = -200;
+    var currentX = -200, currentY = -200;
+    var echoes = [];
+    var lastEchoTime = 0;
+    var prevX = -200, prevY = -200;
+    var isTouch = ('ontouchstart' in window);
+    var spotlightRadius = isTouch ? 90 : 130;
+
+    // ── DOM references ─────────────────────────────────────────────────
+    var plaintextGrid, encryptedGrid, gridCanvas, spotlightCanvas;
+    var gridCtx, spotlightCtx;
+    var invertibles;
+
+    // ── Populate data grids ────────────────────────────────────────────
+    function populateDataGrids() {
+        plaintextGrid = document.getElementById('data-grid');
+        encryptedGrid = document.getElementById('data-grid-encrypted');
+        if (!plaintextGrid || !encryptedGrid) return;
+
+        var cols = Math.ceil(window.innerWidth * 1.2 / 220);
+        var rows = Math.ceil(window.innerHeight * 1.2 / 44);
+        var totalCells = cols * rows;
+
+        var ptHTML = '';
+        var encHTML = '';
+
+        for (var i = 0; i < totalCells; i++) {
+            var recordIdx = i % RECORDS.length;
+            var fieldIdx = (i + Math.floor(i / RECORDS.length)) % FIELD_ORDER.length;
+            var field = FIELD_ORDER[fieldIdx];
+            var record = RECORDS[recordIdx];
+            var encRecord = encryptedCache[recordIdx];
+
+            var ptValue = String(record[field]);
+            var encValue = encRecord[field];
+
+            ptHTML += '<div class="data-cell"><span class="data-cell__label">' +
+                field + ': </span>' + ptValue + '</div>';
+            encHTML += '<div class="data-cell"><span class="data-cell__label">' +
+                field + ': </span>' + encValue + '</div>';
+        }
+
+        plaintextGrid.innerHTML = ptHTML;
+        encryptedGrid.innerHTML = encHTML;
+    }
+
+    // ── Resize canvases ────────────────────────────────────────────────
+    function resizeCanvases() {
+        gridCanvas = document.getElementById('grid-canvas');
+        spotlightCanvas = document.getElementById('spotlight-canvas');
+        if (!gridCanvas || !spotlightCanvas) return;
+
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+        var dpr = window.devicePixelRatio || 1;
+
+        gridCanvas.width = w * dpr;
+        gridCanvas.height = h * dpr;
+        gridCanvas.style.width = w + 'px';
+        gridCanvas.style.height = h + 'px';
+        gridCtx = gridCanvas.getContext('2d');
+        gridCtx.scale(dpr, dpr);
+
+        spotlightCanvas.width = w * dpr;
+        spotlightCanvas.height = h * dpr;
+        spotlightCanvas.style.width = w + 'px';
+        spotlightCanvas.style.height = h + 'px';
+        spotlightCtx = spotlightCanvas.getContext('2d');
+        spotlightCtx.scale(dpr, dpr);
+    }
+
+    // ── Spotlight (clip-path on encrypted layer) ───────────────────────
+    function updateSpotlight() {
+        if (!encryptedGrid) return;
+        encryptedGrid.style.setProperty('--spotlight-x', currentX + 'px');
+        encryptedGrid.style.setProperty('--spotlight-y', currentY + 'px');
+    }
+
+    // ── Echo trails ────────────────────────────────────────────────────
+    function maybeSpawnEcho() {
+        if (isTouch) return;
+        var now = performance.now();
+        if (now - lastEchoTime < 60) return;
+
+        var speed = Math.hypot(targetX - prevX, targetY - prevY);
+        if (speed < 12) return;
+
+        lastEchoTime = now;
+        echoes.push({
+            x: currentX,
+            y: currentY,
+            opacity: 0.25,
+            radius: spotlightRadius,
+            born: now
+        });
+    }
+
+    function drawEchoes() {
+        if (!spotlightCtx) return;
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+        spotlightCtx.clearRect(0, 0, w, h);
+
+        var now = performance.now();
+        var alive = [];
+
+        for (var i = 0; i < echoes.length; i++) {
+            var e = echoes[i];
+            var age = now - e.born;
+            if (age > 700) continue;
+
+            var progress = age / 700;
+            var opacity = e.opacity * (1 - progress);
+            var radius = e.radius * (1 + progress * 0.3);
+
+            spotlightCtx.beginPath();
+            spotlightCtx.arc(e.x, e.y, radius, 0, Math.PI * 2);
+            spotlightCtx.fillStyle = 'rgba(124, 58, 237, ' + (opacity * 0.12) + ')';
+            spotlightCtx.fill();
+
+            // Ring
+            spotlightCtx.beginPath();
+            spotlightCtx.arc(e.x, e.y, radius, 0, Math.PI * 2);
+            spotlightCtx.strokeStyle = 'rgba(124, 58, 237, ' + (opacity * 0.2) + ')';
+            spotlightCtx.lineWidth = 1.5;
+            spotlightCtx.stroke();
+
+            alive.push(e);
+        }
+
+        echoes = alive;
+    }
+
+    // ── Animated grid lines ────────────────────────────────────────────
+    var gridFrameCount = 0;
+
+    function drawGrid() {
+        if (!gridCtx) return;
+        gridFrameCount++;
+        // Throttle to ~30fps
+        if (gridFrameCount % 2 !== 0) return;
+
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+        gridCtx.clearRect(0, 0, w, h);
+
+        var spacing = 60;
+
+        gridCtx.lineWidth = 0.5;
+        // Vertical lines
+        for (var x = 0; x < w; x += spacing) {
+            var distX = Math.abs(x - currentX);
+            var brightness = Math.max(0.03, 0.12 - distX / 900);
+            gridCtx.strokeStyle = 'rgba(124, 58, 237, ' + brightness + ')';
+            gridCtx.beginPath();
+            gridCtx.moveTo(x, 0);
+            gridCtx.lineTo(x, h);
+            gridCtx.stroke();
+        }
+        // Horizontal lines
+        for (var y = 0; y < h; y += spacing) {
+            var distY = Math.abs(y - currentY);
+            var brightness2 = Math.max(0.03, 0.12 - distY / 900);
+            gridCtx.strokeStyle = 'rgba(124, 58, 237, ' + brightness2 + ')';
+            gridCtx.beginPath();
+            gridCtx.moveTo(0, y);
+            gridCtx.lineTo(w, y);
+            gridCtx.stroke();
+        }
+
+        // Glow at cursor intersection
+        if (currentX > 0 && currentY > 0) {
+            var gradient = gridCtx.createRadialGradient(
+                currentX, currentY, 0,
+                currentX, currentY, 200
+            );
+            gradient.addColorStop(0, 'rgba(124, 58, 237, 0.06)');
+            gradient.addColorStop(1, 'rgba(124, 58, 237, 0)');
+            gridCtx.fillStyle = gradient;
+            gridCtx.fillRect(0, 0, w, h);
+        }
+    }
+
+    // ── Parallax ───────────────────────────────────────────────────────
+    function updateParallax() {
+        var parallaxEls = document.querySelectorAll('[data-parallax-speed]');
+        if (!parallaxEls.length) return;
+
+        var cx = window.innerWidth / 2;
+        var cy = window.innerHeight / 2;
+        var dx = (currentX - cx) / cx || 0;
+        var dy = (currentY - cy) / cy || 0;
+
+        for (var i = 0; i < parallaxEls.length; i++) {
+            var el = parallaxEls[i];
+            var speed = parseFloat(el.dataset.parallaxSpeed) || 0;
+            var moveX = dx * speed * -30;
+            var moveY = dy * speed * -30;
+            el.style.transform = 'translate(' + moveX + 'px, ' + moveY + 'px)';
+        }
+    }
+
+    // ── Text inversion ─────────────────────────────────────────────────
+    function updateInversion() {
+        if (!invertibles) return;
+
+        for (var i = 0; i < invertibles.length; i++) {
+            var el = invertibles[i];
+            var rect = el.getBoundingClientRect();
+            var elCx = rect.left + rect.width / 2;
+            var elCy = rect.top + rect.height / 2;
+            var dist = Math.hypot(elCx - currentX, elCy - currentY);
+
+            if (dist < spotlightRadius + Math.max(rect.width, rect.height) / 2) {
+                el.classList.add('landing--inverted');
+            } else {
+                el.classList.remove('landing--inverted');
+            }
+        }
+    }
+
+    // ── Data grid parallax (subtle shift) ──────────────────────────────
+    function updateGridParallax() {
+        if (!plaintextGrid || !encryptedGrid) return;
+        var cx = window.innerWidth / 2;
+        var cy = window.innerHeight / 2;
+        var dx = (currentX - cx) / cx || 0;
+        var dy = (currentY - cy) / cy || 0;
+
+        var offsetX = -10 + dx * -1.5;
+        var offsetY = -10 + dy * -1.5;
+        var transform = 'translate(' + offsetX + '%, ' + offsetY + '%)';
+        plaintextGrid.style.transform = transform;
+        encryptedGrid.style.transform = transform;
+    }
+
+    // ── Main animation loop ────────────────────────────────────────────
+    function mainLoop() {
+        // Lerp cursor position (smooth follow with delay)
+        currentX += (targetX - currentX) * 0.1;
+        currentY += (targetY - currentY) * 0.1;
+
+        updateSpotlight();
+        maybeSpawnEcho();
+        drawEchoes();
+        drawGrid();
+        updateParallax();
+        updateInversion();
+        updateGridParallax();
+
+        prevX = targetX;
+        prevY = targetY;
+
+        requestAnimationFrame(mainLoop);
+    }
+
+    // ── Event listeners ────────────────────────────────────────────────
+    function onMouseMove(e) {
+        targetX = e.clientX;
+        targetY = e.clientY;
+    }
+
+    function onTouchMove(e) {
+        if (e.touches.length > 0) {
+            targetX = e.touches[0].clientX;
+            targetY = e.touches[0].clientY;
+        }
+    }
+
+    function onTouchEnd() {
+        // Move spotlight off screen when not touching
+        targetX = -200;
+        targetY = -200;
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        populateDataGrids();
+        resizeCanvases();
+        invertibles = document.querySelectorAll('[data-invertible]');
+
+        if (isTouch) {
+            document.addEventListener('touchmove', onTouchMove, { passive: true });
+            document.addEventListener('touchend', onTouchEnd);
+        } else {
+            document.addEventListener('mousemove', onMouseMove);
+        }
+
+        window.addEventListener('resize', function () {
+            resizeCanvases();
+            populateDataGrids();
+        });
+
+        mainLoop();
+    });
+})();

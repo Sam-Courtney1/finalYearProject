@@ -1,0 +1,70 @@
+{% extends "base_client.html" %}
+
+{% block title %}{{ questionnaire_name }} Data | Organ Donation System{% endblock %}
+
+{% block content %}
+<div class="page-container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('client_bp.client_dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('client_bp.client_questionnaire_list') }}">Questionnaires</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ questionnaire_name }} - Data</li>
+        </ol>
+    </nav>
+
+    <h2 class="text-center mb-2">
+        <i class="bi bi-table me-2"></i>{{ questionnaire_name }}
+    </h2>
+    <p class="text-center text-muted mb-4">
+        Anonymised submission data. Respondent identities are hidden for GDPR compliance.
+    </p>
+
+    {% if submissions %}
+    <div class="text-center mb-3">
+        <span class="status-badge status-badge-active">
+            <i class="bi bi-people-fill me-1"></i>
+            {{ submissions|length }} active respondent{{ 's' if submissions|length != 1 else '' }}
+        </span>
+    </div>
+
+    <div class="table-wrapper" style="overflow-x: auto;">
+        <table class="table table-modern align-middle">
+            <thead>
+                <tr>
+                    <th>Respondent</th>
+                    {% for header in column_headers %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for submission in submissions %}
+                <tr>
+                    <td>
+                        <strong>
+                            <i class="bi bi-person-fill me-1"></i>
+                            {{ submission.respondent_label }}
+                        </strong>
+                    </td>
+                    {% for header in column_headers %}
+                    <td>{{ submission.answers.get(header, '-') }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-center" style="color: var(--text-secondary); margin-top: 40px;">
+        <i class="bi bi-inbox me-2"></i>
+        No submissions yet for this questionnaire, or all respondents have withdrawn consent.
+    </p>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('client_bp.client_questionnaire_list') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Questionnaires
+        </a>
+    </div>
+</div>
+{% endblock %}

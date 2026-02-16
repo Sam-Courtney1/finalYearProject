@@ -64,14 +64,16 @@ def get_user_data(user_id):
     ::text is needed as to change the binary data into letters
     """
     cur.execute("""
-        SELECT 
+        SELECT
             c.username AS company_name,
             f.field_label,
             f.category,
-            CASE 
+            CASE
                 WHEN f.category IN ('PII', 'Medical') THEN pgp_sym_decrypt(a.value::bytea, %s)::text
                 ELSE a.value::text
-            END AS value
+            END AS value,
+            s.consent_withdrawn,
+            s.submission_id
         FROM answers a
         JOIN questionnaire_fields f ON a.field_id = f.field_id
         JOIN submissions s ON a.submission_id = s.submission_id
@@ -101,6 +103,39 @@ def delete_user(user_id):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def get_user_data_for_client(client_id):
+    """
+    Returns questionnaire data for a specific client, but ONLY where
+    consent has not been withdrawn. This is the function any future
+    client-facing data view must use to respect consent withdrawal.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+    key = os.getenv("APP_ENC_KEY")
+
+    cur.execute("""
+        SELECT
+            f.field_label,
+            f.category,
+            CASE
+                WHEN f.category IN ('PII', 'Medical') THEN pgp_sym_decrypt(a.value::bytea, %s)::text
+                ELSE a.value::text
+            END AS value,
+            s.user_id,
+            s.submission_id
+        FROM answers a
+        JOIN questionnaire_fields f ON a.field_id = f.field_id
+        JOIN submissions s ON a.submission_id = s.submission_id
+        WHERE s.client_id = %s
+          AND s.consent_withdrawn = FALSE;
+    """, (key, client_id))
+
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data
 
 
 def delete_user_data_only(user_id):
