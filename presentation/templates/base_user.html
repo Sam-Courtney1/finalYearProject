@@ -13,8 +13,13 @@
         </button>
         <div class="collapse navbar-collapse" id="userNav">
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('questionnaire_bp.select_questionnaire') }}">
+                <a class="nav-link {% if request.endpoint and 'questionnaire' in request.endpoint %}active{% endif %}"
+                   href="{{ url_for('questionnaire_bp.select_questionnaire') }}">
                     <i class="bi bi-clipboard2-pulse"></i>Questionnaire
+                </a>
+                <a class="nav-link {% if request.endpoint and 'consent' in request.endpoint %}active{% endif %}"
+                   href="{{ url_for('pages_bp.consent_management') }}">
+                    <i class="bi bi-shield-check"></i>Consent
                 </a>
                 <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">
                     <i class="bi bi-box-arrow-right"></i>Logout

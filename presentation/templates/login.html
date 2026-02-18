@@ -6,8 +6,10 @@
 
 {% block card_content %}
 <form action="{{ url_for('auth_bp.login') }}" method="POST">
-    <input type="text" name="username" placeholder="Username" required>
-    <input type="password" name="password" placeholder="Password" required>
+    <label class="form-label"><i class="bi bi-person me-1"></i>Username</label>
+    <input type="text" name="username" placeholder="Enter your username" required>
+    <label class="form-label"><i class="bi bi-lock me-1"></i>Password</label>
+    <input type="password" name="password" placeholder="Enter your password" required>
     <div class="button-group">
         <button type="submit" class="login-btn">
             <i class="bi bi-box-arrow-in-right"></i>Login
@@ -16,7 +18,7 @@
 </form>
 <div class="button-group">
     <a href="{{ url_for('auth_bp.register_page') }}" class="register-btn">
-        <i class="bi bi-person-plus"></i>Register
+        <i class="bi bi-person-plus"></i>Create an Account
     </a>
 </div>
 {% endblock %}

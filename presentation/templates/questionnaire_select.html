@@ -9,19 +9,25 @@
     {% if clients %}
     <!-- Step 1: Select a company -->
     <div id="step-company">
-        <p class="text-center text-muted mb-4">Select an organisation</p>
+        <p class="text-center text-muted mb-4">Choose an organisation to get started</p>
         <div class="row justify-content-center">
-            {% for client_name, client_data in clients.items() %}
-            <div class="col-md-8 mb-3">
-                <button class="btn btn-outline-primary w-100 py-3 d-flex align-items-center justify-content-between company-btn"
-                        data-client="{{ client_name }}">
-                    <span>
-                        <i class="bi bi-building me-2"></i>{{ client_name }}
-                    </span>
-                    <i class="bi bi-chevron-right"></i>
-                </button>
+            <div class="col-md-8">
+                {% for client_name, client_data in clients.items() %}
+                <div class="user-select-card company-btn stagger-item" style="animation: fadeInUp 0.5s ease-out both;"
+                     data-client="{{ client_name }}">
+                    <div class="d-flex align-items-center">
+                        <div class="select-icon">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div>
+                            <h5 style="margin:0;font-weight:600;">{{ client_name }}</h5>
+                            <small style="color:var(--color-text-tertiary);">{{ client_data.questionnaires|length }} questionnaire{{ 's' if client_data.questionnaires|length != 1 else '' }}</small>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right select-arrow"></i>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </div>
 
@@ -31,26 +37,20 @@
         <p class="text-center text-muted mb-4">Select a questionnaire from <strong>{{ client_name }}</strong></p>
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <div class="card shadow-sm">
-                    <div class="card-header" style="background-color: var(--color-primary); color: white;">
-                        <h5 class="mb-0"><i class="bi bi-building me-2"></i>{{ client_name }}</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="list-group list-group-flush">
-                            {% for questionnaire in client_data.questionnaires %}
-                            <a href="{{ url_for('questionnaire_bp.questionnaire_form',
-                                                client_id=client_data.client_id,
-                                                questionnaire_name=questionnaire) }}"
-                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                <span>
-                                    <i class="bi bi-file-text me-2"></i>{{ questionnaire }}
-                                </span>
-                                <i class="bi bi-arrow-right-circle"></i>
-                            </a>
-                            {% endfor %}
+                {% for questionnaire in client_data.questionnaires %}
+                <a href="{{ url_for('questionnaire_bp.questionnaire_form',
+                                    client_id=client_data.client_id,
+                                    questionnaire_name=questionnaire) }}"
+                   class="user-select-card stagger-item" style="text-decoration:none;animation: fadeInUp 0.5s ease-out both;">
+                    <div class="d-flex align-items-center">
+                        <div class="select-icon">
+                            <i class="bi bi-file-text"></i>
                         </div>
+                        <h5 style="margin:0;font-weight:600;">{{ questionnaire }}</h5>
                     </div>
-                </div>
+                    <i class="bi bi-arrow-right select-arrow"></i>
+                </a>
+                {% endfor %}
             </div>
         </div>
         <div class="text-center mt-4">
@@ -62,7 +62,12 @@
     {% endfor %}
 
     {% else %}
-    <p class="text-center text-muted">No questionnaires are currently available.</p>
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <i class="bi bi-clipboard-x"></i>
+        </div>
+        <p>No questionnaires are currently available.</p>
+    </div>
     {% endif %}
 
     <div class="text-center mt-4" id="homepage-btn">

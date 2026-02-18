@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="page-container mt-4">
-    <nav aria-label="breadcrumb">
+    <nav aria-label="breadcrumb" style="animation: fadeIn 0.4s ease-out;">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{{ url_for('client_bp.client_dashboard') }}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('client_bp.client_questionnaire_list') }}">Questionnaires</a></li>
@@ -12,22 +12,23 @@
         </ol>
     </nav>
 
-    <h2 class="text-center mb-2">
+    <h2 class="text-center mb-2" style="animation: slideInUp 0.5s ease-out;">
         <i class="bi bi-table me-2"></i>{{ questionnaire_name }}
     </h2>
-    <p class="text-center text-muted mb-4">
-        Anonymised submission data. Respondent identities are hidden for GDPR compliance.
-    </p>
+
+    <div class="client-info-banner text-center" style="animation: slideInUp 0.5s ease-out 0.1s both;">
+        <p><i class="bi bi-shield-check me-2"></i>Anonymised submission data. Respondent identities are hidden for GDPR compliance.</p>
+    </div>
 
     {% if submissions %}
-    <div class="text-center mb-3">
+    <div class="text-center mb-3" style="animation: slideInUp 0.5s ease-out 0.15s both;">
         <span class="status-badge status-badge-active">
             <i class="bi bi-people-fill me-1"></i>
             {{ submissions|length }} active respondent{{ 's' if submissions|length != 1 else '' }}
         </span>
     </div>
 
-    <div class="table-wrapper" style="overflow-x: auto;">
+    <div class="table-wrapper" style="overflow-x: auto; animation: slideInUp 0.5s ease-out 0.2s both;">
         <table class="table table-modern align-middle">
             <thead>
                 <tr>
@@ -55,10 +56,12 @@
         </table>
     </div>
     {% else %}
-    <p class="text-center" style="color: var(--text-secondary); margin-top: 40px;">
-        <i class="bi bi-inbox me-2"></i>
-        No submissions yet for this questionnaire, or all respondents have withdrawn consent.
-    </p>
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <p>No submissions yet for this questionnaire, or all respondents have withdrawn consent.</p>
+    </div>
     {% endif %}
 
     <div class="text-center mt-4">

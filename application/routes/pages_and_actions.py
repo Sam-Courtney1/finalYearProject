@@ -1,13 +1,16 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, Response
 from application.services.authentication import register_user, authenticate_user
 from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only
 from data.db_connection import get_db_connection
 from application.services.audit_service import (
     audit_log, log_login_success, log_login_failed, log_logout,
-    log_data_create, log_data_delete, log_data_update
+    log_data_create, log_data_delete, log_data_update, log_data_export
 )
 from data.submission_database import get_user_submissions, withdraw_consent, reinstate_consent, delete_single_submission
 import os
+import csv
+import io
+from datetime import datetime
 
 """
 auth_bp is an object of Blueprint that stores its name (auth_bp) 
@@ -250,3 +253,53 @@ def delete_submission_route(submission_id):
 
     # Redirect back to the referring page (consent management or edit page)
     return redirect(request.referrer or url_for('pages_bp.consent_management'))
+
+
+@pages_bp.route('/privacy')
+def privacy_policy():
+    return render_template('privacy_policy.html', current_date=datetime.utcnow().strftime('%d %B %Y'))
+
+
+@pages_bp.route('/export_data')
+@audit_log('export', 'user_data')
+def export_user_data():
+    """
+    Export all user data as a CSV file (GDPR Article 20 - Right to Data Portability).
+    """
+    if 'user_id' not in session:
+        return redirect(url_for('auth_bp.login_page'))
+
+    user_id = session['user_id']
+    static_data, dynamic_data = get_user_data(user_id)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Core information section
+    writer.writerow(['--- Core Information ---'])
+    writer.writerow(['First Name', 'Address', 'Age'])
+    for row in static_data:
+        writer.writerow([row[0], row[1], row[2]])
+
+    writer.writerow([])
+
+    # Per-organisation data section
+    if dynamic_data:
+        writer.writerow(['--- Questionnaire Data ---'])
+        writer.writerow(['Organisation', 'Field Label', 'Category', 'Value', 'Consent Status'])
+        for row in dynamic_data:
+            consent_status = 'Withdrawn' if row[4] else 'Active'
+            writer.writerow([row[0], row[1], row[2], row[3], consent_status])
+
+    output.seek(0)
+    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+
+    log_data_export(user_id, 'csv', {'action': 'user_data_portability'})
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={
+            'Content-Disposition': f'attachment; filename=my_data_{timestamp}.csv'
+        }
+    )

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy | Organ Donation System{% endblock %}
+{% block body_class %}privacy-page{% endblock %}
+
+{% block content %}
+<div class="privacy-container">
+    <div class="privacy-header">
+        {% if session.get('user_id') %}
+        <a href="{{ url_for('home_bp.homepage') }}" class="privacy-back">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        {% elif session.get('client_id') %}
+        <a href="{{ url_for('client_bp.client_dashboard') }}" class="privacy-back">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        {% else %}
+        <a href="{{ url_for('auth_bp.login_page') }}" class="privacy-back">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        {% endif %}
+        <h1><i class="bi bi-shield-lock me-2"></i>Privacy Policy</h1>
+        <p class="privacy-subtitle">How we collect, use and protect your personal data under the EU General Data Protection Regulation (GDPR)</p>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-building me-2"></i>1. Data Controller</h2>
+        <p>The Organ Donation System is operated as an academic project at Technological University Dublin. For any data protection queries, please contact the project administrator through the university.</p>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-collection me-2"></i>2. What Data We Collect</h2>
+        <p>We collect the following categories of personal data:</p>
+        <div class="privacy-table-wrapper">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>Data Category</th>
+                        <th>Examples</th>
+                        <th>Protection</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="privacy-badge privacy-badge-pii">PII</span></td>
+                        <td>Name, Address</td>
+                        <td>AES-256 encryption at rest (pgcrypto)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="privacy-badge privacy-badge-medical">Medical</span></td>
+                        <td>Health information, organ preferences</td>
+                        <td>AES-256 encryption at rest (pgcrypto)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="privacy-badge privacy-badge-demographic">Demographic</span></td>
+                        <td>Age</td>
+                        <td>Stored in database</td>
+                    </tr>
+                    <tr>
+                        <td><span class="privacy-badge privacy-badge-auth">Authentication</span></td>
+                        <td>Username, Password</td>
+                        <td>Password hashed with PBKDF2 (irreversible)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-bullseye me-2"></i>3. Why We Collect Your Data</h2>
+        <p>We process your personal data based on <strong>your explicit consent</strong> (GDPR Article 6(1)(a)) for the following purposes:</p>
+        <ul>
+            <li>To allow you to register and complete organ donation questionnaires</li>
+            <li>To share your anonymised questionnaire responses with the requesting organisation</li>
+            <li>To maintain a tamper-evident audit trail for accountability (GDPR Article 5(2))</li>
+            <li>To enable you to exercise your data protection rights</li>
+        </ul>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-people me-2"></i>4. Who Can See Your Data</h2>
+        <ul>
+            <li><strong>You</strong> can view all your data at any time via "Right to Access"</li>
+            <li><strong>Client organisations</strong> can only see your anonymised questionnaire answers (displayed as "Respondent 1", "Respondent 2", etc.) and only while your consent is active</li>
+            <li><strong>No one</strong> outside this system receives your personal data</li>
+        </ul>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-clock-history me-2"></i>5. How Long We Keep Your Data</h2>
+        <p>Your personal data is retained for as long as you maintain an active account. You may delete your data or your entire account at any time. Upon deletion:</p>
+        <ul>
+            <li><strong>Account deletion</strong>: All personal data, questionnaire answers, and submissions are permanently removed</li>
+            <li><strong>Submission deletion</strong>: Answer data is permanently erased; a minimal audit record is retained for accountability</li>
+            <li><strong>Consent withdrawal</strong>: Your data is hidden from the organisation but preserved in case you wish to reinstate consent</li>
+        </ul>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-person-check me-2"></i>6. Your Rights Under GDPR</h2>
+        <p>You have the following rights, all of which can be exercised directly within this system:</p>
+        <div class="privacy-rights-grid">
+            <div class="privacy-right">
+                <i class="bi bi-eye"></i>
+                <h3>Right to Access</h3>
+                <p>View all personal data stored about you (Article 15)</p>
+            </div>
+            <div class="privacy-right">
+                <i class="bi bi-pencil-square"></i>
+                <h3>Right to Rectification</h3>
+                <p>Edit and correct your questionnaire answers (Article 16)</p>
+            </div>
+            <div class="privacy-right">
+                <i class="bi bi-trash3"></i>
+                <h3>Right to Erasure</h3>
+                <p>Delete your account and all associated data (Article 17)</p>
+            </div>
+            <div class="privacy-right">
+                <i class="bi bi-download"></i>
+                <h3>Right to Portability</h3>
+                <p>Download all your data as a CSV file (Article 20)</p>
+            </div>
+            <div class="privacy-right">
+                <i class="bi bi-x-circle"></i>
+                <h3>Right to Withdraw Consent</h3>
+                <p>Withdraw consent per organisation at any time (Article 7(3))</p>
+            </div>
+            <div class="privacy-right">
+                <i class="bi bi-shield-x"></i>
+                <h3>Right to Restrict Processing</h3>
+                <p>Withdraw consent to hide your data from organisations (Article 18)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-lock me-2"></i>7. How We Protect Your Data</h2>
+        <ul>
+            <li><strong>Encryption at rest</strong>: All PII and medical data is encrypted using AES-256 via PostgreSQL pgcrypto</li>
+            <li><strong>Password hashing</strong>: Passwords are hashed with PBKDF2 and cannot be recovered</li>
+            <li><strong>Tamper-evident audit trail</strong>: All data access is logged with SHA-256 hash chaining for integrity verification</li>
+            <li><strong>Access control</strong>: Users can only access their own data; organisations see anonymised responses only</li>
+        </ul>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-cookie me-2"></i>8. Cookies</h2>
+        <p>This system uses a single <strong>strictly necessary session cookie</strong> to keep you logged in. This cookie:</p>
+        <ul>
+            <li>Is deleted when you log out or close your browser</li>
+            <li>Does not track you across other websites</li>
+            <li>Is required for the system to function and is exempt from consent under the ePrivacy Directive</li>
+        </ul>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-envelope me-2"></i>9. Contact &amp; Complaints</h2>
+        <p>If you have concerns about how your data is handled, you may:</p>
+        <ul>
+            <li>Contact the project administrator through Technological University Dublin</li>
+            <li>Lodge a complaint with the <strong>Data Protection Commission (DPC)</strong> of Ireland at <em>www.dataprotection.ie</em></li>
+        </ul>
+    </div>
+
+    <div class="privacy-footer">
+        <p>This policy was last updated on {{ current_date }}.</p>
+    </div>
+</div>
+{% endblock %}

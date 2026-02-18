@@ -32,6 +32,26 @@
 
     {% block content %}{% endblock %}
 
+    <!-- Cookie/Privacy Notice Banner -->
+    <div class="cookie-banner" id="cookieBanner">
+        <div class="cookie-banner-content">
+            <i class="bi bi-shield-check"></i>
+            <p>This site uses a strictly necessary session cookie to keep you logged in. No tracking cookies are used.
+                <a href="{{ url_for('pages_bp.privacy_policy') }}">Privacy Policy</a>
+            </p>
+            <button class="cookie-banner-btn" id="cookieAccept">Got it</button>
+        </div>
+    </div>
+    <script>
+        if (localStorage.getItem('cookieNoticeAck')) {
+            document.getElementById('cookieBanner').style.display = 'none';
+        }
+        document.getElementById('cookieAccept').addEventListener('click', function() {
+            localStorage.setItem('cookieNoticeAck', 'true');
+            document.getElementById('cookieBanner').style.display = 'none';
+        });
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
