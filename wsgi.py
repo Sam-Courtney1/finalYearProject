@@ -13,9 +13,7 @@ Blueprints are Imported and then registered
 Blueprints are a collection of routes
 Once delcared here they can be used anywhere in the system to call
 functions and new pages such as login or homapage
-
 """
-
 
 def create_app():
     load_dotenv()
@@ -49,10 +47,13 @@ def create_app():
     app.register_blueprint(api_bp, url_prefix='/api')
 
     # Initialize audit logging table
+    # The function called executes sql to create the table 
+    # only if it does not exist yet
     from data.audit_database import create_audit_table
     create_audit_table()
 
     # Run database migrations for new columns
+    # This will again execute sql if tables or rows don't exist
     from data.migrations import run_migrations
     run_migrations()
 
@@ -61,6 +62,7 @@ def create_app():
 
 application = create_app()
 
+# Only executes when ran locally
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     application.run(host="0.0.0.0", port=port, debug=True)

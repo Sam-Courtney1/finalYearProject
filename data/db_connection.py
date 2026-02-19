@@ -24,6 +24,3 @@ def get_db_connection():
         print("Database connection error:", e)
         return None
 
-
-
-

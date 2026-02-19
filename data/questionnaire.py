@@ -2,14 +2,13 @@ from data.db_connection import get_db_connection
 import os
 
 """
-This file takes is passed the data from the questionnaire
+This file takes data from the questionnaire
 It connects to the database and inserts data into the correct tables
 
 For sensitive data, encryption is used before being submitted
 In this way all data is entered into the database in accordance
 with GDPR security measures.
 """
-
 
 def insert_questionnaire(user_id, first_name, age, address, blood_type, organ, consent):
     conn = get_db_connection()
@@ -22,7 +21,7 @@ def insert_questionnaire(user_id, first_name, age, address, blood_type, organ, c
                 """, 
 
                 (user_id, consent))
-
+    # Indexed as data is returned as a tuple
     submission_id = cur.fetchone()[0]
 
     cur.execute("""

@@ -3,10 +3,9 @@ import os
 
 """
 This file returns information about a user based on there username
-It is used for loggin into the styem
+It is used for loggin into the ststem
 
-The second function in this file is used to insert a user into
-the database
+This file contains all database operations concerning the end user
 """
 
 def find_by_username(username):
@@ -31,7 +30,7 @@ def insert_user(username, hashed_password):
 The function below is used when a user requests to see there data
 An sql request is made to return this data and tables are joined
 on submissions.submission_id. This ensures that all user data is 
-returned to the user and also ensures that onyl that users data is
+returned to the user and also ensures that only that users data is
 shown and no one elses.
 """
 
@@ -62,6 +61,9 @@ def get_user_data(user_id):
     the data related to that user is returned
 
     ::text is needed as to change the binary data into letters
+
+    The CASE acts as an if statment and only decrypts data if it is 
+    encrypted in the first place
     """
     cur.execute("""
         SELECT
@@ -89,7 +91,7 @@ def get_user_data(user_id):
     return static_data, dynamic_data
 
 """
-This function takes the users id and make a query to delete the user
+This function takes the users id and make's a query to delete the user
 All records related to that user id are automatically deleted
 """
 def delete_user(user_id):
@@ -107,9 +109,9 @@ def delete_user(user_id):
 
 def get_user_data_for_client(client_id):
     """
-    Returns questionnaire data for a specific client, but ONLY where
+    Returns questionnaire data for a specific client, but only where
     consent has not been withdrawn. This is the function any future
-    client-facing data view must use to respect consent withdrawal.
+    client facing data view must use to respect consent withdrawal.
     """
     conn = get_db_connection()
     cur = conn.cursor()

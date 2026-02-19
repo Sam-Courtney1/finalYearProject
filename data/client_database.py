@@ -15,8 +15,8 @@ def insert_client(username, password_hash):
         VALUES (%s, %s)
         RETURNING client_id; 
     """, (username, password_hash))
-    # Need to index as its returned as a tuple (3,)
-    # No index gives an error
+    # Below needs to be indexed as
+    # the data being returned is a tuple ie ( 42 , )
     client_id = cur.fetchone()[0] 
     session['client_id'] = client_id
     conn.commit()
