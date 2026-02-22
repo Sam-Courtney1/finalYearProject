@@ -11,11 +11,9 @@ def get_user_submissions(user_id):
     """
     Returns all questionnaire submissions for a user (excludes the
     NULL-client registration submission and deleted submissions).
-    Now includes questionnaire_name for better UX.
     Used by both the edit selection page and the consent management page.
-
-    Returns: List of (submission_id, client_id, username, consent_withdrawn, questionnaire_name)
     """
+
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
@@ -37,7 +35,6 @@ def get_submission_answers(submission_id, user_id):
     """
     Decrypts and returns all answers for a submission, skipping Hashed fields.
     Verifies the submission belongs to the given user for security.
-    Returns list of (field_id, field_label, field_type, category, current_value).
     """
     conn = get_db_connection()
     cur = conn.cursor()
@@ -84,11 +81,6 @@ def update_submission_answers(submission_id, user_id, updated_fields):
     PII/Medical fields are re-encrypted with pgp_sym_encrypt.
     Hashed fields are skipped entirely.
     Plain text fields are stored as-is.
-
-    Parameters:
-        submission_id: int
-        user_id: int (for ownership verification)
-        updated_fields: dict of {field_id: new_value}
 
     Returns count of fields that were actually changed, or None if not owned.
     """

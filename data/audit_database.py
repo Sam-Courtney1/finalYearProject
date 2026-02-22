@@ -8,11 +8,10 @@ Audit Logging Database Operations
 GDPR Article 32 - Security of Processing
 
 This module handles all database operations for the audit logging system.
-It provides tamper-evident logging through hash chaining, where each log
+It provides tamper evident logging through hash chaining, where each log
 entry contains a hash of the previous entry, making it detectable if
 logs are modified or deleted.
 """
-
 
 def create_audit_table():
     """
@@ -51,6 +50,14 @@ def create_audit_table():
             CREATE INDEX IF NOT EXISTS idx_audit_action
                 ON audit_logs(action);
         """)
+
+        """
+        Create indexs above to allow for much faster searching
+        For example when executing select * from audit_logs where action = 'delete';
+        Rather then going though all rows, an index is kept to store what rows are delete's
+        This means that not every row is needed to be searched
+        """
+
         conn.commit()
         cur.close()
         conn.close()
@@ -65,7 +72,7 @@ def create_audit_table():
 def get_last_hash():
     """
     Retrieves the hash of the most recent audit log entry.
-    Used for tamper-evident chain linking.
+    Used for tamper evident chain linking.
     """
     conn = get_db_connection()
     if conn is None:
@@ -81,23 +88,31 @@ def get_last_hash():
         cur.close()
         conn.close()
         return result[0] if result else "GENESIS"
+    # Return the latest hash or if there is none
+    # return GENESIS to start the chain
     except Exception as e:
         print(f"Error getting last hash: {e}")
         conn.close()
         return "GENESIS"
-
+    
 
 def compute_hash(timestamp, actor_id, actor_type, action, target_table,
                  target_id, ip_address, details, previous_hash):
     """
     Computes SHA-256 hash of log entry data for tamper evidence.
-    Uses sort_keys=True for consistent JSON ordering across insert/verify.
+    Uses sort_keys=True for consistent JSON ordering.
     """
-    # Normalize ip_address to string for consistent hashing
+    # Normalize ip_address to string for consistent hashing as postgres can store as INET data type
     ip_str = str(ip_address) if ip_address else None
     # Use sort_keys to ensure consistent ordering regardless of dict key order
+    # Sorts alphabetically as there is no guarenteed order
+    # This is important as the output for the same data is now forced to be identical
+    # IE {"b":2, "a":1}, {"a":1, "b":2}. With sort_keys=True A will always be first
     details_str = json.dumps(details, sort_keys=True) if details else 'null'
+    # Join all data together to build a string
     data = f"{timestamp}|{actor_id}|{actor_type}|{action}|{target_table}|{target_id}|{ip_str}|{details_str}|{previous_hash}"
+    # The data is then converted into bytes and sha256 runs on those bytes
+    # .hexdigest() returns the result as a 64 character hex string
     return hashlib.sha256(data.encode()).hexdigest()
 
 
@@ -106,16 +121,6 @@ def insert_audit_log(actor_id, actor_type, action, target_table=None,
                      details=None):
     """
     Inserts a new audit log entry with hash chain linking.
-
-    Parameters:
-    - actor_id: ID of user or client performing action
-    - actor_type: 'user', 'client', or 'system'
-    - action: 'login', 'logout', 'view', 'create', 'update', 'delete', 'export', 'login_failed'
-    - target_table: Table being accessed (optional)
-    - target_id: ID of record being accessed (optional)
-    - ip_address: Client IP address (optional)
-    - user_agent: Client browser/user agent (optional)
-    - details: Additional context as dict (optional)
     """
     conn = get_db_connection()
     if conn is None:
@@ -155,20 +160,13 @@ def insert_audit_log(actor_id, actor_type, action, target_table=None,
         conn.close()
         return None
 
-
+# Use the value's the user has passed or set to NONE
 def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
                    action=None, start_date=None, end_date=None):
     """
     Retrieves audit logs with optional filtering.
-
-    Parameters:
-    - limit: Maximum number of logs to return
-    - offset: Number of logs to skip (for pagination)
-    - actor_id: Filter by specific actor
-    - actor_type: Filter by 'user' or 'client'
-    - action: Filter by action type
-    - start_date: Filter logs after this date
-    - end_date: Filter logs before this date
+    Limit param above is overriden in admin_routes.py
+    In the audit_dashboard function in per page variable
     """
     conn = get_db_connection()
     if conn is None:
@@ -177,7 +175,8 @@ def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
     try:
         cur = conn.cursor()
 
-        # Build query with filters
+        # Build query with filters, built with 1=1 so that futher filter can be applied
+        # By just appending them to the query
         query = "SELECT * FROM audit_logs WHERE 1=1"
         params = []
 
@@ -202,8 +201,11 @@ def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
             params.append(end_date)
 
         query += " ORDER BY timestamp DESC LIMIT %s OFFSET %s"
+
+        # Add both limit and offset to params
         params.extend([limit, offset])
 
+        # Execute the sql
         cur.execute(query, params)
         logs = cur.fetchall()
 
@@ -224,7 +226,7 @@ def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
 def get_audit_log_count(actor_id=None, actor_type=None, action=None,
                         start_date=None, end_date=None):
     """
-    Gets total count of audit logs matching filters (for pagination).
+    Gets total count of audit logs matching filters for pagination.
     """
     conn = get_db_connection()
     if conn is None:
