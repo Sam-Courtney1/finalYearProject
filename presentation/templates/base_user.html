@@ -1,6 +1,76 @@
 {% extends "base.html" %}
 {% block body_class %}user-page{% endblock %}
 
+{% block extra_scripts %}
+<!-- Session inactivity timeout: warn at 9 min, redirect at 10 min -->
+<div class="modal fade" id="sessionWarningModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius:12px;">
+            <div class="modal-body text-center p-4">
+                <i class="bi bi-clock-history" style="font-size:2rem;color:var(--primary);"></i>
+                <h5 class="mt-2 mb-1">Still there?</h5>
+                <p class="text-muted mb-3" style="font-size:0.9rem;">
+                    You'll be logged out in <strong id="warningCountdown">60</strong> seconds due to inactivity.
+                </p>
+                <button type="button" class="btn btn-success w-100" id="stayLoggedIn">
+                    <i class="bi bi-check-circle me-1"></i>Stay Logged In
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const WARN_AT  = 9 * 60 * 1000;  // 9 minutes
+    const LOGOUT_AT = 10 * 60 * 1000; // 10 minutes
+    let idleMs = 0;
+    let warningShown = false;
+    let warnTimer = null;
+
+    function resetIdle() {
+        idleMs = 0;
+        warningShown = false;
+        clearInterval(warnTimer);
+        // Hide modal if visible
+        const modal = bootstrap.Modal.getInstance(document.getElementById('sessionWarningModal'));
+        if (modal) modal.hide();
+    }
+
+    // Reset idle timer on any user activity
+    ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt =>
+        document.addEventListener(evt, resetIdle, { passive: true })
+    );
+
+    // "Stay logged in" button makes a lightweight request to reset server-side timer
+    document.getElementById('stayLoggedIn').addEventListener('click', () => {
+        fetch('/ping', { method: 'GET', credentials: 'same-origin' }).catch(() => {});
+        resetIdle();
+    });
+
+    // Tick every second
+    setInterval(() => {
+        idleMs += 1000;
+        if (idleMs >= LOGOUT_AT) {
+            window.location.href = '{{ url_for("auth_bp.logout") }}';
+            return;
+        }
+        if (idleMs >= WARN_AT && !warningShown) {
+            warningShown = true;
+            new bootstrap.Modal(document.getElementById('sessionWarningModal')).show();
+            let secs = Math.round((LOGOUT_AT - idleMs) / 1000);
+            const el = document.getElementById('warningCountdown');
+            el.textContent = secs;
+            warnTimer = setInterval(() => {
+                secs--;
+                el.textContent = secs;
+                if (secs <= 0) clearInterval(warnTimer);
+            }, 1000);
+        }
+    }, 1000);
+})();
+</script>
+{% endblock extra_scripts %}
+
 {% block navbar %}
 <nav class="navbar navbar-expand-lg navbar-modern">
     <div class="container-fluid">

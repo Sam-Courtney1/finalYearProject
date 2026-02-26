@@ -7,9 +7,16 @@ from application.services.audit_service import (
     log_data_create, log_data_delete, log_data_update, log_data_export
 )
 from data.submission_database import get_user_submissions, withdraw_consent, reinstate_consent, delete_single_submission
+from application.services.otp_service import (
+    generate_otp, store_otp, verify_otp,
+    generate_reset_token, store_reset_token, verify_reset_token, invalidate_reset_token
+)
+from application.services.email_service import send_otp_email, send_password_reset_email
+from werkzeug.security import generate_password_hash
 import os
 import csv
 import io
+import time
 from datetime import datetime
 
 """
@@ -36,14 +43,19 @@ def register_page():
 def register():
     username = request.form['username']
     password = request.form['password']
-    age        = request.form['age']
-    address    = request.form['address']
+    age      = request.form['age']
+    address  = request.form['address']
+    email    = request.form.get('email', '').strip()
+
+    if not email:
+        flash("Email address is required for account verification.")
+        return redirect(url_for('auth_bp.register_page'))
 
     # Check to see if username already exists
     existing_user = find_by_username(username)
     if existing_user:
         flash("Username already exists. Please choose another.")
-        return redirect(url_for('auth_bp.register_page'))    
+        return redirect(url_for('auth_bp.register_page'))
 
     # The register_user function inserts a user into the database
     register_user(username, password)
@@ -52,13 +64,20 @@ def register():
     # to be accteped into the database throught the questionnaire
     user = find_by_username(username)
     if not user:
-        return redirect(url_for('auth_bp.login_page')) 
-    
+        return redirect(url_for('auth_bp.login_page'))
+
     session['user_id'] = user[0]
     user_id = user[0]
 
     conn = get_db_connection()
     cur = conn.cursor()
+
+    key = os.getenv("APP_ENC_KEY")
+
+    # Store encrypted email on the users record
+    cur.execute("""
+        UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
+    """, (email, key, user_id))
 
     cur.execute("""
         INSERT INTO submissions (user_id, client_id, consent)
@@ -66,8 +85,6 @@ def register():
         RETURNING submission_id;
     """, (user_id,))
     submission_id = cur.fetchone()[0]
-
-    key = os.getenv("APP_ENC_KEY")
 
     cur.execute("""
         INSERT INTO pii (submission_id, first_name_enc, address_enc)
@@ -87,6 +104,10 @@ def register():
     log_data_create('users', user_id, {'action': 'registration'})
     log_login_success(user_id, 'user')
 
+    # Set last_activity for session timeout tracking
+    session.permanent = True
+    session['last_activity'] = time.time()
+
     return redirect(url_for('home_bp.homepage'))
 
 
@@ -99,11 +120,50 @@ def login():
     # of the linked account is stored in user_id
     user_id = authenticate_user(username, password)
     if user_id:
-        session['user_id'] = user_id
-        session['username'] = username
-        # Log successful login for audit trail
-        log_login_success(user_id, 'user')
-        return redirect(url_for('home_bp.homepage'))
+        # Fetch the user's encrypted email for OTP delivery
+        conn = get_db_connection()
+        cur = conn.cursor()
+        key = os.getenv("APP_ENC_KEY")
+        cur.execute("""
+            SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
+        """, (key, user_id))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not row or not row[0]:
+            # No email on record — skip 2FA and log them straight in (legacy accounts)
+            session['user_id'] = user_id
+            session['username'] = username
+            session.permanent = True
+            session['last_activity'] = time.time()
+            log_login_success(user_id, 'user')
+            return redirect(url_for('home_bp.homepage'))
+
+        user_email = row[0]
+
+        # Store pending 2FA state — audit_service.py:43 already reads this key
+        session['pending_2fa_user'] = user_id
+        session['pending_2fa_username'] = username
+
+        # Generate and send OTP
+        otp_code = generate_otp()
+        store_otp(user_id, otp_code)
+        sent, err = send_otp_email(user_email, otp_code)
+
+        if not sent:
+            # SES failed — skip 2FA to avoid blocking dev work
+            session.pop('pending_2fa_user', None)
+            session.pop('pending_2fa_username', None)
+            session['user_id'] = user_id
+            session['username'] = username
+            session.permanent = True
+            session['last_activity'] = time.time()
+            log_login_success(user_id, 'user')
+            flash(f"2FA skipped — email failed: {err}")
+            return redirect(url_for('home_bp.homepage'))
+
+        return redirect(url_for('auth_bp.verify_2fa_page'))
     else:
         # Log failed login attempt for security monitoring
         log_login_failed(username, 'user')
@@ -118,6 +178,163 @@ def logout():
     # This clears the session data including the user_id and username
     # This logs out the user and returns them to the login page
     session.clear()
+    return redirect(url_for('auth_bp.login_page'))
+
+
+# ---------------------------------------------------------------------------
+# 2FA verification
+# ---------------------------------------------------------------------------
+
+@auth_bp.route('/verify-2fa', methods=['GET'])
+def verify_2fa_page():
+    if 'pending_2fa_user' not in session:
+        return redirect(url_for('auth_bp.login_page'))
+    return render_template('verify_2fa.html')
+
+
+@auth_bp.route('/verify-2fa', methods=['POST'])
+def verify_2fa():
+    if 'pending_2fa_user' not in session:
+        return redirect(url_for('auth_bp.login_page'))
+
+    user_id  = session['pending_2fa_user']
+    username = session.get('pending_2fa_username', '')
+    entered  = request.form.get('otp_code', '').strip()
+
+    success, reason = verify_otp(user_id, entered)
+
+    if success:
+        # Promote from pending to fully authenticated
+        session.pop('pending_2fa_user', None)
+        session.pop('pending_2fa_username', None)
+        session['user_id'] = user_id
+        session['username'] = username
+        session.permanent = True
+        session['last_activity'] = time.time()
+        log_login_success(user_id, 'user')
+        return redirect(url_for('home_bp.homepage'))
+
+    if reason == 'max_attempts':
+        session.pop('pending_2fa_user', None)
+        session.pop('pending_2fa_username', None)
+        log_login_failed(username, 'user')
+        flash("Too many incorrect attempts. Please log in again.")
+        return redirect(url_for('auth_bp.login_page'))
+
+    if reason == 'expired':
+        session.pop('pending_2fa_user', None)
+        session.pop('pending_2fa_username', None)
+        flash("Verification code has expired. Please log in again.")
+        return redirect(url_for('auth_bp.login_page'))
+
+    flash("Incorrect code. Please try again.")
+    return redirect(url_for('auth_bp.verify_2fa_page'))
+
+
+@auth_bp.route('/resend-2fa', methods=['POST'])
+def resend_2fa():
+    if 'pending_2fa_user' not in session:
+        return redirect(url_for('auth_bp.login_page'))
+
+    user_id = session['pending_2fa_user']
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    key = os.getenv("APP_ENC_KEY")
+    cur.execute("""
+        SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
+    """, (key, user_id))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if row and row[0]:
+        otp_code = generate_otp()
+        store_otp(user_id, otp_code)
+        send_otp_email(row[0], otp_code)
+        flash("A new verification code has been sent to your email.")
+    else:
+        flash("Could not resend code. Please log in again.")
+
+    return redirect(url_for('auth_bp.verify_2fa_page'))
+
+
+# ---------------------------------------------------------------------------
+# Password reset
+# ---------------------------------------------------------------------------
+
+@auth_bp.route('/forgot-password', methods=['GET'])
+def forgot_password_page():
+    return render_template('forgot_password.html')
+
+
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    username = request.form.get('username', '').strip()
+    user = find_by_username(username)
+
+    if user:
+        user_id = user[0]
+        conn = get_db_connection()
+        cur = conn.cursor()
+        key = os.getenv("APP_ENC_KEY")
+        cur.execute("""
+            SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
+        """, (key, user_id))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if row and row[0]:
+            token = generate_reset_token()
+            store_reset_token(user_id, token)
+            reset_url = url_for('auth_bp.reset_password_page', token=token, _external=True)
+            send_password_reset_email(row[0], reset_url)
+
+    # Always show the same message to prevent username enumeration
+    flash("If that username exists, a password reset link has been sent to the registered email address.")
+    return redirect(url_for('auth_bp.forgot_password_page'))
+
+
+@auth_bp.route('/reset-password/<token>', methods=['GET'])
+def reset_password_page(token):
+    user_id = verify_reset_token(token)
+    if user_id is None:
+        flash("This password reset link is invalid or has expired.")
+        return redirect(url_for('auth_bp.login_page'))
+    return render_template('reset_password.html', token=token)
+
+
+@auth_bp.route('/reset-password/<token>', methods=['POST'])
+def reset_password(token):
+    user_id = verify_reset_token(token)
+    if user_id is None:
+        flash("This password reset link is invalid or has expired.")
+        return redirect(url_for('auth_bp.login_page'))
+
+    new_password = request.form.get('password', '')
+    confirm      = request.form.get('confirm_password', '')
+
+    if not new_password or len(new_password) < 8:
+        flash("Password must be at least 8 characters.")
+        return redirect(url_for('auth_bp.reset_password_page', token=token))
+
+    if new_password != confirm:
+        flash("Passwords do not match.")
+        return redirect(url_for('auth_bp.reset_password_page', token=token))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users SET password = %s WHERE id = %s;
+    """, (generate_password_hash(new_password), user_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    invalidate_reset_token(token)
+
+    flash("Password updated successfully. Please log in with your new password.")
     return redirect(url_for('auth_bp.login_page'))
 
 """

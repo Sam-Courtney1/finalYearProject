@@ -16,7 +16,13 @@
         </button>
     </div>
 </form>
-<div class="button-group">
+<div style="text-align:center;margin-top:0.5rem;">
+    <a href="{{ url_for('auth_bp.forgot_password_page') }}"
+       style="font-size:0.85rem;color:var(--text-muted);text-decoration:none;">
+        Forgot your password?
+    </a>
+</div>
+<div class="button-group" style="margin-top:0.75rem;">
     <a href="{{ url_for('auth_bp.register_page') }}" class="register-btn">
         <i class="bi bi-person-plus"></i>Create an Account
     </a>

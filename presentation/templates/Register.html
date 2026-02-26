@@ -13,6 +13,7 @@
 {% block card_content %}
 <form action="/register_user" method="POST">
     <input type="text" name="username" placeholder="Name" required>
+    <input type="email" name="email" placeholder="Email address (used for login verification)" required>
     <input type="password" name="password" placeholder="Password" required>
     <input type="number" name="age" placeholder="Age" min="0" required>
     <input type="text" name="address" placeholder="Address" required>

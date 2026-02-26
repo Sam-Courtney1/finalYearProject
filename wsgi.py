@@ -1,7 +1,9 @@
-from flask import Flask
+from flask import Flask, session, redirect, url_for, flash
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+import time
+from datetime import timedelta
 
 """
 This is the main file for the system and is where the 
@@ -22,6 +24,8 @@ def create_app():
                 static_folder = os.path.join('presentation', 'static')
                 )
     app.secret_key = os.getenv("APP_ENC_KEY", "test")
+    # Sessions marked permanent will expire after this duration of inactivity
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
 
     # Allows the mobile app to make requests to /api/ routes from a different device
     CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -46,8 +50,34 @@ def create_app():
     from application.routes.api_routes import api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
 
+    # Lightweight keep-alive endpoint hit by the "Stay Logged In" button in base_user.html.
+    # The before_request hook below updates last_activity when this route is called.
+    @app.route('/ping')
+    def ping():
+        from flask import jsonify
+        return jsonify({'ok': True})
+
+    # Inactivity session timeout — checked on every request for logged-in users.
+    # The JavaScript timer in base_user.html warns at 9 min and redirects at 10 min,
+    # but this server-side check is the authoritative enforcement.
+    SESSION_TIMEOUT_SECONDS = 600  # 10 minutes
+
+    @app.before_request
+    def check_session_timeout():
+        # Only applies to fully-authenticated users (not pending 2FA or api tokens)
+        if 'user_id' not in session:
+            return
+        last = session.get('last_activity')
+        now = time.time()
+        if last and (now - last) > SESSION_TIMEOUT_SECONDS:
+            session.clear()
+            flash('You were logged out due to 10 minutes of inactivity.', 'warning')
+            return redirect(url_for('auth_bp.login_page'))
+        session['last_activity'] = now
+        session.modified = True
+
     # Initialize audit logging table
-    # The function called executes sql to create the table 
+    # The function called executes sql to create the table
     # only if it does not exist yet
     from data.audit_database import create_audit_table
     create_audit_table()

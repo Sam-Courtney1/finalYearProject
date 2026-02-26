@@ -41,6 +41,7 @@ def run_migrations():
         add_deletion_tracking()
         add_questionnaire_names()
         add_questionnaire_tracking_to_submissions()
+        add_2fa_and_email()
 
         print("Migrations completed successfully")
         return True
@@ -109,7 +110,7 @@ def add_questionnaire_names():
     try:
         cur = conn.cursor()
 
-        # Add questionnaire_name column (nullable initially for migration)
+        # Add questionnaire_name column
         cur.execute("""
             ALTER TABLE questionnaire_fields
                 ADD COLUMN IF NOT EXISTS questionnaire_name VARCHAR(255);
@@ -150,6 +151,60 @@ def add_questionnaire_names():
         return True
     except Exception as e:
         print(f"Error in questionnaire names migration: {e}")
+        conn.close()
+        return False
+
+
+def add_2fa_and_email():
+    """
+    Add email storage to users table and create OTP/password-reset token tables.
+    Supports email-based 2FA and password reset via AWS SES.
+    """
+    conn = get_db_connection()
+    if conn is None:
+        return False
+
+    try:
+        cur = conn.cursor()
+
+        # Add encrypted email column to users table
+        cur.execute("""
+            ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS email_enc BYTEA;
+        """)
+
+        # OTP tokens for 2FA - one active token per user at a time
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS otp_tokens (
+                id           SERIAL PRIMARY KEY,
+                user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                token_hash   VARCHAR(64) NOT NULL,
+                expires_at   TIMESTAMPTZ NOT NULL,
+                used         BOOLEAN NOT NULL DEFAULT FALSE,
+                attempts     INTEGER NOT NULL DEFAULT 0,
+                created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+
+        # Password reset tokens - one active token per user at a time
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id           SERIAL PRIMARY KEY,
+                user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                token_hash   VARCHAR(64) NOT NULL,
+                expires_at   TIMESTAMPTZ NOT NULL,
+                used         BOOLEAN NOT NULL DEFAULT FALSE,
+                created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("2FA and email migration completed")
+        return True
+    except Exception as e:
+        print(f"Error in 2FA/email migration: {e}")
         conn.close()
         return False
 
