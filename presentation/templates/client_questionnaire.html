@@ -30,6 +30,7 @@
     <div class="form-card mb-4" style="animation: slideInUp 0.5s ease-out 0.15s both;">
         <h5 style="margin-bottom:16px;font-weight:600;color:var(--color-text);"><i class="bi bi-plus-circle me-2" style="color:var(--client-primary);"></i>Add New Field</h5>
         <form method="POST" class="row g-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="col-md-4">
                 <input type="text" name="label" class="form-control" placeholder="Field label" required>
             </div>
@@ -87,6 +88,7 @@
                     <td>
                         <form method="POST" action="{{ url_for('client_bp.client_delete_field', field_id=f[0]) }}"
                               onsubmit="return confirm('Delete this field?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm">
                                 <i class="bi bi-trash3"></i>
                             </button>

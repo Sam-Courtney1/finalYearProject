@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify, session
 from functools import wraps
+from application.extensions import limiter
 from application.services.jwt_utils import create_token, decode_token
-from application.services.authentication import register_user, authenticate_user
+from application.services.authentication import register_user, authenticate_user, validate_password
 from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only
-from data.db_connection import get_db_connection
+from data.db_connection import get_db
 from application.services.log_form_data import handle_questionnaire_submission
 from application.services.audit_service import (
     audit_log, log_login_success, log_login_failed, log_logout,
@@ -53,6 +54,7 @@ def token_required(f):
 # Auth endpoints
 
 @api_bp.route('/register', methods=['POST'])
+@limiter.limit("3 per minute")
 def api_register():
     """Registers a new user, same logic as the web register route"""
     data = request.get_json()
@@ -66,6 +68,11 @@ def api_register():
 
     if not all([username, password, age, address]):
         return jsonify({"error": "username, password, age, and address are required"}), 400
+
+    # Validate password strength
+    valid, msg = validate_password(password)
+    if not valid:
+        return jsonify({"error": msg}), 400
 
     # Check if the username is already taken
     existing = find_by_username(username)
@@ -88,31 +95,25 @@ def api_register():
 
     # Insert submission, encrypted PII and demographic records
     # Same SQL as the register route in pages_and_actions.py
-    conn = get_db_connection()
-    cur = conn.cursor()
+    with get_db() as (conn, cur):
+        cur.execute("""
+            INSERT INTO submissions (user_id, client_id, consent)
+            VALUES (%s, NULL, FALSE) RETURNING submission_id;
+        """, (user_id,))
+        submission_id = cur.fetchone()[0]
 
-    cur.execute("""
-        INSERT INTO submissions (user_id, client_id, consent)
-        VALUES (%s, NULL, FALSE) RETURNING submission_id;
-    """, (user_id,))
-    submission_id = cur.fetchone()[0]
+        key = os.getenv("APP_ENC_KEY")
 
-    key = os.getenv("APP_ENC_KEY")
+        # Encrypt name and address before storing
+        cur.execute("""
+            INSERT INTO pii (submission_id, first_name_enc, address_enc)
+            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+        """, (submission_id, username, key, address, key))
 
-    # Encrypt name and address before storing
-    cur.execute("""
-        INSERT INTO pii (submission_id, first_name_enc, address_enc)
-        VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
-    """, (submission_id, username, key, address, key))
-
-    cur.execute("""
-        INSERT INTO demographic_data (submission_id, age)
-        VALUES (%s, %s);
-    """, (submission_id, age))
-
-    conn.commit()
-    cur.close()
-    conn.close()
+        cur.execute("""
+            INSERT INTO demographic_data (submission_id, age)
+            VALUES (%s, %s);
+        """, (submission_id, age))
 
     # Log the registration and login for the audit trail
     log_data_create('users', user_id, {'action': 'registration', 'source': 'mobile_api'})
@@ -124,6 +125,7 @@ def api_register():
 
 
 @api_bp.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def api_login():
     """Checks username and password, returns a JWT token if valid"""
     data = request.get_json()
@@ -224,20 +226,16 @@ def api_list_clients():
     Returns list of all organizations with their questionnaires.
     Format: [{"client_id": 1, "name": "HSE", "questionnaires": ["Cardio Health", "Diabetes Study"]}, ...]
     """
-    conn = get_db_connection()
-    cur = conn.cursor()
+    with get_db() as (conn, cur):
+        # Get all distinct questionnaires with client info
+        cur.execute("""
+            SELECT DISTINCT c.client_id, c.username, qf.questionnaire_name
+            FROM clients c
+            JOIN questionnaire_fields qf ON c.client_id = qf.client_id
+            ORDER BY c.username, qf.questionnaire_name;
+        """)
 
-    # Get all distinct questionnaires with client info
-    cur.execute("""
-        SELECT DISTINCT c.client_id, c.username, qf.questionnaire_name
-        FROM clients c
-        JOIN questionnaire_fields qf ON c.client_id = qf.client_id
-        ORDER BY c.username, qf.questionnaire_name;
-    """)
-
-    results = cur.fetchall()
-    cur.close()
-    conn.close()
+        results = cur.fetchall()
 
     # Group questionnaires by client
     clients_dict = {}
@@ -262,17 +260,14 @@ def api_get_questionnaire(client_id, questionnaire_name):
     Returns the questionnaire fields for a specific client's specific questionnaire.
     Mobile app uses this to build the form.
     """
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT field_id, field_label, field_type, category
-        FROM questionnaire_fields
-        WHERE client_id = %s AND questionnaire_name = %s
-        ORDER BY field_id;
-    """, (client_id, questionnaire_name))
-    fields = cur.fetchall()
-    cur.close()
-    conn.close()
+    with get_db() as (conn, cur):
+        cur.execute("""
+            SELECT field_id, field_label, field_type, category
+            FROM questionnaire_fields
+            WHERE client_id = %s AND questionnaire_name = %s
+            ORDER BY field_id;
+        """, (client_id, questionnaire_name))
+        fields = cur.fetchall()
 
     field_list = [{
         "field_id": f[0],

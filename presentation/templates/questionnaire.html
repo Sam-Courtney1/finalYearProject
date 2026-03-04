@@ -13,6 +13,7 @@
             <h2><i class="bi bi-clipboard2-check me-2" style="font-size:1.1rem;"></i>Please answer all questions</h2>
             <form action="{{ url_for('questionnaire_bp.questionnaire_form', client_id=client_id, questionnaire_name=questionnaire_name) }}"
                   method="POST" class="questionnaire-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="client_id" value="{{ client_id }}">
                 {% for f in static_fields %}
                 <div class="mb-3">

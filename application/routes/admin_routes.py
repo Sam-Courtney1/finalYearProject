@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, Response, jsonify
+from application.services.decorators import require_client_login
 from data.audit_database import (
     get_audit_logs, get_audit_log_count, get_action_summary,
     verify_audit_chain, create_audit_table
@@ -6,6 +7,7 @@ from data.audit_database import (
 from application.services.audit_service import audit_log
 import csv
 import io
+import ipaddress
 import json
 import urllib.request
 from datetime import datetime, timedelta
@@ -20,25 +22,6 @@ to review data access patterns for GDPR compliance.
 """
 
 admin_bp = Blueprint('admin_bp', __name__)
-
-
-def require_client_login(f):
-    """
-    Decorator to ensure only logged in clients can access admin routes.
-    """
-    from functools import wraps
-
-    """
-    Chceks if the a valid client account is logged in ie the session has a client id
-    If not then return the user to the client login page
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'client_id' not in session:
-            flash("Please log in to access the audit dashboard.")
-            return redirect(url_for('client_bp.client_login'))
-        return f(*args, **kwargs)
-    return decorated_function
 
 
 @admin_bp.route('/')
@@ -207,9 +190,22 @@ def init_audit_table():
 def geolocate_ip(ip):
     """
     Returns geolocation data for a given IP address.
-    Uses ip-api.com
+    Uses ip-api.com. Validates IP format and blocks private/loopback
+    addresses to prevent SSRF attacks.
     """
     try:
+        # Validate IP format and block private/reserved addresses (SSRF protection)
+        try:
+            addr = ipaddress.ip_address(ip)
+        except ValueError:
+            return jsonify({'success': False, 'message': 'Invalid IP address format'})
+
+        if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_link_local:
+            return jsonify({
+                'success': False,
+                'message': 'Cannot geolocate private or reserved IP addresses'
+            })
+
         api_url = f"http://ip-api.com/json/{ip}?fields=status,message,country,city,lat,lon,isp"
         req = urllib.request.Request(api_url, headers={'User-Agent': 'GDPR-Audit-Dashboard'})
         with urllib.request.urlopen(req, timeout=5) as response:

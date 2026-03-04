@@ -21,6 +21,7 @@
         <div class="col-md-6">
             <div class="form-card" style="animation: slideInUp 0.5s ease-out 0.2s both;">
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-4">
                         <label for="questionnaire_name" class="form-label"><i class="bi bi-tag me-1"></i>Questionnaire Name</label>
                         <input type="text"

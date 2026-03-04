@@ -1,7 +1,10 @@
 import smtplib
 import os
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+logger = logging.getLogger(__name__)
 
 """
 Email Service - Gmail SMTP
@@ -60,7 +63,7 @@ def _send_email(to_email: str, subject: str, body_html: str) -> tuple[bool, str]
 
     if not sender or not password:
         msg = f"SMTP_EMAIL or SMTP_PASSWORD not set — SMTP_EMAIL={'set' if sender else 'MISSING'}, SMTP_PASSWORD={'set' if password else 'MISSING'}"
-        print(msg)
+        logger.warning(msg)
         return False, msg
 
     try:
@@ -78,5 +81,5 @@ def _send_email(to_email: str, subject: str, body_html: str) -> tuple[bool, str]
         return True, ""
     except Exception as e:
         error_msg = str(e)
-        print(f"Email send error: {error_msg}")
+        logger.error("Email send error: %s", error_msg)
         return False, error_msg

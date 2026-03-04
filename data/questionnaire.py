@@ -1,4 +1,4 @@
-from data.db_connection import get_db_connection
+from data.db_connection import get_db
 import os
 
 """
@@ -11,39 +11,30 @@ with GDPR security measures.
 """
 
 def insert_questionnaire(user_id, first_name, age, address, blood_type, organ, consent):
-    conn = get_db_connection()
-    cur = conn.cursor()
+    with get_db() as (conn, cur):
+        cur.execute("""
+                    INSERT INTO submissions (user_id, consent)
+                    VALUES (%s, %s)
+                    RETURNING submission_id;
+                    """,
 
-    cur.execute("""
-                INSERT INTO submissions (user_id, consent)
-                VALUES (%s, %s)
-                RETURNING submission_id;
-                """, 
+                    (user_id, consent))
+        # Indexed as data is returned as a tuple
+        submission_id = cur.fetchone()[0]
 
-                (user_id, consent))
-    # Indexed as data is returned as a tuple
-    submission_id = cur.fetchone()[0]
+        cur.execute("""
+                    INSERT INTO pii (submission_id, first_name_enc, address_enc)
+                    VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+                    """,
+                    (submission_id, first_name, os.getenv("APP_ENC_KEY"), address, os.getenv("APP_ENC_KEY")))
 
-    cur.execute("""
-                INSERT INTO pii (submission_id, first_name_enc, address_enc)
-                VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
-                """,
-                (submission_id, first_name, os.getenv("APP_ENC_KEY"), address, os.getenv("APP_ENC_KEY"))) 
-
-    cur.execute("""
-                INSERT INTO medical_data (submission_id, blood_type_enc, organ_enc)
-                VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
-                """, 
-                (submission_id, blood_type, os.getenv("APP_ENC_KEY"), organ, os.getenv("APP_ENC_KEY")))
-    cur.execute("""
-                INSERT INTO demographic_data (submission_id, age)
-                VALUES (%s, %s);
-                """, 
-                (submission_id, age))
-
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-
+        cur.execute("""
+                    INSERT INTO medical_data (submission_id, blood_type_enc, organ_enc)
+                    VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+                    """,
+                    (submission_id, blood_type, os.getenv("APP_ENC_KEY"), organ, os.getenv("APP_ENC_KEY")))
+        cur.execute("""
+                    INSERT INTO demographic_data (submission_id, age)
+                    VALUES (%s, %s);
+                    """,
+                    (submission_id, age))

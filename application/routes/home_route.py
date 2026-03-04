@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, session, redirect, url_for
+from flask import Blueprint, render_template, session
+from application.services.decorators import require_user_login
 
 """
 home_bp is an object of Blueprint that stores its name (home_bp) 
@@ -15,9 +16,7 @@ home_bp = Blueprint('home_bp', __name__)
 # If not then return the user to the login page to login
 
 @home_bp.route('/homepage')
+@require_user_login
 def homepage():
-    if 'username' in session:
-        return render_template('homepage.html', username = session['username'])
-    else:
-        return redirect(url_for('auth_bp.login_page'))
+    return render_template('homepage.html', username = session['username'])
 

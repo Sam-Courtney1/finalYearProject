@@ -17,6 +17,7 @@
 </p>
 
 <form action="{{ url_for('auth_bp.verify_2fa') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label class="form-label"><i class="bi bi-shield-lock me-1"></i>Verification Code</label>
     <input type="text" name="otp_code" placeholder="Enter 6-digit code"
            maxlength="6" inputmode="numeric" pattern="\d{6}"
@@ -35,6 +36,7 @@
 
 <div style="text-align:center;margin-top:0.75rem;">
     <form action="{{ url_for('auth_bp.resend_2fa') }}" method="POST" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" style="background:none;border:none;color:var(--primary);
                 cursor:pointer;font-size:0.85rem;text-decoration:underline;padding:0;">
             Resend code

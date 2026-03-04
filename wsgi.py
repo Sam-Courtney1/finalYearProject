@@ -1,8 +1,10 @@
 from flask import Flask, session, redirect, url_for, flash
 from flask_cors import CORS
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 import os
 import time
+import warnings
 from datetime import timedelta
 
 """
@@ -23,12 +25,36 @@ def create_app():
                 template_folder = os.path.join('presentation', 'templates'),
                 static_folder = os.path.join('presentation', 'static')
                 )
-    app.secret_key = os.getenv("APP_ENC_KEY", "test")
+    # Secret key must be set properly in production — refuse to start with the default
+    secret_key = os.getenv("APP_ENC_KEY")
+    if not secret_key or secret_key == "test":
+        if os.getenv("AWS_EXECUTION_ENV"):
+            raise RuntimeError("APP_ENC_KEY must be set in production. Do not use the default.")
+        warnings.warn("APP_ENC_KEY not set — using insecure default. Set it in .env for development.")
+        secret_key = "insecure-dev-key-do-not-use-in-production"
+    app.secret_key = secret_key
+
     # Sessions marked permanent will expire after this duration of inactivity
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
+    # Prevent JavaScript access to session cookie (XSS protection)
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    # Only send cookie over HTTPS in production
+    app.config['SESSION_COOKIE_SECURE'] = os.getenv("FLASK_ENV") == "production"
+    # Prevent cross-site request cookie sending
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+    # CSRF protection for all POST forms — prevents cross-site request forgery.
+    # Templates must include {{ csrf_token() }} in every POST form.
+    csrf = CSRFProtect(app)
+
+    # Rate limiting — prevents brute force attacks on login/register endpoints.
+    # Per-route limits are applied via @limiter.limit() in the route files.
+    from application.extensions import limiter
+    limiter.init_app(app)
 
     # Allows the mobile app to make requests to /api/ routes from a different device
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8081").split(",")
+    CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 
     # Import Blueprints
     from application.routes.pages_and_actions import auth_bp, pages_bp
@@ -49,6 +75,8 @@ def create_app():
     # Mobile app API routes, all start with /api/
     from application.routes.api_routes import api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
+    # API routes use JWT authentication, not session cookies, so CSRF is not needed
+    csrf.exempt(api_bp)
 
     # Lightweight keep-alive endpoint hit by the "Stay Logged In" button in base_user.html.
     # The before_request hook below updates last_activity when this route is called.
@@ -62,9 +90,10 @@ def create_app():
     # but this server-side check is the authoritative enforcement.
     SESSION_TIMEOUT_SECONDS = 600  # 10 minutes
 
+    # Check_session_timeout is called by browser not be a specific file
+    # This is why it says it is not being used 
     @app.before_request
     def check_session_timeout():
-        # Only applies to fully-authenticated users (not pending 2FA or api tokens)
         if 'user_id' not in session:
             return
         last = session.get('last_activity')

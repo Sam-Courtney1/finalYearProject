@@ -1,4 +1,7 @@
 from data.db_connection import get_db_connection
+import logging
+
+logger = logging.getLogger(__name__)
 
 """
 Database migrations for schema changes.
@@ -11,7 +14,7 @@ so it is safe to run multiple times.
 def run_migrations():
     conn = get_db_connection()
     if conn is None:
-        print("Migration skipped: no database connection")
+        logger.warning("Migration skipped: no database connection")
         return False
 
     try:
@@ -43,10 +46,11 @@ def run_migrations():
         add_questionnaire_tracking_to_submissions()
         add_2fa_and_email()
 
-        print("Migrations completed successfully")
+        logger.info("Migrations completed successfully")
         return True
     except Exception as e:
-        print(f"Error running migrations: {e}")
+        logger.error("Error running migrations: %s", e)
+        conn.rollback()
         conn.close()
         return False
 
@@ -90,10 +94,11 @@ def add_deletion_tracking():
         conn.commit()
         cur.close()
         conn.close()
-        print("Deletion tracking migration completed")
+        logger.info("Deletion tracking migration completed")
         return True
     except Exception as e:
-        print(f"Error in deletion tracking migration: {e}")
+        logger.error("Error in deletion tracking migration: %s", e)
+        conn.rollback()
         conn.close()
         return False
 
@@ -147,10 +152,11 @@ def add_questionnaire_names():
         conn.commit()
         cur.close()
         conn.close()
-        print("Questionnaire names migration completed")
+        logger.info("Questionnaire names migration completed")
         return True
     except Exception as e:
-        print(f"Error in questionnaire names migration: {e}")
+        logger.error("Error in questionnaire names migration: %s", e)
+        conn.rollback()
         conn.close()
         return False
 
@@ -201,10 +207,11 @@ def add_2fa_and_email():
         conn.commit()
         cur.close()
         conn.close()
-        print("2FA and email migration completed")
+        logger.info("2FA and email migration completed")
         return True
     except Exception as e:
-        print(f"Error in 2FA/email migration: {e}")
+        logger.error("Error in 2FA/email migration: %s", e)
+        conn.rollback()
         conn.close()
         return False
 
@@ -243,9 +250,10 @@ def add_questionnaire_tracking_to_submissions():
         conn.commit()
         cur.close()
         conn.close()
-        print("Submissions questionnaire tracking migration completed")
+        logger.info("Submissions questionnaire tracking migration completed")
         return True
     except Exception as e:
-        print(f"Error in submissions questionnaire tracking migration: {e}")
+        logger.error("Error in submissions questionnaire tracking migration: %s", e)
+        conn.rollback()
         conn.close()
         return False

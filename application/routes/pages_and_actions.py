@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, Response
-from application.services.authentication import register_user, authenticate_user
+from application.services.authentication import register_user, authenticate_user, validate_password
+from application.services.decorators import require_user_login
 from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only
-from data.db_connection import get_db_connection
+from data.db_connection import get_db
 from application.services.audit_service import (
     audit_log, log_login_success, log_login_failed, log_logout,
     log_data_create, log_data_delete, log_data_update, log_data_export
@@ -13,6 +14,7 @@ from application.services.otp_service import (
 )
 from application.services.email_service import send_otp_email, send_password_reset_email
 from werkzeug.security import generate_password_hash
+from application.extensions import limiter
 import os
 import csv
 import io
@@ -40,6 +42,7 @@ def register_page():
     return render_template('Register.html')
 
 @auth_bp.route('/register_user', methods = ['POST'])
+@limiter.limit("3 per minute")
 def register():
     username = request.form['username']
     password = request.form['password']
@@ -49,6 +52,23 @@ def register():
 
     if not email:
         flash("Email address is required for account verification.")
+        return redirect(url_for('auth_bp.register_page'))
+
+    # Validate password strength
+    valid, msg = validate_password(password)
+    if not valid:
+        flash(msg)
+        return redirect(url_for('auth_bp.register_page'))
+
+    # Validate age is a reasonable integer (16-120)
+    try:
+        age_int = int(age)
+        if age_int < 16 or age_int > 120:
+            flash("Age must be between 16 and 120.")
+            return redirect(url_for('auth_bp.register_page'))
+        age = age_int
+    except (ValueError, TypeError):
+        flash("Please enter a valid age.")
         return redirect(url_for('auth_bp.register_page'))
 
     # Check to see if username already exists
@@ -69,36 +89,30 @@ def register():
     session['user_id'] = user[0]
     user_id = user[0]
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-
     key = os.getenv("APP_ENC_KEY")
 
-    # Store encrypted email on the users record
-    cur.execute("""
-        UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
-    """, (email, key, user_id))
+    with get_db() as (conn, cur):
+        # Store encrypted email on the users record
+        cur.execute("""
+            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
+        """, (email, key, user_id))
 
-    cur.execute("""
-        INSERT INTO submissions (user_id, client_id, consent)
-        VALUES (%s, NULL, FALSE)
-        RETURNING submission_id;
-    """, (user_id,))
-    submission_id = cur.fetchone()[0]
+        cur.execute("""
+            INSERT INTO submissions (user_id, client_id, consent)
+            VALUES (%s, NULL, FALSE)
+            RETURNING submission_id;
+        """, (user_id,))
+        submission_id = cur.fetchone()[0]
 
-    cur.execute("""
-        INSERT INTO pii (submission_id, first_name_enc, address_enc)
-        VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
-    """, (submission_id, username, key, address, key))
+        cur.execute("""
+            INSERT INTO pii (submission_id, first_name_enc, address_enc)
+            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+        """, (submission_id, username, key, address, key))
 
-    cur.execute("""
-        INSERT INTO demographic_data (submission_id, age)
-        VALUES (%s, %s);
-    """, (submission_id, age))
-
-    conn.commit()
-    cur.close()
-    conn.close()
+        cur.execute("""
+            INSERT INTO demographic_data (submission_id, age)
+            VALUES (%s, %s);
+        """, (submission_id, age))
 
     # Log new user registration
     log_data_create('users', user_id, {'action': 'registration'})
@@ -113,6 +127,7 @@ def register():
 
 
 @auth_bp.route('/login', methods = ['POST'])
+@limiter.limit("5 per minute")
 def login():
     username = request.form['username']
     password = request.form['password']
@@ -121,15 +136,12 @@ def login():
     user_id = authenticate_user(username, password)
     if user_id:
         # Fetch the user's encrypted email for OTP delivery
-        conn = get_db_connection()
-        cur = conn.cursor()
         key = os.getenv("APP_ENC_KEY")
-        cur.execute("""
-            SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
-        """, (key, user_id))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
+        with get_db() as (conn, cur):
+            cur.execute("""
+                SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
+            """, (key, user_id))
+            row = cur.fetchone()
 
         if not row or not row[0]:
             # No email on record — skip 2FA and log them straight in (legacy accounts)
@@ -238,15 +250,12 @@ def resend_2fa():
 
     user_id = session['pending_2fa_user']
 
-    conn = get_db_connection()
-    cur = conn.cursor()
     key = os.getenv("APP_ENC_KEY")
-    cur.execute("""
-        SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
-    """, (key, user_id))
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
+    with get_db() as (conn, cur):
+        cur.execute("""
+            SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
+        """, (key, user_id))
+        row = cur.fetchone()
 
     if row and row[0]:
         otp_code = generate_otp()
@@ -269,21 +278,19 @@ def forgot_password_page():
 
 
 @auth_bp.route('/forgot-password', methods=['POST'])
+@limiter.limit("3 per minute")
 def forgot_password():
     username = request.form.get('username', '').strip()
     user = find_by_username(username)
 
     if user:
         user_id = user[0]
-        conn = get_db_connection()
-        cur = conn.cursor()
         key = os.getenv("APP_ENC_KEY")
-        cur.execute("""
-            SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
-        """, (key, user_id))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
+        with get_db() as (conn, cur):
+            cur.execute("""
+                SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
+            """, (key, user_id))
+            row = cur.fetchone()
 
         if row and row[0]:
             token = generate_reset_token()
@@ -315,22 +322,19 @@ def reset_password(token):
     new_password = request.form.get('password', '')
     confirm      = request.form.get('confirm_password', '')
 
-    if not new_password or len(new_password) < 8:
-        flash("Password must be at least 8 characters.")
+    valid, msg = validate_password(new_password)
+    if not valid:
+        flash(msg)
         return redirect(url_for('auth_bp.reset_password_page', token=token))
 
     if new_password != confirm:
         flash("Passwords do not match.")
         return redirect(url_for('auth_bp.reset_password_page', token=token))
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        UPDATE users SET password = %s WHERE id = %s;
-    """, (generate_password_hash(new_password), user_id))
-    conn.commit()
-    cur.close()
-    conn.close()
+    with get_db() as (conn, cur):
+        cur.execute("""
+            UPDATE users SET password = %s WHERE id = %s;
+        """, (generate_password_hash(new_password), user_id))
 
     invalidate_reset_token(token)
 
@@ -344,26 +348,20 @@ and also allows them to delete there account
 """
 
 @pages_bp.route('/right_to_access', methods = ['GET'])
+@require_user_login
 @audit_log('view', 'user_data')
 def right_to_access():
-    if 'user_id' not in session:
-        return redirect(url_for('auth_bp.login_page'))
-    else:
-        user_id = session['user_id']
-
+    user_id = session['user_id']
     static_data, dynamic_data = get_user_data(user_id)
     return render_template('access_data.html', static_data = static_data, dynamic_data = dynamic_data)
 
 
 
 @pages_bp.route('/right_to_forget', methods = ['POST'])
+@require_user_login
 @audit_log('delete', 'users')
 def right_to_forget():
-    if 'user_id' not in session:
-        return redirect(url_for('auth_bp.login_page'))
-    else:
-        user_id = session['user_id']
-
+    user_id = session['user_id']
     # Log deletion before actually deleting (for audit trail)
     log_data_delete('users', user_id, {'action': 'right_to_forget', 'complete_deletion': True})
     delete_user(user_id)
@@ -371,13 +369,10 @@ def right_to_forget():
     return redirect(url_for('auth_bp.login_page'))
 
 @pages_bp.route('/delete_user_data', methods=['POST'])
+@require_user_login
 @audit_log('delete', 'submissions')
 def delete_user_data():
-    if 'user_id' not in session:
-        return redirect(url_for('auth_bp.login_page'))
-    else:
-        user_id = session['user_id']
-
+    user_id = session['user_id']
     # Log data deletion
     log_data_delete('submissions', user_id, {'action': 'delete_data_only', 'account_preserved': True})
     delete_user_data_only(user_id)
@@ -391,21 +386,17 @@ that hides data from clients but keeps it), and re-give consent.
 """
 
 @pages_bp.route('/consent', methods=['GET'])
+@require_user_login
 @audit_log('view', 'consent_status')
 def consent_management():
-    if 'user_id' not in session:
-        return redirect(url_for('auth_bp.login_page'))
-
     submissions = get_user_submissions(session['user_id'])
     return render_template('consent_management.html', submissions=submissions)
 
 
 @pages_bp.route('/consent/withdraw/<int:submission_id>', methods=['POST'])
+@require_user_login
 @audit_log('update', 'submissions')
 def withdraw_consent_route(submission_id):
-    if 'user_id' not in session:
-        return redirect(url_for('auth_bp.login_page'))
-
     user_id = session['user_id']
     success = withdraw_consent(submission_id, user_id)
 
@@ -422,11 +413,9 @@ def withdraw_consent_route(submission_id):
 
 
 @pages_bp.route('/consent/reinstate/<int:submission_id>', methods=['POST'])
+@require_user_login
 @audit_log('update', 'submissions')
 def reinstate_consent_route(submission_id):
-    if 'user_id' not in session:
-        return redirect(url_for('auth_bp.login_page'))
-
     user_id = session['user_id']
     success = reinstate_consent(submission_id, user_id)
 
@@ -443,15 +432,13 @@ def reinstate_consent_route(submission_id):
 
 
 @pages_bp.route('/delete_submission/<int:submission_id>', methods=['POST'])
+@require_user_login
 @audit_log('delete', 'submissions')
 def delete_submission_route(submission_id):
     """
     Deletes a single questionnaire submission and all related data.
     Uses soft deletion for audit trail while hard deleting sensitive data.
     """
-    if 'user_id' not in session:
-        return redirect(url_for('auth_bp.login_page'))
-
     user_id = session['user_id']
     result = delete_single_submission(submission_id, user_id)
 
@@ -478,14 +465,12 @@ def privacy_policy():
 
 
 @pages_bp.route('/export_data')
+@require_user_login
 @audit_log('export', 'user_data')
 def export_user_data():
     """
     Export all user data as a CSV file (GDPR Article 20 - Right to Data Portability).
     """
-    if 'user_id' not in session:
-        return redirect(url_for('auth_bp.login_page'))
-
     user_id = session['user_id']
     static_data, dynamic_data = get_user_data(user_id)
 
