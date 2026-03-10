@@ -35,6 +35,9 @@ def client_login():
 
         client = find_client_by_username(username)
         if client and check_password_hash(client[2], password):
+            # Clear any stale auditor session to prevent role bleed
+            session.pop('auditor_id', None)
+            session.pop('auditor_username', None)
             session["client_id"] = client[0]
             session["client_username"] = client[1]
             # Log successful client login
@@ -77,7 +80,7 @@ def client_register():
         session["client_username"] = username
 
         # Log new client registration
-        log_data_create('clients', client_id, {'action': 'registration'})
+        log_data_create('clients', client_id, {'action': 'registration'}, client_id=client_id)
         log_login_success(client_id, 'client')
 
         return redirect(url_for("client_bp.client_dashboard"))
@@ -178,7 +181,7 @@ def client_questionnaire_editor(questionnaire_name):
             'label': label,
             'field_type': field_type,
             'category': category
-        })
+        }, client_id=client_id)
 
         flash(f"Field '{label}' added successfully.", "success")
         return redirect(url_for("client_bp.client_questionnaire_editor", questionnaire_name=questionnaire_name))
@@ -197,7 +200,7 @@ def client_delete_field(field_id):
     """
     client_id = session["client_id"]
     # Log field deletion before deleting
-    log_data_delete('questionnaire_fields', field_id, {'client_id': client_id})
+    log_data_delete('questionnaire_fields', field_id, {'client_id': client_id}, client_id=client_id)
     delete_field(field_id, client_id)
     # Redirect back to referring page (the questionnaire editor)
     return redirect(request.referrer or url_for("client_bp.client_questionnaire_list"))
@@ -228,7 +231,7 @@ def client_view_submissions(questionnaire_name):
         'action': 'client_view_submissions',
         'questionnaire_name': questionnaire_name,
         'respondent_count': len(submissions_data)
-    })
+    }, client_id=client_id)
 
     return render_template(
         "client_view_submissions.html",

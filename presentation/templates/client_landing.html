@@ -71,16 +71,19 @@
             <h2>Client Sign In</h2>
 
             {% for message in get_flashed_messages() %}
-            <div class="flash-message">
-                <i class="bi bi-exclamation-triangle"></i>{{ message }}
+            <div class="flash-message" role="alert">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>{{ message }}
             </div>
             {% endfor %}
 
             <form action="{{ url_for('client_bp.client_login') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="username" placeholder="Company" required
+                <!-- sr-only labels for screen reader form access -->
+                <label for="clUsername" class="sr-only">Company username</label>
+                <input type="text" name="username" id="clUsername" placeholder="Company" required
                        autocomplete="username">
-                <input type="password" name="password" placeholder="Password" required
+                <label for="clPassword" class="sr-only">Password</label>
+                <input type="password" name="password" id="clPassword" placeholder="Password" required
                        autocomplete="current-password">
                 <div class="button-group">
                     <button type="submit" class="login-btn">

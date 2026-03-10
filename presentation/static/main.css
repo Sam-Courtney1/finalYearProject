@@ -68,7 +68,7 @@
 
 body {
     font-family: var(--font-family);
-    font-size: 15px;
+    font-size: 0.9375rem; /* scalable base - sight impairment support */
     line-height: 1.6;
     min-height: 100vh;
     background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-alt) 100%);
@@ -141,7 +141,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 
 .navbar-modern .navbar-brand {
     font-weight: 600;
-    font-size: 16px;
+    font-size: 1rem; /* rem for scalable text */
     color: var(--color-text) !important;
     display: flex;
     align-items: center;
@@ -163,7 +163,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     transition: all var(--transition-base);
     padding: 8px 16px !important;
     border-radius: var(--radius-sm);
-    font-size: 15px;
+    font-size: 0.9375rem; /* rem for scalable text */
     display: flex;
     align-items: center;
     gap: 6px;
@@ -204,7 +204,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 
 .audit-navbar .navbar-text {
     color: rgba(255, 255, 255, 0.85);
-    font-size: 14px;
+    font-size: 0.875rem; /* rem for scalable text */
     display: flex;
     align-items: center;
     gap: 6px;
@@ -332,7 +332,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     margin: 8px 0 12px;
     border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
-    font-size: 15px;
+    font-size: 0.9375rem; /* rem for scalable text */
     font-family: var(--font-family);
     background: var(--color-surface-hover);
     transition: all var(--transition-base);
@@ -366,7 +366,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
-    font-size: 16px;
+    font-size: 1rem; /* rem for scalable text */
     font-weight: 600;
     text-decoration: none;
     transition: all var(--transition-base);
@@ -397,7 +397,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     padding: 14px 18px;
     border-radius: var(--radius-md);
     margin: 0 0 20px 0;
-    font-size: 14px;
+    font-size: 0.875rem; /* rem for scalable text */
     font-weight: 500;
     border: 1px solid #fca5a5;
     animation: slideIn 0.4s ease-out;
@@ -411,7 +411,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 .alert-modern {
     border-radius: var(--radius-md);
     border: none;
-    font-size: 14px;
+    font-size: 0.875rem; /* rem for scalable text */
     font-weight: 500;
     animation: slideIn 0.4s ease-out;
     display: flex;
@@ -489,7 +489,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 .action-btn {
     width: 100%;
     padding: 16px 32px;
-    font-size: 16px;
+    font-size: 1rem; /* rem for scalable text */
     font-weight: 600;
     border: none;
     border-radius: var(--radius-lg);
@@ -572,7 +572,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     text-align: center;
     color: var(--color-text-secondary);
     margin-bottom: 32px;
-    font-size: 16px;
+    font-size: 1rem; /* rem for scalable text */
 }
 
 .page-content h4 {
@@ -605,7 +605,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 0.875rem; /* rem for scalable text */
     color: var(--color-text);
 }
 
@@ -614,7 +614,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     padding: 14px 16px;
     border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
-    font-size: 15px;
+    font-size: 0.9375rem; /* rem for scalable text */
     font-family: var(--font-family);
     background: var(--color-surface-hover);
     transition: all var(--transition-base);
@@ -634,7 +634,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 }
 
 .form-text {
-    font-size: 13px;
+    font-size: 0.8125rem; /* rem for scalable text */
     color: var(--color-text-secondary);
     margin-top: 6px;
     display: block;
@@ -661,7 +661,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 .data-card .card-header {
     text-align: center;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 1rem; /* rem for scalable text */
     padding: 16px 20px;
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
     color: white;
@@ -721,7 +721,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 
 .table-modern thead th {
     border: none;
-    font-size: 12px;
+    font-size: 0.75rem; /* rem for scalable text */
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--color-text-secondary);
@@ -731,7 +731,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 }
 
 .table-modern tbody td {
-    font-size: 15px;
+    font-size: 0.9375rem; /* rem for scalable text */
     vertical-align: middle;
     padding: 14px 16px;
     border-top: 1px solid var(--color-border-light);
@@ -758,7 +758,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     border: 2px solid var(--color-border);
     border-radius: var(--radius-md) !important;
     padding: 12px 14px;
-    font-size: 15px;
+    font-size: 0.9375rem; /* rem for scalable text */
     background: var(--color-surface-hover);
     transition: all var(--transition-base);
     font-family: var(--font-family);
@@ -773,7 +773,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 }
 
 .form-label {
-    font-size: 14px;
+    font-size: 0.875rem; /* rem for scalable text */
     font-weight: 600;
     color: #374151;
     margin-bottom: 6px;
@@ -895,7 +895,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     font-family: var(--font-family);
     transition: all var(--transition-base);
     border: none;
-    font-size: 15px;
+    font-size: 0.9375rem; /* rem for scalable text */
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -949,7 +949,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     color: white;
     border: none;
     border-radius: var(--radius-md);
-    font-size: 17px;
+    font-size: 1.0625rem; /* rem for scalable text */
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-base);
@@ -1036,7 +1036,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     padding: 12px 20px;
     border-radius: var(--radius-md);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 0.875rem; /* rem for scalable text */
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -3158,4 +3158,245 @@ h5 { font-size: 1rem; font-weight: 600; }
 
 .table-wrapper::-webkit-scrollbar-thumb:hover {
     background: var(--color-text-secondary);
+}
+
+/* =================================================================
+   ACCESSIBILITY - screen reader, keyboard, sight impairment support
+   ================================================================= */
+
+/* Screen reader only text - hidden visually but read by assistive tech */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Skip navigation link - keyboard navigation aid */
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-primary);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    font-weight: 600;
+    font-size: 0.875rem;
+    z-index: 10000;
+    text-decoration: none;
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+    top: 0;
+    color: white;
+}
+
+/* Focus indicator - keyboard navigation visibility */
+*:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Remove outline for mouse users, keep for keyboard */
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Respect user motion preferences - reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* High contrast mode - sight impairment support */
+.a11y-high-contrast {
+    --color-text: #000000;
+    --color-text-secondary: #1a1a1a;
+    --color-text-tertiary: #333333;
+    --color-border: #000000;
+    --color-bg: #ffffff;
+    --color-surface: #ffffff;
+}
+
+.a11y-high-contrast .navbar-modern {
+    border-bottom: 3px solid #000 !important;
+}
+
+.a11y-high-contrast .btn,
+.a11y-high-contrast .action-btn,
+.a11y-high-contrast .login-btn,
+.a11y-high-contrast .register-btn {
+    border: 2px solid #000 !important;
+}
+
+.a11y-high-contrast .table-modern thead th {
+    border-bottom: 3px solid #000;
+}
+
+.a11y-high-contrast .table-modern tbody td {
+    border-top: 1px solid #333;
+}
+
+/* Large text mode - sight impairment support */
+.a11y-large-text {
+    font-size: 1.25rem !important;
+}
+
+.a11y-large-text h1 { font-size: 3rem !important; }
+.a11y-large-text h2 { font-size: 2.25rem !important; }
+.a11y-large-text h3 { font-size: 1.75rem !important; }
+.a11y-large-text h4 { font-size: 1.5rem !important; }
+.a11y-large-text .btn,
+.a11y-large-text .nav-link,
+.a11y-large-text input,
+.a11y-large-text select,
+.a11y-large-text label,
+.a11y-large-text td,
+.a11y-large-text th {
+    font-size: 1.1rem !important;
+}
+
+/* Dyslexia-friendly font - reading accessibility */
+.a11y-dyslexia-font,
+.a11y-dyslexia-font * {
+    font-family: 'OpenDyslexic', 'Comic Sans MS', 'Arial', sans-serif !important;
+    letter-spacing: 0.05em;
+    word-spacing: 0.15em;
+    line-height: 1.8 !important;
+}
+
+/* Accessibility settings toggle button */
+.a11y-toggle-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9998;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 16px var(--color-primary-shadow);
+    transition: all var(--transition-base);
+}
+
+.a11y-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 24px var(--color-primary-shadow);
+}
+
+/* Accessibility settings panel */
+.a11y-panel {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 9998;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-lg);
+    width: 280px;
+    display: none;
+}
+
+.a11y-panel.open {
+    display: block;
+    animation: scaleIn 0.2s ease-out;
+}
+
+.a11y-panel h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--color-text);
+}
+
+.a11y-panel-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.a11y-panel-option:last-child {
+    border-bottom: none;
+}
+
+.a11y-panel-option span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+/* Toggle switch for accessibility options */
+.a11y-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--color-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    border: none;
+    padding: 0;
+}
+
+.a11y-switch.active {
+    background: var(--color-primary);
+}
+
+.a11y-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.a11y-switch.active::after {
+    transform: translateX(20px);
+}
+
+/* Dark landing page overrides for a11y panel */
+.landing-page .a11y-panel,
+.client-landing-page .a11y-panel {
+    background: #1a1a2e;
+    border-color: rgba(255,255,255,0.1);
+}
+
+.landing-page .a11y-panel h3,
+.landing-page .a11y-panel-option span,
+.client-landing-page .a11y-panel h3,
+.client-landing-page .a11y-panel-option span {
+    color: rgba(255,255,255,0.9);
+}
+
+.landing-page .a11y-panel-option,
+.client-landing-page .a11y-panel-option {
+    border-color: rgba(255,255,255,0.08);
 }

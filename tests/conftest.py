@@ -52,3 +52,13 @@ def client_auth_client(app):
             sess['client_id'] = 1
             sess['client_username'] = 'testclient'
         yield c
+
+
+@pytest.fixture()
+def auditor_client(app):
+    """Flask test client with a logged-in external auditor session."""
+    with app.test_client() as c:
+        with c.session_transaction() as sess:
+            sess['auditor_id'] = 99
+            sess['auditor_username'] = 'test_auditor'
+        yield c

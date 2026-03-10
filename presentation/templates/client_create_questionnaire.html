@@ -30,8 +30,10 @@
                                name="questionnaire_name"
                                placeholder="e.g., Cardio Health, Diabetes Study"
                                required
-                               maxlength="255">
-                        <div class="form-text">
+                               maxlength="255"
+                               aria-describedby="qNameHelp">
+                        <!-- aria-describedby links input to help text - screen reader -->
+                        <div class="form-text" id="qNameHelp">
                             Choose a descriptive name. Users will see: "Your Organization - Questionnaire Name"
                         </div>
                     </div>

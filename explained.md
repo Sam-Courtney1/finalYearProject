@@ -112,7 +112,46 @@ Runs schema migrations on application startup to keep the database up to date. U
 - Adding `updated_at` timestamp to `answers` for tracking edits
 - Adding `deleted`, `deleted_at`, and `deletion_reason` columns to `submissions` for soft deletion
 - Adding `questionnaire_name` column to `questionnaire_fields` and `submissions` for supporting multiple questionnaires per client
+- Adding `email_enc` (encrypted email) column to `users` and creating `otp_tokens` and `password_reset_tokens` tables for 2FA
+- Adding `client_id` column to `audit_logs` for per-client filtering, with backfill logic
+- Creating `auditors` table for external auditor access
+- Adding `last_login` column to `users` for data retention tracking
+- Creating `data_breaches` table for GDPR Article 33-34 breach notification tracking
+- Creating `data_subject_requests` table for GDPR Articles 12-23 DSR tracking with 30-day deadlines
+- Creating `breach_notifications` table for tracking breach notification emails sent to users
 - Creating appropriate indexes for efficient queries
+
+#### `data/dsr_database.py` - Data Subject Request Database Operations
+
+Handles all database operations for tracking formal data subject requests (GDPR Articles 12-23):
+
+- `insert_dsr(user_id, username, request_type, source)` - Inserts a new DSR record with a 30-day deadline, auto-set to 'completed' status since the system fulfils requests immediately
+- `insert_dsr_manual(user_id, username, request_type, notes)` - Inserts a manually created DSR (e.g. received by email) starting as 'pending'
+- `get_all_dsrs(status, limit, offset)` - Returns all DSRs with optional status filtering and pagination
+- `get_dsr_by_id(dsr_id)` - Returns a single DSR as a dict
+- `update_dsr_status(dsr_id, status, notes)` - Updates DSR status, sets `completed_at` when marked as 'completed'
+- `get_dsr_summary()` - Returns aggregate counts (pending, in_progress, completed, overdue) for the compliance dashboard
+- `get_dsrs_for_user(user_id)` - Returns a user's own DSR history for the user dashboard
+
+The `user_id` column uses `ON DELETE SET NULL` so DSR records survive account deletion as compliance evidence.
+
+#### `data/breach_notification_database.py` - Breach Notification Database Operations
+
+Tracks email notifications sent to users about data breaches (GDPR Article 34):
+
+- `insert_breach_notification(breach_id, user_id, email_address)` - Creates a pending notification record
+- `update_notification_status(notification_id, status, error_message)` - Updates status after send attempt, sets `sent_at` timestamp on success
+- `get_notifications_for_breach(breach_id)` - Returns all notification records for a specific breach
+- `get_notification_summary(breach_id)` - Returns counts of total, sent, failed, and pending notifications
+- `get_all_user_emails()` - Decrypts and returns all user emails using `pgp_sym_decrypt` for bulk notification
+
+#### `data/retention_database.py` - Data Retention Database Operations
+
+Provides queries for identifying data that has exceeded the retention period (GDPR Article 5(1)(e)):
+
+- `get_inactive_users(days)` - Returns users who haven't logged in for the specified number of days
+- `get_expired_submissions(days)` - Returns submissions older than the retention period
+- `get_retention_stats(days)` - Returns aggregate counts of total users, inactive users, and expired submissions
 
 ---
 
@@ -142,6 +181,52 @@ Provides the `@audit_log` decorator and helper functions for logging all actions
 - `log_login_success()` / `log_login_failed()` / `log_logout()` - Log authentication events
 - `log_data_access()` / `log_data_create()` / `log_data_update()` / `log_data_delete()` - Log CRUD operations on data
 - `log_data_export()` - Logs when a user exports their data
+
+#### `application/services/dsr_service.py` - Data Subject Request Service
+
+Provides helper functions for DSR management (GDPR Articles 12-23):
+
+- `log_dsr(user_id, username, request_type, source)` - Called from routes when a user exercises a GDPR right. Logs the DSR and auto-sets it to 'completed' since the system fulfils requests immediately. Returns the `dsr_id`
+- `check_30_day_deadline(dsr)` - Calculates days remaining until the 30-day GDPR response deadline. Returns negative value if overdue, `None` if already completed
+- `get_dsr_dashboard_data(status_filter)` - Aggregates all DSRs with deadline info and summary statistics for the admin dashboard
+
+DSRs are automatically logged when users: access their data (Art. 15), delete their account/data (Art. 17), export their data (Art. 20), or withdraw/reinstate consent (Art. 7).
+
+#### `application/services/breach_notification_service.py` - Breach Notification Service
+
+Handles sending breach notification emails to affected users (GDPR Article 34):
+
+- `send_breach_notification_email(to_email, breach_title, description, data_types, remedial_actions, contact_email)` - Sends a formatted HTML breach notification email via Gmail SMTP using the existing `_send_email` helper. The email includes what happened, what data was affected, what remedial actions were taken, what users can do, and DPO contact information
+- `notify_all_affected_users(breach_id, contact_email)` - Fetches breach details and all user emails (decrypted), then iterates through each user sending notification emails. Records the status of each notification in the `breach_notifications` table. Returns a summary with total, sent, and failed counts
+
+Uses Gmail SMTP (app password) rather than AWS SES for simplicity and immediate availability.
+
+#### `application/services/compliance_service.py` - GDPR Compliance Service
+
+Aggregates compliance metrics from all GDPR modules into a single overview for the compliance dashboard:
+
+- `get_compliance_overview(retention_days)` - Returns a dict containing:
+  - **breach**: Summary from `breach_service` (open, overdue, resolved, total counts)
+  - **dsr**: Summary from `dsr_database` (pending, in_progress, completed, overdue counts)
+  - **retention**: Stats from `retention_database` (total users, inactive users, expired submissions)
+  - **backup**: RDS backup configuration (enabled, 7-day retention, 04:00-04:30 UTC window)
+  - **overall_status**: Calculated compliance status:
+    - `'non_compliant'` (red) if any overdue breaches or DSRs
+    - `'attention'` (amber) if any open breaches, pending DSRs, or inactive users
+    - `'compliant'` (green) if no outstanding issues
+
+#### `application/services/retention_service.py` - Data Retention Service
+
+Handles automated cleanup of data that has exceeded the retention period (GDPR Article 5(1)(e)):
+
+- `run_retention_cleanup(days, dry_run)` - Identifies inactive users and expired submissions. In dry-run mode, returns what would be affected. In execute mode, hard-deletes expired submissions and anonymises inactive user accounts while preserving the audit trail
+
+#### `application/services/breach_service.py` - Breach Notification Service
+
+Provides helper functions for breach management (GDPR Articles 33-34):
+
+- `check_72h_deadline(breach)` - Calculates hours remaining until the 72-hour GDPR reporting deadline. Returns negative value if overdue, `None` if already reported/resolved
+- `get_breach_summary()` - Returns summary statistics (open, total, resolved, overdue counts) for the breach dashboard
 
 #### `application/services/log_form_data.py` - Questionnaire Submission Handler
 
@@ -174,15 +259,16 @@ Contains two Blueprints: `auth_bp` for authentication and `pages_bp` for GDPR ri
 - `GET /logout` - Clears session, logs the event
 
 **pages_bp routes:**
-- `GET /right_to_access` - Shows all stored data about the user (GDPR Article 15). Decrypts and displays both core info and per-organisation questionnaire answers
-- `POST /right_to_forget` - Deletes the user account and all associated data (GDPR Article 17)
-- `POST /delete_user_data` - Deletes all questionnaire data but keeps the account
+- `GET /right_to_access` - Shows all stored data about the user (GDPR Article 15). Decrypts and displays both core info and per-organisation questionnaire answers. Auto-logs a DSR of type 'access'
+- `POST /right_to_forget` - Deletes the user account and all associated data (GDPR Article 17). Auto-logs a DSR of type 'erasure'
+- `POST /delete_user_data` - Deletes all questionnaire data but keeps the account. Auto-logs a DSR of type 'erasure'
 - `GET /consent` - Shows consent management page with per-submission consent status
-- `POST /consent/withdraw/<submission_id>` - Withdraws consent for a specific submission
-- `POST /consent/reinstate/<submission_id>` - Re-gives consent for a previously withdrawn submission
+- `POST /consent/withdraw/<submission_id>` - Withdraws consent for a specific submission. Auto-logs a DSR of type 'rectification'
+- `POST /consent/reinstate/<submission_id>` - Re-gives consent for a previously withdrawn submission. Auto-logs a DSR of type 'rectification'
 - `POST /delete_submission/<submission_id>` - Permanently deletes a single submission
+- `GET /dashboard` - User dashboard showing questionnaire stats (total submissions, organisations, consent status), submission history table, DSR history, and quick action links
 - `GET /privacy` - Displays the privacy policy page
-- `GET /export_data` - Exports all user data as a CSV file (GDPR Article 20 - Right to Data Portability)
+- `GET /export_data` - Exports all user data as a CSV file (GDPR Article 20 - Right to Data Portability). Auto-logs a DSR of type 'portability'
 
 #### `application/routes/questionnaire_routes.py` - Questionnaire Routes
 
@@ -216,9 +302,22 @@ All routes are prefixed with `/admin`. Provides the audit log dashboard for GDPR
 - `GET /admin/export` - Exports filtered audit logs as a CSV file
 - `GET /admin/verify-chain` - Re-verifies the integrity of the audit log hash chain
 - `GET /admin/init` - Initialises the audit table (first-time setup)
+- `GET/POST /admin/auditor-login` - Login page for external auditors (separate from client login)
+- `GET /admin/auditor-logout` - Clear auditor session
 - `GET /admin/geolocate/<ip>` - Returns geolocation data for an IP address using ip-api.com (used by the map)
+- `GET /admin/retention` - Data retention dashboard showing inactive users and expired submissions (auditor-only)
+- `POST /admin/retention/preview` - Preview what data would be deleted by a retention cleanup (dry run)
+- `POST /admin/retention/cleanup` - Execute retention cleanup, deleting expired data
+- `GET /admin/breaches` - Breach notification dashboard listing all recorded data breaches with 72-hour deadline countdown (auditor-only)
+- `POST /admin/breaches` - Log a new data breach incident
+- `GET /admin/breaches/<id>` - View breach details including notification history
+- `POST /admin/breaches/<id>/update` - Update breach status and remedial actions
+- `POST /admin/breaches/<id>/notify` - Send breach notification emails to all users with an email on file (GDPR Article 34)
+- `GET /admin/dsr` - DSR dashboard showing all data subject requests with 30-day deadline tracking (auditor-only)
+- `POST /admin/dsr/<id>/update` - Update DSR status
+- `GET /admin/compliance` - Overall GDPR compliance dashboard aggregating breach, DSR, retention, and backup status into a single overview with colour-coded compliance status (auditor-only)
 
-Access is restricted to logged-in clients via the `require_client_login` decorator.
+Access is restricted to logged-in clients or auditors via the `require_audit_access` decorator. Auditor-only routes additionally check for `auditor_id` in the session.
 
 #### `application/routes/api_routes.py` - Mobile API Routes
 
@@ -246,9 +345,15 @@ All routes are prefixed with `/api`. Returns JSON for the React Native mobile ap
 
 **Consent Management:**
 - `GET /api/consent` - Lists consent status for all submissions
-- `POST /api/submissions/<id>/consent/withdraw` - Withdraws consent
-- `POST /api/submissions/<id>/consent/reinstate` - Re-gives consent
+- `POST /api/submissions/<id>/consent/withdraw` - Withdraws consent. Auto-logs a DSR
+- `POST /api/submissions/<id>/consent/reinstate` - Re-gives consent. Auto-logs a DSR
 - `DELETE /api/submissions/<id>` - Deletes a single submission
+
+**Dashboard & DSR:**
+- `GET /api/dashboard` - Returns user dashboard data (submission stats, DSR history) as JSON
+- `GET /api/dsr` - Returns the user's own DSR history for transparency
+
+All GDPR rights endpoints (data access, account deletion, data deletion, consent changes) automatically log Data Subject Requests with source `'mobile_api'`.
 
 The `@token_required` decorator validates the JWT token from the `Authorization: Bearer <token>` header and puts user info into the session so audit logging still works.
 
@@ -280,11 +385,12 @@ Extends `base.html`. Used by login and registration pages. Provides:
 Extends `base.html`. Provides a navigation bar for authenticated users with links to:
 
 - Home (homepage)
+- Dashboard (user dashboard with stats)
 - Questionnaire (fill a questionnaire)
 - Consent (manage consent)
 - Logout
 
-The navbar highlights the currently active page.
+The navbar highlights the currently active page. Also includes a session inactivity timeout system: warns at 9 minutes of inactivity, auto-logs out at 10 minutes. A modal offers a "Stay Logged In" button that pings the server to reset the timer.
 
 #### `base_client.html` - Client/Organisation Pages Base
 
@@ -462,6 +568,15 @@ Extends `base_client.html`. Displays anonymised submission data in a table:
 - A dynamic table with columns generated from the questionnaire fields and rows for each respondent (labelled "Respondent 1", "Respondent 2", etc.)
 - Empty state if no submissions or all consent withdrawn
 
+#### `user_dashboard.html` - User Dashboard
+
+Extends `base_user.html`. A personal dashboard showing the user an overview of their data:
+
+- **Stats row**: Four colour-coded cards showing total questionnaires filled, number of organisations, active consents, and withdrawn consents
+- **Submissions table**: Lists all questionnaire submissions with organisation name, questionnaire name, consent status (Active/Withdrawn badge), and submission date
+- **DSR history table**: Shows a record of every time the user exercised a GDPR right (access, erasure, portability, rectification) with request type (colour-coded badge), status, date, and completion timestamp. Provides transparency about how their data requests are tracked
+- **Quick action links**: Fill Questionnaire, Manage Consent, Access My Data, Export My Data
+
 ### Admin/Audit Pages
 
 #### `audit_dashboard.html` - Audit Log Dashboard
@@ -477,6 +592,79 @@ Extends `base.html` directly (unique dark navbar, not using base_client). A comp
 - **Pagination**: Previous/Next with page numbers
 - **Action summary**: Badge counts of each action type
 - **Export CSV** button for downloading filtered logs
+
+#### `retention_dashboard.html` - Data Retention Dashboard
+
+Extends `base.html` with `audit-page` body class (dark theme). An auditor-only dashboard for managing data retention (GDPR Article 5(1)(e)):
+
+- A custom dark navbar with back-to-dashboard link
+- **Stats row**: Total users, inactive users (configurable threshold), expired submissions, and retention period
+- **Retention period filter**: Dropdown to change the threshold (90, 180, 365, or 730 days)
+- **Cleanup actions**: Preview Cleanup (dry run) and Execute Cleanup buttons with confirmation dialog
+- **Inactive users table**: User ID, username, last login date, and days inactive (with colour-coded badges)
+- **Expired submissions table**: Submission ID, user ID, username, creation date, and client name
+
+#### `breach_dashboard.html` - Breach Notification Dashboard
+
+Extends `base.html` with `audit-page` body class. An auditor-only dashboard for managing data breaches (GDPR Articles 33-34):
+
+- Lists all recorded breaches with severity, status, 72-hour deadline countdown, and affected user count
+- A form to log new breaches with title, description, severity, affected count, and data types
+- Summary statistics showing open, overdue, and resolved breach counts
+
+#### `breach_detail.html` - Breach Detail Page
+
+Extends `base.html` with `audit-page` body class. Detailed view of a specific breach:
+
+- **Severity and status badges** with 72-hour deadline countdown
+- **Breach details table**: Description, discovery/reported/resolved timestamps, affected users, data types, remedial actions
+- **Timeline visualisation**: Shows breach lifecycle stages (Discovered, Investigating, Reported, Resolved)
+- **Update form**: Change status and record remedial actions
+- **Notify Affected Users section** (GDPR Article 34): A button to send breach notification emails to all users with an email on file, with a confirmation dialog. Shows notification summary (sent/failed/total) and a notification history table with masked email addresses, send status, and error messages
+
+#### `dsr_dashboard.html` - Data Subject Request Dashboard
+
+Extends `base.html` with `audit-page` body class. An auditor-only dashboard for tracking DSRs (GDPR Articles 12-23):
+
+- **Stats row**: Pending, in progress, completed, and overdue counts (overdue highlighted in red)
+- **Status filter**: Dropdown to filter by pending, in progress, or completed
+- **DSR table**: DSR ID, username, request type (colour-coded badge: blue for access, red for erasure, green for portability, amber for rectification), status, source (web/mobile), creation date, deadline, days remaining (with colour-coded urgency badges), and action buttons (mark complete, mark in progress)
+- Auto-completed DSRs are logged automatically when users exercise rights through the system
+
+#### `compliance_dashboard.html` - GDPR Compliance Dashboard
+
+Extends `base.html` with `audit-page` body class. An auditor-only single-page overview of overall GDPR compliance status:
+
+- **Overall status banner**: Large colour-coded alert (green = Compliant, amber = Attention Required, red = Non-Compliant) with icon and description
+- **Four summary cards**:
+  - **Breaches** (Art. 33-34): Open, overdue, resolved, and total counts with link to breach register
+  - **Data Subject Requests** (Art. 12-23): Pending, overdue, in progress, and completed counts with link to DSR dashboard
+  - **Data Retention** (Art. 5(1)(e)): Total users, inactive users, expired submissions, and retention period with link to retention dashboard
+  - **Backups**: RDS automated backup status (enabled/disabled), retention period (7 days), backup window (04:00-04:30 UTC), and provider (AWS RDS)
+- **Quick action links**: Audit Trail, Breach Register, DSR Log, Retention Manager
+
+#### `auditor_login.html` - Auditor Login Page
+
+Login page for external auditors with username and password fields. Separate from client login to maintain role separation.
+
+#### `error.html` - Error Page
+
+Generic error page template for displaying HTTP errors (404, 500, etc.) with user-friendly messages.
+
+---
+
+## Database Backup Strategy
+
+The system uses **AWS RDS Automated Snapshots** for database backups:
+
+- **Enabled**: Yes (configured via AWS Console)
+- **Retention period**: 7 days (automatic backups kept for one week)
+- **Backup window**: 04:00-04:30 UTC (during low-traffic period)
+- **Type**: Point-in-time recovery — RDS continuously backs up the database and transaction logs
+- **Provider**: AWS RDS (managed PostgreSQL)
+- **Deletion protection**: Available via AWS Console to prevent accidental database deletion
+
+This is displayed on the GDPR Compliance Dashboard under the Backups card so auditors can verify backup configuration at a glance. The actual backup management is done through the AWS Console, not through application code.
 
 ---
 
@@ -545,9 +733,10 @@ The system follows a **3-tier architecture**:
 2. **Application Layer** (`application/`) - Flask routes (controllers) + services (business logic)
 3. **Data Layer** (`data/`) - Database operations (PostgreSQL with pgcrypto encryption)
 
-**Two user types:**
-- **Users** (donors) - Register, fill questionnaires, exercise GDPR rights
-- **Clients** (organisations) - Create questionnaires, view anonymised data, monitor audit logs
+**Three user types:**
+- **Users** (donors) - Register, fill questionnaires, exercise GDPR rights, view personal dashboard
+- **Clients** (organisations) - Create questionnaires, view anonymised data, view own audit logs
+- **Auditors** (external) - Full audit trail access, breach management, DSR tracking, retention management, compliance overview
 
 **Security measures:**
 - AES-256 encryption at rest for PII and Medical data (pgcrypto)
@@ -555,5 +744,23 @@ The system follows a **3-tier architecture**:
 - One-way hashing for Hashed category fields
 - SHA-256 hash chain for tamper-evident audit logs
 - JWT tokens for mobile API authentication
-- Session-based authentication for web
+- Session-based authentication for web with 10-minute inactivity timeout
+- Email-based 2FA (OTP) for user login
+- CSRF protection on all forms (Flask-WTF)
+- Rate limiting on auth endpoints (Flask-Limiter)
+- Security headers via nginx (HSTS, X-Frame-Options, X-Content-Type-Options)
 - Ownership verification on all data access
+- Role-based access control preventing role bleed between user types
+- AWS RDS automated backups with 7-day retention
+
+**GDPR compliance features:**
+- Right to Access (Article 15) - View all stored data
+- Right to Rectification (Article 16) - Edit questionnaire answers
+- Right to Erasure (Article 17) - Delete account or data
+- Right to Data Portability (Article 20) - CSV export
+- Consent Management (Article 7) - Per-submission withdraw/reinstate
+- Data Subject Request Tracking (Articles 12-23) - 30-day deadline monitoring
+- Breach Notification (Articles 33-34) - 72-hour deadline tracking + email notification to affected users
+- Data Retention (Article 5(1)(e)) - Identify and clean up expired data
+- Audit Logging (Article 32) - Tamper-evident hash chain audit trail
+- Compliance Dashboard - Single-page overview of all GDPR requirements

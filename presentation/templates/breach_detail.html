@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Breach #{{ breach.breach_id }} | GDPR Compliance{% endblock %}
+{% block body_class %}audit-page{% endblock %}
+
+{% block navbar %}
+<nav class="navbar audit-navbar">
+    <div class="container-fluid">
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_bp.breach_dashboard') }}">
+                <i class="bi bi-arrow-left me-1"></i>Back to Breach Register
+            </a>
+            <span class="badge bg-danger">
+                <i class="bi bi-exclamation-triangle me-1"></i>Breach #{{ breach.breach_id }}
+            </span>
+        </div>
+        <span class="navbar-text">
+            <i class="bi bi-person-circle me-1"></i>{{ client_username }}
+        </span>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-2">{{ breach.title }}</h1>
+
+    <!-- Severity and Status -->
+    <div class="d-flex gap-2 mb-4">
+        {% if breach.severity == 'critical' %}
+        <span class="badge bg-danger p-2">Severity: Critical</span>
+        {% elif breach.severity == 'high' %}
+        <span class="badge bg-warning text-dark p-2">Severity: High</span>
+        {% elif breach.severity == 'medium' %}
+        <span class="badge bg-info text-dark p-2">Severity: Medium</span>
+        {% else %}
+        <span class="badge bg-secondary p-2">Severity: Low</span>
+        {% endif %}
+
+        {% if breach.status == 'resolved' %}
+        <span class="badge bg-success p-2">Status: Resolved</span>
+        {% elif breach.status == 'reported' %}
+        <span class="badge bg-primary p-2">Status: Reported</span>
+        {% elif breach.status == 'investigating' %}
+        <span class="badge bg-warning text-dark p-2">Status: Investigating</span>
+        {% else %}
+        <span class="badge bg-danger p-2">Status: Open</span>
+        {% endif %}
+
+        {% if breach.hours_remaining is not none %}
+            {% if breach.hours_remaining < 0 %}
+            <span class="badge bg-danger p-2">OVERDUE: {{ "%.1f"|format(breach.hours_remaining|abs) }}h past deadline</span>
+            {% else %}
+            <span class="badge bg-warning text-dark p-2">{{ "%.1f"|format(breach.hours_remaining) }}h until 72h deadline</span>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Breach Details -->
+        <div class="col-md-7">
+            <div class="filter-form mb-4">
+                <h5><i class="bi bi-info-circle me-2"></i>Breach Details</h5>
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted" style="width: 200px;">Description</td>
+                        <td>{{ breach.description or 'No description provided' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Discovered At</td>
+                        <td>{{ breach.discovered_at.strftime('%Y-%m-%d %H:%M:%S') if breach.discovered_at else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Reported At</td>
+                        <td>{{ breach.reported_at.strftime('%Y-%m-%d %H:%M:%S') if breach.reported_at else 'Not yet reported' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Resolved At</td>
+                        <td>{{ breach.resolved_at.strftime('%Y-%m-%d %H:%M:%S') if breach.resolved_at else 'Not yet resolved' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Affected Users</td>
+                        <td>{{ breach.affected_users_count }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Data Types Affected</td>
+                        <td>{{ breach.data_types_affected or 'Not specified' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Remedial Actions</td>
+                        <td>{{ breach.remedial_actions or 'None recorded yet' }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Timeline -->
+            <div class="filter-form mb-4">
+                <h5><i class="bi bi-clock-history me-2"></i>Timeline</h5>
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-danger rounded-circle p-2"><i class="bi bi-exclamation"></i></span>
+                        <div>
+                            <strong>Discovered</strong><br>
+                            <small class="text-muted">{{ breach.discovered_at.strftime('%Y-%m-%d %H:%M') if breach.discovered_at else 'N/A' }}</small>
+                        </div>
+                    </div>
+                    {% if breach.status in ('investigating', 'reported', 'resolved') %}
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-warning rounded-circle p-2"><i class="bi bi-search"></i></span>
+                        <div>
+                            <strong>Under Investigation</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if breach.reported_at %}
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary rounded-circle p-2"><i class="bi bi-send"></i></span>
+                        <div>
+                            <strong>Reported to Authority</strong><br>
+                            <small class="text-muted">{{ breach.reported_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if breach.resolved_at %}
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success rounded-circle p-2"><i class="bi bi-check-lg"></i></span>
+                        <div>
+                            <strong>Resolved</strong><br>
+                            <small class="text-muted">{{ breach.resolved_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Update Form -->
+        <div class="col-md-5">
+            <div class="filter-form mb-4">
+                <h5><i class="bi bi-pencil-square me-2"></i>Update Breach</h5>
+                <form method="POST" action="{{ url_for('admin_bp.update_breach', breach_id=breach.breach_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label" for="updateStatus">Status</label>
+                        <select name="status" id="updateStatus" class="form-select">
+                            <option value="open" {% if breach.status == 'open' %}selected{% endif %}>Open</option>
+                            <option value="investigating" {% if breach.status == 'investigating' %}selected{% endif %}>Investigating</option>
+                            <option value="reported" {% if breach.status == 'reported' %}selected{% endif %}>Reported to Authority</option>
+                            <option value="resolved" {% if breach.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="remedialActions">Remedial Actions</label>
+                        <textarea name="remedial_actions" id="remedialActions" class="form-control" rows="4"
+                                  placeholder="Describe the actions taken to address the breach">{{ breach.remedial_actions or '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-lg me-1"></i>Update Breach
+                    </button>
+                </form>
+            </div>
+
+            <!-- Notify Affected Users (GDPR Article 34) -->
+            <div class="filter-form mb-4">
+                <h5><i class="bi bi-envelope-exclamation me-2"></i>Notify Affected Users</h5>
+                <p class="text-muted small">
+                    GDPR Article 34 requires notifying affected individuals when a breach is likely to result in high risk.
+                </p>
+                {% if notif_summary and notif_summary.total > 0 %}
+                <div class="d-flex gap-2 mb-3">
+                    <span class="badge bg-success">{{ notif_summary.sent }} Sent</span>
+                    <span class="badge bg-danger">{{ notif_summary.failed }} Failed</span>
+                    <span class="badge bg-secondary">{{ notif_summary.total }} Total</span>
+                </div>
+                {% endif %}
+                <form method="POST" action="{{ url_for('admin_bp.notify_breach_users', breach_id=breach.breach_id) }}"
+                      onsubmit="return confirm('This will send breach notification emails to ALL users with an email on file. Continue?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="bi bi-send me-1"></i>Send Notifications to All Users
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification History -->
+    {% if notifications and notifications|length > 0 %}
+    <h5 class="mt-4"><i class="bi bi-envelope-check me-2"></i>Notification History</h5>
+    <div class="audit-table-container mb-4">
+        <table class="table table-striped table-hover log-table mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">User ID</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Sent At</th>
+                    <th scope="col">Error</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for notif in notifications %}
+                <tr>
+                    <td>{{ notif.notification_id }}</td>
+                    <td>{{ notif.user_id or 'Deleted' }}</td>
+                    <td>
+                        {% set email = notif.email_address %}
+                        {% if '@' in email %}
+                            {{ email[:3] }}***@{{ email.split('@')[1] }}
+                        {% else %}
+                            {{ email }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if notif.status == 'sent' %}
+                        <span class="badge bg-success">Sent</span>
+                        {% elif notif.status == 'failed' %}
+                        <span class="badge bg-danger">Failed</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ notif.sent_at.strftime('%Y-%m-%d %H:%M') if notif.sent_at else '-' }}</small></td>
+                    <td><small class="text-danger">{{ notif.error_message or '' }}</small></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -299,3 +299,39 @@ def delete_single_submission(submission_id, user_id):
             'client_name': client_name,
             'answers_deleted': answers_count
         }
+
+
+def get_user_dashboard_stats(user_id):
+    """
+    Returns dashboard statistics for a user:
+    - total submissions count
+    - list of organisations with submission details and consent status
+    """
+    with get_db() as (conn, cur):
+        cur.execute("""
+            SELECT s.submission_id, c.username AS org_name, s.questionnaire_name,
+                   s.consent_withdrawn, s.created_at
+            FROM submissions s
+            JOIN clients c ON s.client_id = c.client_id
+            WHERE s.user_id = %s
+              AND s.client_id IS NOT NULL
+              AND s.deleted = FALSE
+            ORDER BY s.created_at DESC;
+        """, (user_id,))
+        rows = cur.fetchall()
+        columns = [desc[0] for desc in cur.description]
+        submissions = [dict(zip(columns, row)) for row in rows]
+
+        # Aggregate stats
+        total = len(submissions)
+        orgs = set(s['org_name'] for s in submissions)
+        active_consents = sum(1 for s in submissions if not s['consent_withdrawn'])
+        withdrawn_consents = sum(1 for s in submissions if s['consent_withdrawn'])
+
+        return {
+            'total_submissions': total,
+            'total_organisations': len(orgs),
+            'active_consents': active_consents,
+            'withdrawn_consents': withdrawn_consents,
+            'submissions': submissions
+        }

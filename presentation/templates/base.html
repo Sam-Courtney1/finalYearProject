@@ -7,22 +7,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Dyslexia-friendly font - reading accessibility -->
+    <link href="https://fonts.googleapis.com/css2?family=OpenDyslexic&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}?v={{ range(1, 999999) | random }}">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
+    <!-- Skip to content - keyboard navigation aid -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     {% block navbar %}{% endblock %}
 
+    <!-- Flash messages - aria-live for screen reader announcements -->
     {% block flash_messages %}
     {% with messages = get_flashed_messages() %}
     {% if messages %}
-    <div class="container mt-3">
+    <div class="container mt-3" role="status" aria-live="polite">
         {% for message in messages %}
         <div class="alert alert-modern alert-dismissible fade show" role="alert">
-            <i class="bi bi-info-circle"></i>{{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <i class="bi bi-info-circle" aria-hidden="true"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
         </div>
         {% endfor %}
     </div>
@@ -30,12 +36,15 @@
     {% endwith %}
     {% endblock %}
 
-    {% block content %}{% endblock %}
+    <!-- Main content landmark - screen reader navigation -->
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
 
     <!-- Cookie/Privacy Notice Banner -->
-    <div class="cookie-banner" id="cookieBanner">
+    <div class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Cookie notice">
         <div class="cookie-banner-content">
-            <i class="bi bi-shield-check"></i>
+            <i class="bi bi-shield-check" aria-hidden="true"></i>
             <p>This site uses a strictly necessary session cookie to keep you logged in. No tracking cookies are used.
                 <a href="{{ url_for('pages_bp.privacy_policy') }}">Privacy Policy</a>
             </p>
@@ -50,6 +59,67 @@
             localStorage.setItem('cookieNoticeAck', 'true');
             document.getElementById('cookieBanner').style.display = 'none';
         });
+    </script>
+
+    <!-- Accessibility settings panel - sight impairment support -->
+    <button class="a11y-toggle-btn" id="a11yToggle" aria-label="Open accessibility settings" aria-expanded="false">
+        <i class="bi bi-universal-access" aria-hidden="true"></i>
+    </button>
+    <div class="a11y-panel" id="a11yPanel" role="dialog" aria-label="Accessibility settings">
+        <h3><i class="bi bi-universal-access me-2" aria-hidden="true"></i>Accessibility</h3>
+        <div class="a11y-panel-option">
+            <span>Large Text</span>
+            <button class="a11y-switch" id="a11yLargeText" role="switch" aria-checked="false" aria-label="Toggle large text"></button>
+        </div>
+        <div class="a11y-panel-option">
+            <span>High Contrast</span>
+            <button class="a11y-switch" id="a11yHighContrast" role="switch" aria-checked="false" aria-label="Toggle high contrast"></button>
+        </div>
+        <div class="a11y-panel-option">
+            <span>Dyslexia Font</span>
+            <button class="a11y-switch" id="a11yDyslexia" role="switch" aria-checked="false" aria-label="Toggle dyslexia-friendly font"></button>
+        </div>
+    </div>
+    <script>
+    /* Accessibility panel - persists user preferences via localStorage */
+    (function() {
+        var panel = document.getElementById('a11yPanel');
+        var toggle = document.getElementById('a11yToggle');
+        var body = document.body;
+
+        toggle.addEventListener('click', function() {
+            var isOpen = panel.classList.toggle('open');
+            toggle.setAttribute('aria-expanded', isOpen);
+        });
+
+        /* Close panel on outside click */
+        document.addEventListener('click', function(e) {
+            if (!panel.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)) {
+                panel.classList.remove('open');
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        /* Helper: toggle a class and save preference */
+        function setupSwitch(btnId, className, storageKey) {
+            var btn = document.getElementById(btnId);
+            if (localStorage.getItem(storageKey) === 'true') {
+                body.classList.add(className);
+                btn.classList.add('active');
+                btn.setAttribute('aria-checked', 'true');
+            }
+            btn.addEventListener('click', function() {
+                var active = body.classList.toggle(className);
+                btn.classList.toggle('active', active);
+                btn.setAttribute('aria-checked', active);
+                localStorage.setItem(storageKey, active);
+            });
+        }
+
+        setupSwitch('a11yLargeText', 'a11y-large-text', 'a11y_large_text');
+        setupSwitch('a11yHighContrast', 'a11y-high-contrast', 'a11y_high_contrast');
+        setupSwitch('a11yDyslexia', 'a11y-dyslexia-font', 'a11y_dyslexia');
+    })();
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

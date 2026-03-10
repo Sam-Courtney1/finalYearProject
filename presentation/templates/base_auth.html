@@ -14,11 +14,14 @@
             {% block auth_back %}{% endblock %}
             <h2>{% block card_title %}{% endblock %}</h2>
 
+            <!-- Flash messages - aria-live for screen reader -->
+            <div role="status" aria-live="polite">
             {% for message in get_flashed_messages() %}
-            <div class="flash-message">
-                <i class="bi bi-exclamation-triangle"></i>{{ message }}
+            <div class="flash-message" role="alert">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>{{ message }}
             </div>
             {% endfor %}
+            </div>
 
             {% block card_content %}{% endblock %}
         </div>

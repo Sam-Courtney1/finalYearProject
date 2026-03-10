@@ -7,3 +7,4 @@ project_overview.md
 data/__pycache__
 application/services/__pycache__
 application/routes/__pycache__
+.coverage

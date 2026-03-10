@@ -5,19 +5,23 @@
 {% block card_title %}Register{% endblock %}
 
 {% block auth_back %}
-<a href="{{ url_for('client_bp.client_login') }}" class="back-arrow">
-    <i class="bi bi-arrow-left"></i>
+<!-- aria-label for icon-only link - screen reader -->
+<a href="{{ url_for('client_bp.client_login') }}" class="back-arrow" aria-label="Back to login">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>
 </a>
 {% endblock %}
 
 {% block card_content %}
 <form action="{{ url_for('client_bp.client_register') }}" method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="text" name="username" placeholder="Company" required>
-    <input type="password" name="password" placeholder="Password" required>
+    <!-- sr-only labels for screen reader form access -->
+    <label for="clRegUsername" class="sr-only">Company name</label>
+    <input type="text" name="username" id="clRegUsername" placeholder="Company" required>
+    <label for="clRegPassword" class="sr-only">Password</label>
+    <input type="password" name="password" id="clRegPassword" placeholder="Password" required>
     <div class="button-group">
         <button type="submit" class="register-btn">
-            <i class="bi bi-building-add"></i>Register
+            <i class="bi bi-building-add" aria-hidden="true"></i>Register
         </button>
     </div>
 </form>

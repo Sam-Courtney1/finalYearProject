@@ -46,7 +46,18 @@ def get_actor_info():
         return None, 'anonymous'
 
 
-def audit_log(action, target_table=None, get_target_id=None):
+def get_audit_client_id(actor_type=None):
+    """
+    Determines the client_id for audit log tagging.
+    Returns the client_id from session if the actor is a client,
+    or None for user/anonymous actions (which are not client-specific).
+    """
+    if actor_type == 'client' and 'client_id' in session:
+        return session['client_id']
+    return None
+
+
+def audit_log(action, target_table=None, get_target_id=None, get_client_id=None):
     """
     Decorator for automatically logging route access.
 
@@ -54,6 +65,7 @@ def audit_log(action, target_table=None, get_target_id=None):
     - action: The action being performed ('view', 'create', 'update', 'delete', 'export', 'login', 'logout')
     - target_table: The database table being accessed (optional)
     - get_target_id: Function to extract target_id from request/kwargs (optional)
+    - get_client_id: Function to extract client_id from request/kwargs (optional)
 
     Usage:
         @app.route('/user/<int:user_id>')
@@ -61,9 +73,9 @@ def audit_log(action, target_table=None, get_target_id=None):
         def view_user(user_id):
             ...
 
-        @app.route('/data')
-        @audit_log('view', 'user_data')
-        def view_data():
+        @app.route('/questionnaire/<int:client_id>/<name>')
+        @audit_log('view', 'questionnaire_fields', get_client_id=lambda **kw: kw.get('client_id'))
+        def questionnaire_form(client_id, name):
             ...
     """
     def decorator(f):
@@ -83,6 +95,16 @@ def audit_log(action, target_table=None, get_target_id=None):
             # If no target_id function, try to get from session for user data
             if target_id is None and target_table == 'user_data':
                 target_id = session.get('user_id')
+
+            # Determine client_id for this audit entry
+            client_id = None
+            if get_client_id:
+                try:
+                    client_id = get_client_id(**kwargs)
+                except Exception:
+                    pass
+            if client_id is None:
+                client_id = get_audit_client_id(actor_type)
 
             # Build details dict with request info
             details = {
@@ -104,7 +126,8 @@ def audit_log(action, target_table=None, get_target_id=None):
                 target_id=target_id,
                 ip_address=get_client_ip(),
                 user_agent=request.headers.get('User-Agent'),
-                details=details
+                details=details,
+                client_id=client_id
             )
 
             # Execute the actual function
@@ -116,14 +139,17 @@ def audit_log(action, target_table=None, get_target_id=None):
 def log_login_success(user_id, user_type='user'):
     """
     Logs a successful login event.
+    Client logins are tagged with client_id; user logins are not client-specific.
     """
+    client_id = user_id if user_type == 'client' else None
     insert_audit_log(
         actor_id=user_id,
         actor_type=user_type,
         action='login',
         ip_address=get_client_ip(),
         user_agent=request.headers.get('User-Agent'),
-        details={'success': True}
+        details={'success': True},
+        client_id=client_id
     )
 
 
@@ -131,13 +157,15 @@ def log_login_failed(username, user_type='user'):
     """
     Logs a failed login attempt.
     """
+    client_id = get_audit_client_id(user_type)
     insert_audit_log(
         actor_id=None,
         actor_type=user_type,
         action='login_failed',
         ip_address=get_client_ip(),
         user_agent=request.headers.get('User-Agent'),
-        details={'attempted_username': username}
+        details={'attempted_username': username},
+        client_id=client_id
     )
 
 
@@ -145,20 +173,24 @@ def log_logout(user_id, user_type='user'):
     """
     Logs a logout event.
     """
+    client_id = user_id if user_type == 'client' else None
     insert_audit_log(
         actor_id=user_id,
         actor_type=user_type,
         action='logout',
         ip_address=get_client_ip(),
-        user_agent=request.headers.get('User-Agent')
+        user_agent=request.headers.get('User-Agent'),
+        client_id=client_id
     )
 
 
-def log_data_access(user_id, target_table, target_id=None, details=None):
+def log_data_access(user_id, target_table, target_id=None, details=None, client_id=None):
     """
     Logs data access event.
     """
     actor_id, actor_type = get_actor_info()
+    if client_id is None:
+        client_id = get_audit_client_id(actor_type)
     insert_audit_log(
         actor_id=actor_id,
         actor_type=actor_type,
@@ -167,15 +199,18 @@ def log_data_access(user_id, target_table, target_id=None, details=None):
         target_id=target_id,
         ip_address=get_client_ip(),
         user_agent=request.headers.get('User-Agent'),
-        details=details
+        details=details,
+        client_id=client_id
     )
 
 
-def log_data_create(target_table, target_id, details=None):
+def log_data_create(target_table, target_id, details=None, client_id=None):
     """
     Logs data creation event.
     """
     actor_id, actor_type = get_actor_info()
+    if client_id is None:
+        client_id = get_audit_client_id(actor_type)
     insert_audit_log(
         actor_id=actor_id,
         actor_type=actor_type,
@@ -184,15 +219,18 @@ def log_data_create(target_table, target_id, details=None):
         target_id=target_id,
         ip_address=get_client_ip(),
         user_agent=request.headers.get('User-Agent'),
-        details=details
+        details=details,
+        client_id=client_id
     )
 
 
-def log_data_update(target_table, target_id, details=None):
+def log_data_update(target_table, target_id, details=None, client_id=None):
     """
     Logs data update event.
     """
     actor_id, actor_type = get_actor_info()
+    if client_id is None:
+        client_id = get_audit_client_id(actor_type)
     insert_audit_log(
         actor_id=actor_id,
         actor_type=actor_type,
@@ -201,15 +239,18 @@ def log_data_update(target_table, target_id, details=None):
         target_id=target_id,
         ip_address=get_client_ip(),
         user_agent=request.headers.get('User-Agent'),
-        details=details
+        details=details,
+        client_id=client_id
     )
 
 
-def log_data_delete(target_table, target_id, details=None):
+def log_data_delete(target_table, target_id, details=None, client_id=None):
     """
     Logs data deletion event.
     """
     actor_id, actor_type = get_actor_info()
+    if client_id is None:
+        client_id = get_audit_client_id(actor_type)
     insert_audit_log(
         actor_id=actor_id,
         actor_type=actor_type,
@@ -218,15 +259,18 @@ def log_data_delete(target_table, target_id, details=None):
         target_id=target_id,
         ip_address=get_client_ip(),
         user_agent=request.headers.get('User-Agent'),
-        details=details
+        details=details,
+        client_id=client_id
     )
 
 
-def log_data_export(user_id, export_format='json', details=None):
+def log_data_export(user_id, export_format='json', details=None, client_id=None):
     """
     Logs data export event.
     """
     actor_id, actor_type = get_actor_info()
+    if client_id is None:
+        client_id = get_audit_client_id(actor_type)
     export_details = {'format': export_format}
     if details:
         export_details.update(details)
@@ -239,5 +283,6 @@ def log_data_export(user_id, export_format='json', details=None):
         target_id=user_id,
         ip_address=get_client_ip(),
         user_agent=request.headers.get('User-Agent'),
-        details=export_details
+        details=export_details,
+        client_id=client_id
     )

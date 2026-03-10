@@ -24,7 +24,7 @@ the server to be processed and if it recieves a get request it will display the 
 """
 @questionnaire_bp.route('/questionnaire/<int:client_id>/<questionnaire_name>', methods = ['GET', 'POST'])
 @require_user_login
-@audit_log('view', 'questionnaire_fields')
+@audit_log('view', 'questionnaire_fields', get_client_id=lambda **kw: kw.get('client_id'))
 def questionnaire_form(client_id, questionnaire_name):
     """
     Display and submit a specific questionnaire for a client.
@@ -39,7 +39,7 @@ def questionnaire_form(client_id, questionnaire_name):
             'client_id': client_id,
             'questionnaire_name': questionnaire_name,
             'fields_submitted': len([k for k in request.form.keys() if k != 'client_id'])
-        })
+        }, client_id=client_id)
         flash(f"Questionnaire '{questionnaire_name}' submitted successfully!")
         return redirect(url_for('home_bp.homepage'))
 

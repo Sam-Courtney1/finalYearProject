@@ -1,18 +1,21 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, Response
 from application.services.authentication import register_user, authenticate_user, validate_password
+from werkzeug.security import check_password_hash
 from application.services.decorators import require_user_login
-from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only
+from data.user_database import find_by_username, find_by_id, get_user_data, delete_user, delete_user_data_only, update_last_login
 from data.db_connection import get_db
 from application.services.audit_service import (
     audit_log, log_login_success, log_login_failed, log_logout,
     log_data_create, log_data_delete, log_data_update, log_data_export
 )
-from data.submission_database import get_user_submissions, withdraw_consent, reinstate_consent, delete_single_submission
+from data.submission_database import get_user_submissions, withdraw_consent, reinstate_consent, delete_single_submission, get_user_dashboard_stats
+from data.dsr_database import get_dsrs_for_user
 from application.services.otp_service import (
     generate_otp, store_otp, verify_otp,
     generate_reset_token, store_reset_token, verify_reset_token, invalidate_reset_token
 )
 from application.services.email_service import send_otp_email, send_password_reset_email
+from application.services.dsr_service import log_dsr
 from werkzeug.security import generate_password_hash
 from application.extensions import limiter
 import os
@@ -149,6 +152,7 @@ def login():
             session['username'] = username
             session.permanent = True
             session['last_activity'] = time.time()
+            update_last_login(user_id)
             log_login_success(user_id, 'user')
             return redirect(url_for('home_bp.homepage'))
 
@@ -171,6 +175,7 @@ def login():
             session['username'] = username
             session.permanent = True
             session['last_activity'] = time.time()
+            update_last_login(user_id)
             log_login_success(user_id, 'user')
             flash(f"2FA skipped — email failed: {err}")
             return redirect(url_for('home_bp.homepage'))
@@ -223,6 +228,7 @@ def verify_2fa():
         session['username'] = username
         session.permanent = True
         session['last_activity'] = time.time()
+        update_last_login(user_id)
         log_login_success(user_id, 'user')
         return redirect(url_for('home_bp.homepage'))
 
@@ -259,9 +265,14 @@ def resend_2fa():
 
     if row and row[0]:
         otp_code = generate_otp()
-        store_otp(user_id, otp_code)
-        send_otp_email(row[0], otp_code)
-        flash("A new verification code has been sent to your email.")
+        if not store_otp(user_id, otp_code):
+            flash("Could not generate verification code. Please try again.")
+            return redirect(url_for('auth_bp.verify_2fa_page'))
+        success, error = send_otp_email(row[0], otp_code)
+        if success:
+            flash("A new verification code has been sent to your email.")
+        else:
+            flash("Could not send verification code. Please try again.")
     else:
         flash("Could not resend code. Please log in again.")
 
@@ -353,6 +364,7 @@ and also allows them to delete there account
 def right_to_access():
     user_id = session['user_id']
     static_data, dynamic_data = get_user_data(user_id)
+    log_dsr(user_id, session.get('username'), 'access')
     return render_template('access_data.html', static_data = static_data, dynamic_data = dynamic_data)
 
 
@@ -362,10 +374,20 @@ def right_to_access():
 @audit_log('delete', 'users')
 def right_to_forget():
     user_id = session['user_id']
-    # Log deletion before actually deleting (for audit trail)
+    password = request.form.get('password', '')
+
+    # Verify the user's password before allowing account deletion
+    user = find_by_id(user_id)
+    if not user or not check_password_hash(user[1], password):
+        flash('Incorrect password. Account deletion cancelled.')
+        return redirect(url_for('home_bp.homepage'))
+
+    # Log DSR and deletion before actually deleting (for audit trail)
+    log_dsr(user_id, session.get('username'), 'erasure')
     log_data_delete('users', user_id, {'action': 'right_to_forget', 'complete_deletion': True})
     delete_user(user_id)
     session.clear()
+    flash('Your account has been deleted.', 'account_deleted')
     return redirect(url_for('auth_bp.login_page'))
 
 @pages_bp.route('/delete_user_data', methods=['POST'])
@@ -373,7 +395,8 @@ def right_to_forget():
 @audit_log('delete', 'submissions')
 def delete_user_data():
     user_id = session['user_id']
-    # Log data deletion
+    # Log DSR and data deletion
+    log_dsr(user_id, session.get('username'), 'erasure')
     log_data_delete('submissions', user_id, {'action': 'delete_data_only', 'account_preserved': True})
     delete_user_data_only(user_id)
     return redirect(url_for('home_bp.homepage'))
@@ -401,6 +424,7 @@ def withdraw_consent_route(submission_id):
     success = withdraw_consent(submission_id, user_id)
 
     if success:
+        log_dsr(user_id, session.get('username'), 'rectification')
         log_data_update('submissions', submission_id, {
             'action': 'consent_withdrawn',
             'user_id': user_id
@@ -420,6 +444,7 @@ def reinstate_consent_route(submission_id):
     success = reinstate_consent(submission_id, user_id)
 
     if success:
+        log_dsr(user_id, session.get('username'), 'rectification')
         log_data_update('submissions', submission_id, {
             'action': 'consent_reinstated',
             'user_id': user_id
@@ -464,6 +489,23 @@ def privacy_policy():
     return render_template('privacy_policy.html', current_date=datetime.utcnow().strftime('%d %B %Y'))
 
 
+@pages_bp.route('/dashboard')
+@require_user_login
+@audit_log('view', 'user_dashboard')
+def user_dashboard():
+    """User dashboard showing questionnaire stats, consent status, and DSR history."""
+    user_id = session['user_id']
+    stats = get_user_dashboard_stats(user_id)
+    dsrs = get_dsrs_for_user(user_id)
+
+    return render_template(
+        'user_dashboard.html',
+        stats=stats,
+        dsrs=dsrs,
+        username=session.get('username')
+    )
+
+
 @pages_bp.route('/export_data')
 @require_user_login
 @audit_log('export', 'user_data')
@@ -496,6 +538,7 @@ def export_user_data():
     output.seek(0)
     timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
 
+    log_dsr(user_id, session.get('username'), 'portability')
     log_data_export(user_id, 'csv', {'action': 'user_data_portability'})
 
     return Response(

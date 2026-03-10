@@ -79,8 +79,9 @@ def verify_otp(user_id: int, entered_code: str) -> tuple[bool, str]:
 
             token_id, stored_hash, expires_at, used, attempts = row
 
-            # Check attempt count first
+            # Already exhausted all attempts — block immediately
             if attempts >= MAX_OTP_ATTEMPTS:
+                cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
                 return False, 'max_attempts'
 
             # Increment attempt counter
@@ -96,9 +97,10 @@ def verify_otp(user_id: int, entered_code: str) -> tuple[bool, str]:
 
             # Verify hash
             if hash_token(entered_code) != stored_hash:
-                # If this was the last allowed attempt, mark as used
+                # If this was the last allowed attempt, mark as used and return max_attempts
                 if attempts + 1 >= MAX_OTP_ATTEMPTS:
                     cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
+                    return False, 'max_attempts'
                 return False, 'invalid'
 
             # Success — mark token as used

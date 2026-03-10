@@ -114,16 +114,18 @@ def compute_hash(timestamp, actor_id, actor_type, action, target_table,
 
 def insert_audit_log(actor_id, actor_type, action, target_table=None,
                      target_id=None, ip_address=None, user_agent=None,
-                     details=None):
+                     details=None, client_id=None):
     """
     Inserts a new audit log entry with hash chain linking.
+    client_id tags which client this log relates to (for per-client filtering).
+    It is NOT included in the hash computation - it is metadata only.
     """
     try:
         # Get previous hash for chain linking
         previous_hash = get_last_hash()
         timestamp = datetime.utcnow().isoformat()
 
-        # Compute hash for this entry
+        # Compute hash for this entry (client_id excluded from hash)
         current_hash = compute_hash(
             timestamp, actor_id, actor_type, action, target_table,
             target_id, ip_address, details, previous_hash
@@ -133,13 +135,13 @@ def insert_audit_log(actor_id, actor_type, action, target_table=None,
             cur.execute("""
                 INSERT INTO audit_logs
                 (timestamp, hash_timestamp, actor_id, actor_type, action, target_table, target_id,
-                 ip_address, user_agent, details, previous_hash, current_hash)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 ip_address, user_agent, details, previous_hash, current_hash, client_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING log_id
             """, (
                 timestamp, timestamp, actor_id, actor_type, action, target_table, target_id,
                 ip_address, user_agent, json.dumps(details) if details else None,
-                previous_hash, current_hash
+                previous_hash, current_hash, client_id
             ))
 
             return cur.fetchone()[0]
@@ -149,11 +151,12 @@ def insert_audit_log(actor_id, actor_type, action, target_table=None,
 
 # Use the value's the user has passed or set to NONE
 def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
-                   action=None, start_date=None, end_date=None):
+                   action=None, start_date=None, end_date=None, client_id=None):
     """
     Retrieves audit logs with optional filtering.
     Limit param above is overriden in admin_routes.py
-    In the audit_dashboard function in per page variable
+    In the audit_dashboard function in per page variable.
+    When client_id is provided, only logs belonging to that client are returned.
     """
     try:
         with get_db() as (conn, cur):
@@ -161,6 +164,10 @@ def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
             # By just appending them to the query
             query = "SELECT * FROM audit_logs WHERE 1=1"
             params = []
+
+            if client_id is not None:
+                query += " AND client_id = %s"
+                params.append(client_id)
 
             if actor_id is not None:
                 query += " AND actor_id = %s"
@@ -202,14 +209,19 @@ def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
 
 
 def get_audit_log_count(actor_id=None, actor_type=None, action=None,
-                        start_date=None, end_date=None):
+                        start_date=None, end_date=None, client_id=None):
     """
     Gets total count of audit logs matching filters for pagination.
+    When client_id is provided, only counts logs belonging to that client.
     """
     try:
         with get_db() as (conn, cur):
             query = "SELECT COUNT(*) FROM audit_logs WHERE 1=1"
             params = []
+
+            if client_id is not None:
+                query += " AND client_id = %s"
+                params.append(client_id)
 
             if actor_id is not None:
                 query += " AND actor_id = %s"
@@ -319,9 +331,26 @@ def get_logs_for_record(target_table, target_id):
         return []
 
 
-def get_action_summary(start_date=None, end_date=None):
+def find_auditor_by_username(username):
+    """
+    Finds an auditor by username. Returns (auditor_id, username, password_hash) or None.
+    """
+    try:
+        with get_db() as (conn, cur):
+            cur.execute(
+                "SELECT auditor_id, username, password_hash FROM auditors WHERE username = %s",
+                (username,)
+            )
+            return cur.fetchone()
+    except Exception as e:
+        logger.error("Error finding auditor: %s", e)
+        return None
+
+
+def get_action_summary(start_date=None, end_date=None, client_id=None):
     """
     Gets summary statistics of actions for dashboard.
+    When client_id is provided, only counts actions for that client.
     """
     try:
         with get_db() as (conn, cur):
@@ -331,6 +360,10 @@ def get_action_summary(start_date=None, end_date=None):
                 WHERE 1=1
             """
             params = []
+
+            if client_id is not None:
+                query += " AND client_id = %s"
+                params.append(client_id)
 
             if start_date:
                 query += " AND timestamp >= %s"

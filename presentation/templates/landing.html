@@ -21,10 +21,7 @@
     <!-- Layer 3: Subtle animated grid lines -->
     <canvas id="grid-canvas" class="landing-grid-canvas"></canvas>
 
-    <!-- Layer 4: Cursor echo trails -->
-    <canvas id="spotlight-canvas" class="landing-spotlight-canvas"></canvas>
-
-    <!-- Layer 5: Foreground content -->
+    <!-- Layer 4: Foreground content -->
     <div class="landing-content">
 
         <!-- Navigation -->
@@ -57,17 +54,23 @@
                 <div class="landing-login__card">
                     <h2>Sign In</h2>
 
-                    {% for message in get_flashed_messages() %}
-                    <div class="flash-message">
-                        <i class="bi bi-exclamation-triangle"></i>{{ message }}
+                    {% for category, message in get_flashed_messages(with_categories=true) %}
+                    <div class="flash-message" role="alert">
+                        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>{{ message }}
                     </div>
+                    {% if category == 'account_deleted' %}
+                    <script>localStorage.removeItem('remembered_username');</script>
+                    {% endif %}
                     {% endfor %}
 
                     <form action="{{ url_for('auth_bp.login') }}" method="POST" id="loginForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <!-- sr-only labels for screen reader form access -->
+                        <label for="loginUsername" class="sr-only">Username</label>
                         <input type="text" name="username" id="loginUsername" placeholder="Enter your username" required
                                autocomplete="username">
-                        <input type="password" name="password" placeholder="Enter your password" required
+                        <label for="loginPassword" class="sr-only">Password</label>
+                        <input type="password" name="password" id="loginPassword" placeholder="Enter your password" required
                                autocomplete="current-password">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin:0.5rem 0 0.75rem;">
                             <label style="font-size:0.8rem;color:#bbb;cursor:pointer;display:flex;align-items:center;gap:0.35rem;">

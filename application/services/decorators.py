@@ -34,3 +34,17 @@ def require_client_login(f):
             return redirect(url_for('client_bp.client_login'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def require_audit_access(f):
+    """
+    Decorator that allows access if either a client or auditor is logged in.
+    Used for the audit dashboard which both roles can access (with different views).
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'auditor_id' not in session and 'client_id' not in session:
+            flash("Please log in to access the audit dashboard.")
+            return redirect(url_for('admin_bp.auditor_login'))
+        return f(*args, **kwargs)
+    return decorated_function

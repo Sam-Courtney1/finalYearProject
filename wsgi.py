@@ -1,6 +1,6 @@
-from flask import Flask, session, redirect, url_for, flash
+from flask import Flask, session, redirect, url_for, flash, render_template
 from flask_cors import CORS
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from dotenv import load_dotenv
 import os
 import time
@@ -47,6 +47,24 @@ def create_app():
     # Templates must include {{ csrf_token() }} in every POST form.
     csrf = CSRFProtect(app)
 
+    # Handle expired CSRF tokens gracefully (e.g. session timeout while on 2FA page)
+    # instead of showing a raw "400 Bad Request" white screen.
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        flash("Your session has expired. Please log in again.", "warning")
+        return redirect(url_for('auth_bp.login_page'))
+
+    # Custom error pages — prevent exposing stack traces or raw error screens
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template('error.html', error_code=404,
+                               message="The page you are looking for does not exist."), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        return render_template('error.html', error_code=500,
+                               message="An internal error occurred. Please try again later."), 500
+
     # Rate limiting — prevents brute force attacks on login/register endpoints.
     # Per-route limits are applied via @limiter.limit() in the route files.
     from application.extensions import limiter
@@ -77,6 +95,14 @@ def create_app():
     app.register_blueprint(api_bp, url_prefix='/api')
     # API routes use JWT authentication, not session cookies, so CSRF is not needed
     csrf.exempt(api_bp)
+
+    # Health check endpoint for the ELB — exempt from rate limiting and CSRF
+    # so that repeated health check requests don't get 429'd.
+    @app.route('/health')
+    @limiter.exempt
+    def health():
+        from flask import jsonify
+        return jsonify({'status': 'healthy'}), 200
 
     # Lightweight keep-alive endpoint hit by the "Stay Logged In" button in base_user.html.
     # The before_request hook below updates last_activity when this route is called.

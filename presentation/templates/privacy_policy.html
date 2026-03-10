@@ -6,17 +6,18 @@
 {% block content %}
 <div class="privacy-container">
     <div class="privacy-header">
+        <!-- aria-label for icon-only link - screen reader -->
         {% if session.get('user_id') %}
-        <a href="{{ url_for('home_bp.homepage') }}" class="privacy-back">
-            <i class="bi bi-arrow-left"></i>
+        <a href="{{ url_for('home_bp.homepage') }}" class="privacy-back" aria-label="Back to homepage">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
         </a>
         {% elif session.get('client_id') %}
-        <a href="{{ url_for('client_bp.client_dashboard') }}" class="privacy-back">
-            <i class="bi bi-arrow-left"></i>
+        <a href="{{ url_for('client_bp.client_dashboard') }}" class="privacy-back" aria-label="Back to dashboard">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
         </a>
         {% else %}
-        <a href="{{ url_for('auth_bp.login_page') }}" class="privacy-back">
-            <i class="bi bi-arrow-left"></i>
+        <a href="{{ url_for('auth_bp.login_page') }}" class="privacy-back" aria-label="Back to login">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
         </a>
         {% endif %}
         <h1><i class="bi bi-shield-lock me-2"></i>Privacy Policy</h1>
@@ -34,10 +35,11 @@
         <div class="privacy-table-wrapper">
             <table class="table table-modern">
                 <thead>
+                    <!-- scope for screen reader table navigation -->
                     <tr>
-                        <th>Data Category</th>
-                        <th>Examples</th>
-                        <th>Protection</th>
+                        <th scope="col">Data Category</th>
+                        <th scope="col">Examples</th>
+                        <th scope="col">Protection</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -93,6 +95,23 @@
             <li><strong>Account deletion</strong>: All personal data, questionnaire answers, and submissions are permanently removed</li>
             <li><strong>Submission deletion</strong>: Answer data is permanently erased; a minimal audit record is retained for accountability</li>
             <li><strong>Consent withdrawal</strong>: Your data is hidden from the organisation but preserved in case you wish to reinstate consent</li>
+        </ul>
+        <h3 class="mt-3">Data Retention Policy</h3>
+        <p>In accordance with GDPR Article 5(1)(e) (Storage Limitation), we apply the following retention rules:</p>
+        <ul>
+            <li><strong>Inactive accounts</strong>: Accounts with no login activity for 12 months are subject to automated data cleanup</li>
+            <li><strong>Expired submissions</strong>: Questionnaire submissions older than the retention period may be removed during periodic reviews</li>
+            <li><strong>Audit logs</strong>: Retained separately for regulatory compliance and are not subject to user-data retention limits</li>
+        </ul>
+    </div>
+
+    <div class="privacy-card">
+        <h2><i class="bi bi-exclamation-triangle me-2"></i>5a. Breach Notification</h2>
+        <p>In accordance with GDPR Articles 33 and 34, in the event of a personal data breach:</p>
+        <ul>
+            <li>The <strong>supervisory authority</strong> (Data Protection Commission of Ireland) will be notified within <strong>72 hours</strong> of becoming aware of the breach, unless the breach is unlikely to result in a risk to your rights and freedoms</li>
+            <li><strong>Affected individuals</strong> will be notified without undue delay if the breach is likely to result in a high risk to their rights and freedoms</li>
+            <li>The notification will include: the nature of the breach, the categories and approximate number of individuals affected, the likely consequences, and the measures taken or proposed to address the breach</li>
         </ul>
     </div>
 

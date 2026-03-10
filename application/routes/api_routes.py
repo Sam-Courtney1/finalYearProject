@@ -3,7 +3,7 @@ from functools import wraps
 from application.extensions import limiter
 from application.services.jwt_utils import create_token, decode_token
 from application.services.authentication import register_user, authenticate_user, validate_password
-from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only
+from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only, update_last_login
 from data.db_connection import get_db
 from application.services.log_form_data import handle_questionnaire_submission
 from application.services.audit_service import (
@@ -12,8 +12,10 @@ from application.services.audit_service import (
 )
 from data.submission_database import (
     get_user_submissions, get_submission_answers, update_submission_answers,
-    withdraw_consent, reinstate_consent, delete_single_submission
+    withdraw_consent, reinstate_consent, delete_single_submission, get_user_dashboard_stats
 )
+from application.services.dsr_service import log_dsr
+from data.dsr_database import get_dsrs_for_user
 import os
 
 """
@@ -65,9 +67,13 @@ def api_register():
     password = data.get('password')
     age = data.get('age')
     address = data.get('address')
+    email = data.get('email', '').strip()
 
     if not all([username, password, age, address]):
         return jsonify({"error": "username, password, age, and address are required"}), 400
+
+    if not email:
+        return jsonify({"error": "Email address is required for account verification"}), 400
 
     # Validate password strength
     valid, msg = validate_password(password)
@@ -103,6 +109,11 @@ def api_register():
         submission_id = cur.fetchone()[0]
 
         key = os.getenv("APP_ENC_KEY")
+
+        # Store encrypted email on the users record (for 2FA OTP delivery)
+        cur.execute("""
+            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
+        """, (email, key, user_id))
 
         # Encrypt name and address before storing
         cur.execute("""
@@ -143,6 +154,7 @@ def api_login():
     if user_id:
         session['user_id'] = user_id
         session['username'] = username
+        update_last_login(user_id)
         log_login_success(user_id, 'user')
         token = create_token(user_id, username)
         return jsonify({"token": token, "user_id": user_id, "username": username}), 200
@@ -168,6 +180,7 @@ def api_logout():
 def api_user_data():
     """Returns all data stored about the user as JSON (Right to Access, GDPR Article 15)"""
     user_id = session['user_id']
+    log_dsr(user_id, session.get('username'), 'access', source='mobile_api')
     static_data, dynamic_data = get_user_data(user_id)
 
     # Convert database rows into dictionaries for JSON
@@ -200,6 +213,7 @@ def api_user_data():
 def api_delete_account():
     """Deletes the user account and all their data (Right to Forget, GDPR Article 17)"""
     user_id = session['user_id']
+    log_dsr(user_id, session.get('username'), 'erasure', source='mobile_api')
     log_data_delete('users', user_id, {'action': 'right_to_forget', 'complete_deletion': True, 'source': 'mobile_api'})
     delete_user(user_id)
     return jsonify({"message": "Account and all data deleted"}), 200
@@ -211,6 +225,7 @@ def api_delete_account():
 def api_delete_data():
     """Deletes the users questionnaire data but keeps their account active"""
     user_id = session['user_id']
+    log_dsr(user_id, session.get('username'), 'erasure', source='mobile_api')
     log_data_delete('submissions', user_id, {'action': 'delete_data_only', 'account_preserved': True, 'source': 'mobile_api'})
     delete_user_data_only(user_id)
     return jsonify({"message": "Data deleted, account preserved"}), 200
@@ -254,7 +269,7 @@ def api_list_clients():
 
 @api_bp.route('/questionnaire/<int:client_id>/<questionnaire_name>', methods=['GET'])
 @token_required
-@audit_log('view', 'questionnaire_fields')
+@audit_log('view', 'questionnaire_fields', get_client_id=lambda **kw: kw.get('client_id'))
 def api_get_questionnaire(client_id, questionnaire_name):
     """
     Returns the questionnaire fields for a specific client's specific questionnaire.
@@ -313,7 +328,7 @@ def api_submit_questionnaire(client_id, questionnaire_name):
         'questionnaire_name': questionnaire_name,
         'fields_submitted': len(fields),
         'source': 'mobile_api'
-    })
+    }, client_id=client_id)
 
     return jsonify({"message": "Questionnaire submitted successfully"}), 201
 
@@ -423,6 +438,7 @@ def api_withdraw_consent(submission_id):
     if not success:
         return jsonify({"error": "Submission not found or access denied"}), 404
 
+    log_dsr(user_id, session.get('username'), 'rectification', source='mobile_api')
     log_data_update('submissions', submission_id, {
         'action': 'consent_withdrawn',
         'user_id': user_id,
@@ -443,6 +459,7 @@ def api_reinstate_consent(submission_id):
     if not success:
         return jsonify({"error": "Submission not found or access denied"}), 404
 
+    log_dsr(user_id, session.get('username'), 'rectification', source='mobile_api')
     log_data_update('submissions', submission_id, {
         'action': 'consent_reinstated',
         'user_id': user_id,
@@ -479,3 +496,61 @@ def api_delete_submission(submission_id):
         }), 200
     else:
         return jsonify({"error": "Submission not found or access denied"}), 404
+
+
+# DSR history endpoint
+
+@api_bp.route('/dsr', methods=['GET'])
+@token_required
+@audit_log('view', 'data_subject_requests')
+def api_user_dsr_history():
+    """Returns the user's own DSR history (for transparency)"""
+    user_id = session['user_id']
+    dsrs = get_dsrs_for_user(user_id)
+
+    dsr_list = [{
+        "dsr_id": d['dsr_id'],
+        "request_type": d['request_type'],
+        "status": d['status'],
+        "created_at": d['created_at'].isoformat() if d['created_at'] else None,
+        "completed_at": d['completed_at'].isoformat() if d['completed_at'] else None,
+        "deadline": d['deadline'].isoformat() if d['deadline'] else None
+    } for d in dsrs]
+
+    return jsonify({"data_subject_requests": dsr_list}), 200
+
+
+# Dashboard endpoint
+
+@api_bp.route('/dashboard', methods=['GET'])
+@token_required
+@audit_log('view', 'user_dashboard')
+def api_user_dashboard():
+    """Returns user dashboard data: submission stats, DSR history"""
+    user_id = session['user_id']
+    stats = get_user_dashboard_stats(user_id)
+    dsrs = get_dsrs_for_user(user_id)
+
+    # Serialise submissions for JSON
+    submissions = [{
+        "org_name": s['org_name'],
+        "questionnaire_name": s.get('questionnaire_name', 'Main Questionnaire'),
+        "consent_withdrawn": s['consent_withdrawn'],
+        "created_at": s['created_at'].isoformat() if s.get('created_at') else None
+    } for s in stats.get('submissions', [])]
+
+    dsr_list = [{
+        "request_type": d['request_type'],
+        "status": d['status'],
+        "created_at": d['created_at'].isoformat() if d['created_at'] else None,
+        "completed_at": d['completed_at'].isoformat() if d['completed_at'] else None
+    } for d in dsrs]
+
+    return jsonify({
+        "total_submissions": stats['total_submissions'],
+        "total_organisations": stats['total_organisations'],
+        "active_consents": stats['active_consents'],
+        "withdrawn_consents": stats['withdrawn_consents'],
+        "submissions": submissions,
+        "data_subject_requests": dsr_list
+    }), 200

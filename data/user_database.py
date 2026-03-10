@@ -13,9 +13,20 @@ def find_by_username(username):
         cur.execute("SELECT id, password FROM users WHERE username = %s", (username,))
         return cur.fetchone()
 
+def find_by_id(user_id):
+    with get_db() as (conn, cur):
+        cur.execute("SELECT id, password FROM users WHERE id = %s", (user_id,))
+        return cur.fetchone()
+
 def insert_user(username, hashed_password):
     with get_db() as (conn, cur):
         cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
+
+
+def update_last_login(user_id):
+    """Update the last_login timestamp for data retention tracking."""
+    with get_db() as (conn, cur):
+        cur.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user_id,))
 
 
 """

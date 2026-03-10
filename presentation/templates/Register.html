@@ -5,23 +5,30 @@
 {% block card_title %}Register{% endblock %}
 
 {% block auth_back %}
-<a href="{{ url_for('auth_bp.login_page') }}" class="back-arrow">
-    <i class="bi bi-arrow-left"></i>
+<!-- aria-label for icon-only link - screen reader -->
+<a href="{{ url_for('auth_bp.login_page') }}" class="back-arrow" aria-label="Back to login">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>
 </a>
 {% endblock %}
 
 {% block card_content %}
 <form action="/register_user" method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="text" name="username" placeholder="Name" required>
-    <input type="email" name="email" placeholder="Email address (used for login verification)" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <input type="number" name="age" placeholder="Age" min="0" required>
-    <input type="text" name="address" placeholder="Address" required>
+    <!-- for= labels link to inputs - screen reader form access -->
+    <label for="regUsername" class="sr-only">Username</label>
+    <input type="text" name="username" id="regUsername" placeholder="Name" required>
+    <label for="regEmail" class="sr-only">Email address</label>
+    <input type="email" name="email" id="regEmail" placeholder="Email address (used for login verification)" required>
+    <label for="regPassword" class="sr-only">Password</label>
+    <input type="password" name="password" id="regPassword" placeholder="Password" required>
+    <label for="regAge" class="sr-only">Age</label>
+    <input type="number" name="age" id="regAge" placeholder="Age" min="0" required>
+    <label for="regAddress" class="sr-only">Address</label>
+    <input type="text" name="address" id="regAddress" placeholder="Address" required>
     <div class="consent-check">
         <input class="form-check-input" type="checkbox" name="privacy_consent" id="privacyConsent" required>
         <label class="form-check-label" for="privacyConsent">
-            I agree to the <a href="{{ url_for('pages_bp.privacy_policy') }}" target="_blank">Privacy Policy</a>
+            I agree to the <a href="{{ url_for('pages_bp.privacy_policy') }}" target="_blank" rel="noopener">Privacy Policy<span class="sr-only"> (opens in new tab)</span></a>
             and consent to my data being stored securely for this service
         </label>
     </div>

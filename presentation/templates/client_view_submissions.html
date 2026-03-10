@@ -31,10 +31,11 @@
     <div class="table-wrapper" style="overflow-x: auto; animation: slideInUp 0.5s ease-out 0.2s both;">
         <table class="table table-modern align-middle">
             <thead>
+                <!-- scope for screen reader table navigation -->
                 <tr>
-                    <th>Respondent</th>
+                    <th scope="col">Respondent</th>
                     {% for header in column_headers %}
-                    <th>{{ header }}</th>
+                    <th scope="col">{{ header }}</th>
                     {% endfor %}
                 </tr>
             </thead>

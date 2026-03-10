@@ -3,17 +3,19 @@
 
 {% block extra_scripts %}
 <!-- Session inactivity timeout: warn at 9 min, redirect at 10 min -->
-<div class="modal fade" id="sessionWarningModal" tabindex="-1" aria-hidden="true">
+<!-- aria-labelledby for screen reader modal context -->
+<div class="modal fade" id="sessionWarningModal" tabindex="-1" aria-labelledby="sessionWarningTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content" style="border-radius:12px;">
             <div class="modal-body text-center p-4">
-                <i class="bi bi-clock-history" style="font-size:2rem;color:var(--primary);"></i>
-                <h5 class="mt-2 mb-1">Still there?</h5>
-                <p class="text-muted mb-3" style="font-size:0.9rem;">
+                <i class="bi bi-clock-history" style="font-size:2rem;color:var(--primary);" aria-hidden="true"></i>
+                <h5 class="mt-2 mb-1" id="sessionWarningTitle">Still there?</h5>
+                <!-- aria-live for screen reader countdown updates -->
+                <p class="text-muted mb-3" style="font-size:0.9rem;" aria-live="polite" aria-atomic="true">
                     You'll be logged out in <strong id="warningCountdown">60</strong> seconds due to inactivity.
                 </p>
                 <button type="button" class="btn btn-success w-100" id="stayLoggedIn">
-                    <i class="bi bi-check-circle me-1"></i>Stay Logged In
+                    <i class="bi bi-check-circle me-1" aria-hidden="true"></i>Stay Logged In
                 </button>
             </div>
         </div>
@@ -72,10 +74,11 @@
 {% endblock extra_scripts %}
 
 {% block navbar %}
-<nav class="navbar navbar-expand-lg navbar-modern">
+<!-- aria-label for screen reader landmark identification -->
+<nav class="navbar navbar-expand-lg navbar-modern" aria-label="Main navigation">
     <div class="container-fluid">
         <a class="navbar-brand" href="{{ url_for('home_bp.homepage') }}">
-            <i class="bi bi-heart-pulse"></i>Home
+            <i class="bi bi-heart-pulse" aria-hidden="true"></i>Home
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#userNav"
                 aria-controls="userNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -83,16 +86,24 @@
         </button>
         <div class="collapse navbar-collapse" id="userNav">
             <div class="navbar-nav ms-auto">
+                <!-- aria-current for screen reader active page indication -->
+                <a class="nav-link {% if request.endpoint and 'dashboard' in request.endpoint %}active{% endif %}"
+                   {% if request.endpoint and 'dashboard' in request.endpoint %}aria-current="page"{% endif %}
+                   href="{{ url_for('pages_bp.user_dashboard') }}">
+                    <i class="bi bi-speedometer2" aria-hidden="true"></i>Dashboard
+                </a>
                 <a class="nav-link {% if request.endpoint and 'questionnaire' in request.endpoint %}active{% endif %}"
+                   {% if request.endpoint and 'questionnaire' in request.endpoint %}aria-current="page"{% endif %}
                    href="{{ url_for('questionnaire_bp.select_questionnaire') }}">
-                    <i class="bi bi-clipboard2-pulse"></i>Questionnaire
+                    <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>Questionnaire
                 </a>
                 <a class="nav-link {% if request.endpoint and 'consent' in request.endpoint %}active{% endif %}"
+                   {% if request.endpoint and 'consent' in request.endpoint %}aria-current="page"{% endif %}
                    href="{{ url_for('pages_bp.consent_management') }}">
-                    <i class="bi bi-shield-check"></i>Consent
+                    <i class="bi bi-shield-check" aria-hidden="true"></i>Consent
                 </a>
                 <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">
-                    <i class="bi bi-box-arrow-right"></i>Logout
+                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i>Logout
                 </a>
             </div>
         </div>
