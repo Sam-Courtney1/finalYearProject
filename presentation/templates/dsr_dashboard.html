@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Data Subject Requests | GDPR Compliance{% endblock %}
+{% block body_class %}audit-page{% endblock %}
+
+{% block navbar %}
+<nav class="navbar audit-navbar">
+    <div class="container-fluid">
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_bp.audit_dashboard') }}">
+                <i class="bi bi-arrow-left me-1"></i>Back to Audit Dashboard
+            </a>
+            <span class="badge bg-info text-dark">
+                <i class="bi bi-person-lines-fill me-1"></i>Data Subject Requests
+            </span>
+        </div>
+        <span class="navbar-text">
+            <i class="bi bi-person-circle me-1"></i>{{ client_username }}
+        </span>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-2"><i class="bi bi-person-lines-fill me-2"></i>Data Subject Request Dashboard</h1>
+    <p class="text-muted mb-4">
+        GDPR Articles 12-23 |
+        Track and manage data subject requests with 30-day response deadlines
+    </p>
+
+    <!-- Stats Row -->
+    <div class="row mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="stat-card warning">
+                <div class="stat-number">{{ summary.pending_count }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="stat-card info">
+                <div class="stat-number">{{ summary.in_progress_count }}</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="stat-card success">
+                <div class="stat-number">{{ summary.completed_count }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="stat-card {% if summary.overdue_count > 0 %}danger{% endif %}">
+                <div class="stat-number">{{ summary.overdue_count }}</div>
+                <div class="stat-label">Overdue</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="filter-form mb-4">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="statusFilter">Filter by Status</label>
+                <select name="status" id="statusFilter" class="form-select">
+                    <option value="" {% if not status_filter %}selected{% endif %}>All Statuses</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i>Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- DSR Table -->
+    <h5 class="mt-4"><i class="bi bi-list-check me-2"></i>All Requests</h5>
+    <div class="audit-table-container mb-4">
+        <table class="table table-striped table-hover log-table mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">DSR ID</th>
+                    <th scope="col">User</th>
+                    <th scope="col">Request Type</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Source</th>
+                    <th scope="col">Created</th>
+                    <th scope="col">Deadline</th>
+                    <th scope="col">Days Remaining</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dsr in dsrs %}
+                <tr>
+                    <td>{{ dsr.dsr_id }}</td>
+                    <td>{{ dsr.username or 'Deleted User' }}</td>
+                    <td>
+                        <span class="badge
+                            {% if dsr.request_type == 'access' %}bg-primary
+                            {% elif dsr.request_type == 'erasure' %}bg-danger
+                            {% elif dsr.request_type == 'portability' %}bg-success
+                            {% elif dsr.request_type == 'rectification' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ dsr.request_type | capitalize }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if dsr.status == 'completed' %}bg-success
+                            {% elif dsr.status == 'in_progress' %}bg-info text-dark
+                            {% elif dsr.status == 'pending' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ dsr.status | replace('_', ' ') | title }}
+                        </span>
+                    </td>
+                    <td><small>{{ dsr.source }}</small></td>
+                    <td><small>{{ dsr.created_at.strftime('%Y-%m-%d %H:%M') if dsr.created_at else 'N/A' }}</small></td>
+                    <td><small>{{ dsr.deadline.strftime('%Y-%m-%d %H:%M') if dsr.deadline else 'N/A' }}</small></td>
+                    <td>
+                        {% if dsr.status == 'completed' %}
+                            <span class="badge bg-success">Done</span>
+                        {% elif dsr.days_remaining is not none %}
+                            {% if dsr.days_remaining < 0 %}
+                                <span class="badge bg-danger">{{ dsr.days_remaining|abs }} days overdue</span>
+                            {% elif dsr.days_remaining <= 7 %}
+                                <span class="badge bg-warning text-dark">{{ dsr.days_remaining }} days</span>
+                            {% else %}
+                                <span class="badge bg-success">{{ dsr.days_remaining }} days</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if dsr.status != 'completed' %}
+                        <form method="POST" action="{{ url_for('admin_bp.update_dsr', dsr_id=dsr.dsr_id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="status" value="completed">
+                            <button type="submit" class="btn btn-sm btn-outline-success" title="Mark Complete">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                        </form>
+                        {% if dsr.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('admin_bp.update_dsr', dsr_id=dsr.dsr_id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="status" value="in_progress">
+                            <button type="submit" class="btn btn-sm btn-outline-info" title="Mark In Progress">
+                                <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% else %}
+                        <small class="text-muted">
+                            {% if dsr.completed_at %}
+                                {{ dsr.completed_at.strftime('%Y-%m-%d') }}
+                            {% endif %}
+                        </small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">
+                        No data subject requests found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if dsrs and dsrs|length > 0 %}
+    <p class="text-muted"><small>Showing {{ dsrs|length }} request(s). Auto-completed requests are logged when users exercise their GDPR rights through the system.</small></p>
+    {% endif %}
+</div>
+{% endblock %}

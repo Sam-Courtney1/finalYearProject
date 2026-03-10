@@ -2,10 +2,11 @@
 {% block body_class %}client-page{% endblock %}
 
 {% block navbar %}
-<nav class="navbar navbar-expand-lg navbar-modern">
+<!-- aria-label for screen reader landmark identification -->
+<nav class="navbar navbar-expand-lg navbar-modern" aria-label="Client navigation">
     <div class="container-fluid">
         <a class="navbar-brand" href="{{ url_for('client_bp.client_dashboard') }}">
-            <i class="bi bi-building"></i>Dashboard
+            <i class="bi bi-building" aria-hidden="true"></i>Dashboard
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#clientNav"
                 aria-controls="clientNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -13,14 +14,19 @@
         </button>
         <div class="collapse navbar-collapse" id="clientNav">
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('client_bp.client_questionnaire_list') }}">
-                    <i class="bi bi-list-ul"></i>Manage Questionnaires
+                <!-- aria-current for screen reader active page indication -->
+                <a class="nav-link {% if request.endpoint and 'questionnaire' in request.endpoint %}active{% endif %}"
+                   {% if request.endpoint and 'questionnaire' in request.endpoint %}aria-current="page"{% endif %}
+                   href="{{ url_for('client_bp.client_questionnaire_list') }}">
+                    <i class="bi bi-list-ul" aria-hidden="true"></i>Questionnaires
                 </a>
-                <a class="nav-link" href="{{ url_for('admin_bp.audit_dashboard') }}">
-                    <i class="bi bi-graph-up"></i>Audit Logs
+                <a class="nav-link {% if request.endpoint and 'audit' in request.endpoint %}active{% endif %}"
+                   {% if request.endpoint and 'audit' in request.endpoint %}aria-current="page"{% endif %}
+                   href="{{ url_for('admin_bp.audit_dashboard') }}">
+                    <i class="bi bi-graph-up" aria-hidden="true"></i>Audit Logs
                 </a>
                 <a class="nav-link" href="{{ url_for('client_bp.client_logout') }}">
-                    <i class="bi bi-box-arrow-right"></i>Logout
+                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i>Logout
                 </a>
             </div>
         </div>

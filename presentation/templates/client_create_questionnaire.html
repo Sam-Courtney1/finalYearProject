@@ -4,7 +4,8 @@
 
 {% block content %}
 <div class="page-container mt-5">
-    <h2 class="text-center mb-4"><i class="bi bi-plus-circle me-2"></i>Create New Questionnaire</h2>
+    <h2 class="text-center mb-2" style="animation: slideInUp 0.5s ease-out;"><i class="bi bi-plus-circle me-2"></i>Create New Questionnaire</h2>
+    <p class="text-center text-muted mb-4" style="animation: slideInUp 0.5s ease-out 0.1s both;">Set up a new questionnaire for respondents to fill out</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -18,18 +19,21 @@
 
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <div class="form-card">
+            <div class="form-card" style="animation: slideInUp 0.5s ease-out 0.2s both;">
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-4">
-                        <label for="questionnaire_name" class="form-label">Questionnaire Name</label>
+                        <label for="questionnaire_name" class="form-label"><i class="bi bi-tag me-1"></i>Questionnaire Name</label>
                         <input type="text"
                                class="form-input"
                                id="questionnaire_name"
                                name="questionnaire_name"
                                placeholder="e.g., Cardio Health, Diabetes Study"
                                required
-                               maxlength="255">
-                        <div class="form-text">
+                               maxlength="255"
+                               aria-describedby="qNameHelp">
+                        <!-- aria-describedby links input to help text - screen reader -->
+                        <div class="form-text" id="qNameHelp">
                             Choose a descriptive name. Users will see: "Your Organization - Questionnaire Name"
                         </div>
                     </div>

@@ -4,13 +4,13 @@
 
 {% block content %}
 <div class="page-container mt-5">
-    <h2 class="text-center mb-3"><i class="bi bi-shield-check me-2"></i>Manage Your Consent</h2>
-    <p class="text-center text-muted mb-4">
-        Under GDPR Article 7(3), you have the right to withdraw your consent at any time.
-        Withdrawing consent will prevent the organisation from accessing your data,
-        but your data will be kept so you can re-give consent later.<br>
-        You can also permanently delete individual submissions using the Delete button.
-    </p>
+    <h2 class="text-center mb-3" style="animation: fadeInUp 0.5s ease-out;"><i class="bi bi-shield-check me-2"></i>Manage Your Consent</h2>
+
+    <div class="user-info-banner" style="animation: fadeInUp 0.5s ease-out 0.1s both;">
+        <p><i class="bi bi-info-circle me-2"></i>Under GDPR Article 7(3), you have the right to withdraw your consent at any time.
+        Withdrawing consent prevents the organisation from accessing your data, but keeps it stored so you can re-give consent later.
+        You can also permanently delete individual submissions.</p>
+    </div>
 
     {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -23,21 +23,22 @@
     {% endwith %}
 
     {% if submissions %}
-    <div class="table-wrapper mt-4">
+    <div class="table-wrapper mt-4" style="animation: fadeInUp 0.5s ease-out 0.2s both;">
         <table class="table table-modern align-middle text-center">
             <thead>
+                <!-- scope for screen reader table navigation -->
                 <tr>
-                    <th>Organisation</th>
-                    <th>Questionnaire</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                    <th>Delete</th>
+                    <th scope="col">Organisation</th>
+                    <th scope="col">Questionnaire</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Action</th>
+                    <th scope="col">Delete</th>
                 </tr>
             </thead>
             <tbody>
                 {% for s in submissions %}
                 <tr>
-                    <td>{{ s[2] }}</td>
+                    <td><strong>{{ s[2] }}</strong></td>
                     <td>{{ s[4] }}</td>
                     <td>
                         {% if s[3] %}
@@ -54,16 +55,18 @@
                         {% if s[3] %}
                         <form action="{{ url_for('pages_bp.reinstate_consent_route', submission_id=s[0]) }}"
                               method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-success btn-sm">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i>Re-give Consent
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Re-give
                             </button>
                         </form>
                         {% else %}
                         <form action="{{ url_for('pages_bp.withdraw_consent_route', submission_id=s[0]) }}"
                               method="POST" style="display:inline;"
                               onsubmit="return confirm('Are you sure you want to withdraw consent? The organisation will no longer be able to access your data.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm">
-                                <i class="bi bi-x-lg me-1"></i>Withdraw Consent
+                                <i class="bi bi-x-lg me-1"></i>Withdraw
                             </button>
                         </form>
                         {% endif %}
@@ -72,8 +75,10 @@
                         <form action="{{ url_for('pages_bp.delete_submission_route', submission_id=s[0]) }}"
                               method="POST" style="display:inline;"
                               onsubmit="return confirm('Are you sure you want to permanently delete this submission? This will remove all your answers for {{ s[2] }} - {{ s[4] }}. This action cannot be undone.');">
-                            <button type="submit" class="btn btn-danger btn-sm">
-                                <i class="bi bi-trash3 me-1"></i>Delete
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <!-- aria-label for icon-only button - screen reader -->
+                            <button type="submit" class="btn btn-danger btn-sm" aria-label="Delete submission for {{ s[2] }}">
+                                <i class="bi bi-trash3" aria-hidden="true"></i>
                             </button>
                         </form>
                     </td>
@@ -83,7 +88,18 @@
         </table>
     </div>
     {% else %}
-    <p class="text-center text-muted">You have not completed any questionnaires yet.</p>
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <i class="bi bi-shield-x"></i>
+        </div>
+        <p>You have not completed any questionnaires yet.</p>
+    </div>
     {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home_bp.homepage') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Homepage
+        </a>
+    </div>
 </div>
 {% endblock %}

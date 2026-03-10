@@ -1,5 +1,9 @@
 import psycopg2
 import os
+import logging
+from contextlib import contextmanager
+
+logger = logging.getLogger(__name__)
 
 """
 This file connects to the database using pyscog2
@@ -18,12 +22,27 @@ def get_db_connection():
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD")
         )
-        print("Connected to RDS successfully")
         return conn
     except Exception as e:
-        print("Database connection error:", e)
+        logger.error("Database connection error: %s", e)
         return None
 
 
-
+@contextmanager
+def get_db():
+    """Context manager that yields (conn, cur).
+    Commits on success, rolls back on exception, always closes."""
+    conn = get_db_connection()
+    if conn is None:
+        raise ConnectionError("Could not connect to the database")
+    cur = conn.cursor()
+    try:
+        yield conn, cur
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
 

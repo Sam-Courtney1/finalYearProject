@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Data Retention | GDPR Compliance{% endblock %}
+{% block body_class %}audit-page{% endblock %}
+
+{% block navbar %}
+<nav class="navbar audit-navbar">
+    <div class="container-fluid">
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_bp.audit_dashboard') }}">
+                <i class="bi bi-arrow-left me-1"></i>Back to Audit Dashboard
+            </a>
+            <span class="badge bg-warning text-dark">
+                <i class="bi bi-clock-history me-1"></i>Data Retention
+            </span>
+        </div>
+        <span class="navbar-text">
+            <i class="bi bi-person-circle me-1"></i>{{ client_username }}
+        </span>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-2"><i class="bi bi-clock-history me-2"></i>Data Retention Dashboard</h1>
+    <p class="text-muted mb-4">
+        GDPR Article 5(1)(e) - Storage Limitation |
+        Identify and manage data that has exceeded the retention period
+    </p>
+
+    <!-- Stats Row -->
+    <div class="row mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.total_users }}</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="stat-card warning">
+                <div class="stat-number">{{ stats.inactive_users }}</div>
+                <div class="stat-label">Inactive Users ({{ retention_days }}+ days)</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="stat-card info">
+                <div class="stat-number">{{ stats.expired_submissions }}</div>
+                <div class="stat-label">Expired Submissions</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="stat-card success">
+                <div class="stat-number">{{ retention_days }}</div>
+                <div class="stat-label">Retention Period (days)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Retention Period Filter -->
+    <div class="filter-form mb-4">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="retentionDays">Retention Period (days)</label>
+                <select name="days" id="retentionDays" class="form-select">
+                    <option value="90" {% if retention_days == 90 %}selected{% endif %}>90 days</option>
+                    <option value="180" {% if retention_days == 180 %}selected{% endif %}>180 days</option>
+                    <option value="365" {% if retention_days == 365 %}selected{% endif %}>365 days (1 year)</option>
+                    <option value="730" {% if retention_days == 730 %}selected{% endif %}>730 days (2 years)</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i>Update Period
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Cleanup Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex gap-2">
+                <form method="POST" action="{{ url_for('admin_bp.retention_preview') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="days" value="{{ retention_days }}">
+                    <button type="submit" class="btn btn-outline-warning">
+                        <i class="bi bi-eye me-1"></i>Preview Cleanup
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('admin_bp.retention_cleanup') }}"
+                      onsubmit="return confirm('Are you sure you want to run retention cleanup? This will permanently delete expired data.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="days" value="{{ retention_days }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash3 me-1"></i>Execute Cleanup
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inactive Users Table -->
+    <h5 class="mt-4"><i class="bi bi-person-x me-2"></i>Inactive Users</h5>
+    <div class="audit-table-container mb-4">
+        <table class="table table-striped table-hover log-table mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">User ID</th>
+                    <th scope="col">Username</th>
+                    <th scope="col">Last Login</th>
+                    <th scope="col">Days Inactive</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in inactive_users %}
+                <tr>
+                    <td>{{ user[0] }}</td>
+                    <td>{{ user[1] }}</td>
+                    <td><small>{{ user[2].strftime('%Y-%m-%d %H:%M') if user[2] else 'Never' }}</small></td>
+                    <td>
+                        {% if user[2] %}
+                        <span class="badge bg-warning text-dark">
+                            {{ (now - user[2]).days }} days
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger">Never logged in</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                        No inactive users found for the current retention period.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Expired Submissions Table -->
+    <h5 class="mt-4"><i class="bi bi-file-earmark-x me-2"></i>Expired Submissions</h5>
+    <div class="audit-table-container mb-4">
+        <table class="table table-striped table-hover log-table mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">Submission ID</th>
+                    <th scope="col">User ID</th>
+                    <th scope="col">Username</th>
+                    <th scope="col">Created At</th>
+                    <th scope="col">Client</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in expired_submissions %}
+                <tr>
+                    <td>{{ sub[0] }}</td>
+                    <td>{{ sub[1] }}</td>
+                    <td>{{ sub[2] }}</td>
+                    <td><small>{{ sub[3].strftime('%Y-%m-%d %H:%M') if sub[3] else 'N/A' }}</small></td>
+                    <td>{{ sub[4] or 'N/A' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        No expired submissions found for the current retention period.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base_auth.html" %}
+
+{% block title %}Verify Your Identity | Organ Donation System{% endblock %}
+{% block auth_title %}Organ Donation System{% endblock %}
+{% block card_title %}Check Your Email{% endblock %}
+
+{% block auth_back %}
+<!-- aria-label for icon-only link - screen reader -->
+<a href="{{ url_for('auth_bp.login_page') }}" class="back-arrow" aria-label="Back to login">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+</a>
+{% endblock %}
+
+{% block card_content %}
+<p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.25rem;">
+    We sent a 6-digit verification code to your registered email address.
+    Enter it below to complete your login.
+</p>
+
+<form action="{{ url_for('auth_bp.verify_2fa') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <!-- for= links label to input - screen reader form access -->
+    <label class="form-label" for="otpInput"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>Verification Code</label>
+    <input type="text" name="otp_code" id="otpInput" placeholder="Enter 6-digit code"
+           maxlength="6" inputmode="numeric" pattern="\d{6}"
+           autocomplete="one-time-code" required autofocus
+           style="letter-spacing:6px;font-size:1.3rem;text-align:center;">
+    <div class="button-group" style="margin-top:1rem;">
+        <button type="submit" class="login-btn">
+            <i class="bi bi-check-circle" aria-hidden="true"></i>Verify
+        </button>
+    </div>
+</form>
+
+<!-- aria-live for screen reader countdown updates -->
+<div style="text-align:center;margin-top:1rem;font-size:0.85rem;color:var(--text-muted);" aria-live="polite" aria-atomic="true">
+    Code expires in <span id="countdown" style="font-weight:600;color:var(--primary);">10:00</span>
+</div>
+
+<div style="text-align:center;margin-top:0.75rem;">
+    <form action="{{ url_for('auth_bp.resend_2fa') }}" method="POST" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" style="background:none;border:none;color:var(--primary);
+                cursor:pointer;font-size:0.85rem;text-decoration:underline;padding:0;">
+            Resend code
+        </button>
+    </form>
+</div>
+
+<script>
+    // 10-minute countdown timer for the OTP code
+    let seconds = 600;
+    const el = document.getElementById('countdown');
+    const timer = setInterval(() => {
+        seconds--;
+        if (seconds <= 0) {
+            clearInterval(timer);
+            el.textContent = 'Expired';
+            el.style.color = '#dc3545';
+        } else {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+            if (seconds <= 60) el.style.color = '#dc3545';
+        }
+    }, 1000);
+</script>
+{% endblock %}

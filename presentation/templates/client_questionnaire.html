@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="page-container mt-4">
-    <nav aria-label="breadcrumb">
+    <nav aria-label="breadcrumb" style="animation: fadeIn 0.4s ease-out;">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{{ url_for('client_bp.client_dashboard') }}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('client_bp.client_questionnaire_list') }}">Questionnaires</a></li>
@@ -12,10 +12,10 @@
         </ol>
     </nav>
 
-    <h2 class="text-center mb-4">
+    <h2 class="text-center mb-2" style="animation: slideInUp 0.5s ease-out;">
         <i class="bi bi-pencil-square me-2"></i>{{ questionnaire_name }}
     </h2>
-    <p class="text-center text-muted mb-4">Add and manage fields for this questionnaire</p>
+    <p class="text-center text-muted mb-4" style="animation: slideInUp 0.5s ease-out 0.1s both;">Add and manage fields for this questionnaire</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -27,50 +27,76 @@
     {% endif %}
     {% endwith %}
 
-    <form method="POST" class="row g-2 mb-4">
-        <div class="col-md-4">
-            <input type="text" name="label" class="form-control" placeholder="Field label" required>
-        </div>
-        <div class="col-md-3">
-            <select name="field_type" class="form-select" required>
-                <option value="text">Text</option>
-                <option value="number">Number</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <select name="category" class="form-select" required>
-                <option value="PII">PII</option>
-                <option value="Medical">Medical</option>
-                <option value="Demographic">Demographic</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-plus-lg"></i>Add
-            </button>
-        </div>
-    </form>
+    <div class="form-card mb-4" style="animation: slideInUp 0.5s ease-out 0.15s both;">
+        <h5 style="margin-bottom:16px;font-weight:600;color:var(--color-text);"><i class="bi bi-plus-circle me-2" style="color:var(--client-primary);"></i>Add New Field</h5>
+        <form method="POST" class="row g-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-md-4">
+                <!-- sr-only labels for screen reader form access -->
+                <label for="fieldLabel" class="sr-only">Field label</label>
+                <input type="text" name="label" id="fieldLabel" class="form-control" placeholder="Field label" required>
+            </div>
+            <div class="col-md-3">
+                <label for="fieldType" class="sr-only">Field type</label>
+                <select name="field_type" id="fieldType" class="form-select" required>
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="fieldCategory" class="sr-only">Field category</label>
+                <select name="category" id="fieldCategory" class="form-select" required>
+                    <option value="PII">PII (Encrypted)</option>
+                    <option value="Medical">Medical (Encrypted)</option>
+                    <option value="Demographic">Demographic</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-lg"></i>Add
+                </button>
+            </div>
+        </form>
+    </div>
 
-    <div class="table-wrapper">
+    <div class="table-wrapper" style="animation: slideInUp 0.5s ease-out 0.25s both;">
         <table class="table table-modern table-sm">
             <thead>
+                <!-- scope for screen reader table navigation -->
                 <tr>
-                    <th>Label</th>
-                    <th>Type</th>
-                    <th>Category</th>
-                    <th>Action</th>
+                    <th scope="col">Label</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for f in fields %}
                 <tr>
-                    <td>{{ f[1] }}</td>
+                    <td><strong>{{ f[1] }}</strong></td>
                     <td>{{ f[2] }}</td>
-                    <td>{{ f[3] }}</td>
                     <td>
-                        <form method="POST" action="{{ url_for('client_bp.client_delete_field', field_id=f[0]) }}">
-                            <button type="submit" class="btn btn-danger btn-sm">
-                                <i class="bi bi-trash3"></i>Delete
+                        {% if f[3] == 'PII' %}
+                        <span class="badge" style="background:rgba(124,58,237,0.1);color:var(--color-primary);font-size:12px;">
+                            <i class="bi bi-lock-fill me-1"></i>{{ f[3] }}
+                        </span>
+                        {% elif f[3] == 'Medical' %}
+                        <span class="badge" style="background:rgba(220,38,38,0.1);color:var(--color-danger);font-size:12px;">
+                            <i class="bi bi-lock-fill me-1"></i>{{ f[3] }}
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background:rgba(59,130,246,0.1);color:var(--color-info);font-size:12px;">
+                            {{ f[3] }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('client_bp.client_delete_field', field_id=f[0]) }}"
+                              onsubmit="return confirm('Delete this field?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <!-- aria-label for icon-only button - screen reader -->
+                            <button type="submit" class="btn btn-danger btn-sm" aria-label="Delete field {{ f[1] }}">
+                                <i class="bi bi-trash3" aria-hidden="true"></i>
                             </button>
                         </form>
                     </td>

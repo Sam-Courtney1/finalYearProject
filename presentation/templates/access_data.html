@@ -4,16 +4,27 @@
 
 {% block content %}
 <div class="page-content">
-    <h2 class="page-title">Your Stored Information</h2>
+    <div class="page-title-row" style="animation: fadeInUp 0.5s ease-out;">
+        <h2 class="page-title"><i class="bi bi-eye me-2"></i>Your Stored Information</h2>
+        <a href="{{ url_for('pages_bp.export_user_data') }}" class="btn-export-data">
+            <i class="bi bi-download me-1"></i>Export CSV
+        </a>
+    </div>
+    <p class="page-subtitle" style="animation: fadeInUp 0.5s ease-out 0.1s both;">Your personal data under GDPR Article 15 - Right to Access</p>
 
-    <div class="table-wrapper mt-4">
+    <div class="user-info-banner" style="animation: fadeInUp 0.5s ease-out 0.15s both;">
+        <p><i class="bi bi-info-circle me-2"></i>This page shows all data we hold about you. You can export it as CSV or edit individual submissions.</p>
+    </div>
+
+    <div class="table-wrapper mt-4" style="animation: fadeInUp 0.5s ease-out 0.2s both;">
         <h4><i class="bi bi-person-vcard me-2"></i>Core Information</h4>
         <table class="table table-modern align-middle">
             <thead>
+                <!-- scope for screen reader table navigation -->
                 <tr>
-                    <th>First Name</th>
-                    <th>Address</th>
-                    <th>Age</th>
+                    <th scope="col">First Name</th>
+                    <th scope="col">Address</th>
+                    <th scope="col">Age</th>
                 </tr>
             </thead>
             <tbody>
@@ -30,10 +41,10 @@
 
     {% if dynamic_data %}
     <div class="mt-5">
-        <h4 class="text-center mb-4"><i class="bi bi-building me-2"></i>Per Company Data</h4>
+        <h4 class="text-center mb-4" style="animation: fadeInUp 0.5s ease-out 0.3s both;"><i class="bi bi-building me-2"></i>Per Company Data</h4>
 
         {% for company, group in dynamic_data|groupby(0) %}
-        <div class="data-card mb-4">
+        <div class="data-card mb-4 stagger-item" style="animation: fadeInUp 0.5s ease-out both;">
             <div class="card-header">
                 <span>
                     {{ company }}
@@ -55,10 +66,11 @@
             <div class="card-body p-0">
                 <table class="table table-modern table-sm mb-0">
                     <thead>
+                        <!-- scope for screen reader table navigation -->
                         <tr>
-                            <th>Field Label</th>
-                            <th>Category</th>
-                            <th>Value</th>
+                            <th scope="col">Field Label</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Value</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -76,5 +88,11 @@
         {% endfor %}
     </div>
     {% endif %}
+
+    <div class="text-center mt-4" style="animation: fadeInUp 0.5s ease-out 0.4s both;">
+        <a href="{{ url_for('home_bp.homepage') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Homepage
+        </a>
+    </div>
 </div>
 {% endblock %}

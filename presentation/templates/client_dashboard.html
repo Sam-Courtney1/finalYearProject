@@ -5,25 +5,36 @@
 {% block content %}
 <div class="homepage-main">
     <h1>Hi {{username}}</h1>
-    <p class="welcome-text">Welcome to your client dashboard</p>
-    <p class="subtitle-text">Use the navigation above to manage your questionnaire and view audit logs.</p>
+    <p class="welcome-text">Welcome to your organisation dashboard</p>
+    <p class="subtitle-text">Manage questionnaires, view submissions, and monitor audit logs</p>
 
-    <div class="homepage-actions" style="margin-top: 40px;">
-        <form action="{{ url_for('client_bp.client_questionnaire_list') }}" method="GET">
-            <button type="submit" class="action-btn action-btn-primary">
-                <i class="bi bi-list-ul"></i>Manage Questionnaires
-            </button>
-        </form>
-        <form action="{{ url_for('client_bp.client_questionnaire_list') }}" method="GET">
-            <button type="submit" class="action-btn action-btn-success">
-                <i class="bi bi-table"></i>View Submission Data
-            </button>
-        </form>
-        <form action="{{ url_for('admin_bp.audit_dashboard') }}" method="GET">
-            <button type="submit" class="action-btn action-btn-primary">
-                <i class="bi bi-graph-up"></i>View Audit Logs
-            </button>
-        </form>
+    <div class="client-homepage-grid">
+        <a href="{{ url_for('client_bp.client_questionnaire_list') }}" class="client-action-card" style="text-decoration:none;">
+            <div class="card-icon">
+                <i class="bi bi-list-ul"></i>
+            </div>
+            <h3>Manage Questionnaires</h3>
+            <p>Create, edit, and manage your questionnaire fields</p>
+            <i class="bi bi-arrow-right card-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('client_bp.client_questionnaire_list') }}" class="client-action-card" style="text-decoration:none;">
+            <div class="card-icon">
+                <i class="bi bi-table"></i>
+            </div>
+            <h3>View Submissions</h3>
+            <p>Browse anonymised respondent data</p>
+            <i class="bi bi-arrow-right card-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('admin_bp.audit_dashboard') }}" class="client-action-card" style="text-decoration:none;">
+            <div class="card-icon">
+                <i class="bi bi-graph-up"></i>
+            </div>
+            <h3>Audit Logs</h3>
+            <p>Monitor activity and verify data integrity</p>
+            <i class="bi bi-arrow-right card-arrow"></i>
+        </a>
     </div>
 </div>
 {% endblock %}

@@ -67,15 +67,12 @@
     // ── State ──────────────────────────────────────────────────────────
     var targetX = -200, targetY = -200;
     var currentX = -200, currentY = -200;
-    var echoes = [];
-    var lastEchoTime = 0;
-    var prevX = -200, prevY = -200;
     var isTouch = ('ontouchstart' in window);
     var spotlightRadius = isTouch ? 90 : 130;
 
     // ── DOM references ─────────────────────────────────────────────────
-    var plaintextGrid, encryptedGrid, gridCanvas, spotlightCanvas;
-    var gridCtx, spotlightCtx;
+    var plaintextGrid, encryptedGrid, gridCanvas;
+    var gridCtx;
     var invertibles;
 
     // ── Populate data grids ────────────────────────────────────────────
@@ -114,8 +111,7 @@
     // ── Resize canvases ────────────────────────────────────────────────
     function resizeCanvases() {
         gridCanvas = document.getElementById('grid-canvas');
-        spotlightCanvas = document.getElementById('spotlight-canvas');
-        if (!gridCanvas || !spotlightCanvas) return;
+        if (!gridCanvas) return;
 
         var w = window.innerWidth;
         var h = window.innerHeight;
@@ -127,13 +123,6 @@
         gridCanvas.style.height = h + 'px';
         gridCtx = gridCanvas.getContext('2d');
         gridCtx.scale(dpr, dpr);
-
-        spotlightCanvas.width = w * dpr;
-        spotlightCanvas.height = h * dpr;
-        spotlightCanvas.style.width = w + 'px';
-        spotlightCanvas.style.height = h + 'px';
-        spotlightCtx = spotlightCanvas.getContext('2d');
-        spotlightCtx.scale(dpr, dpr);
     }
 
     // ── Spotlight (clip-path on encrypted layer) ───────────────────────
@@ -143,60 +132,6 @@
         encryptedGrid.style.setProperty('--spotlight-y', currentY + 'px');
     }
 
-    // ── Echo trails ────────────────────────────────────────────────────
-    function maybeSpawnEcho() {
-        if (isTouch) return;
-        var now = performance.now();
-        if (now - lastEchoTime < 60) return;
-
-        var speed = Math.hypot(targetX - prevX, targetY - prevY);
-        if (speed < 12) return;
-
-        lastEchoTime = now;
-        echoes.push({
-            x: currentX,
-            y: currentY,
-            opacity: 0.25,
-            radius: spotlightRadius,
-            born: now
-        });
-    }
-
-    function drawEchoes() {
-        if (!spotlightCtx) return;
-        var w = window.innerWidth;
-        var h = window.innerHeight;
-        spotlightCtx.clearRect(0, 0, w, h);
-
-        var now = performance.now();
-        var alive = [];
-
-        for (var i = 0; i < echoes.length; i++) {
-            var e = echoes[i];
-            var age = now - e.born;
-            if (age > 700) continue;
-
-            var progress = age / 700;
-            var opacity = e.opacity * (1 - progress);
-            var radius = e.radius * (1 + progress * 0.3);
-
-            spotlightCtx.beginPath();
-            spotlightCtx.arc(e.x, e.y, radius, 0, Math.PI * 2);
-            spotlightCtx.fillStyle = 'rgba(124, 58, 237, ' + (opacity * 0.12) + ')';
-            spotlightCtx.fill();
-
-            // Ring
-            spotlightCtx.beginPath();
-            spotlightCtx.arc(e.x, e.y, radius, 0, Math.PI * 2);
-            spotlightCtx.strokeStyle = 'rgba(124, 58, 237, ' + (opacity * 0.2) + ')';
-            spotlightCtx.lineWidth = 1.5;
-            spotlightCtx.stroke();
-
-            alive.push(e);
-        }
-
-        echoes = alive;
-    }
 
     // ── Animated grid lines ────────────────────────────────────────────
     var gridFrameCount = 0;
@@ -308,15 +243,10 @@
         currentY += (targetY - currentY) * 0.1;
 
         updateSpotlight();
-        maybeSpawnEcho();
-        drawEchoes();
         drawGrid();
         updateParallax();
         updateInversion();
         updateGridParallax();
-
-        prevX = targetX;
-        prevY = targetY;
 
         requestAnimationFrame(mainLoop);
     }

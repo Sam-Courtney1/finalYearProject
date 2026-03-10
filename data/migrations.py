@@ -1,4 +1,7 @@
 from data.db_connection import get_db_connection
+import logging
+
+logger = logging.getLogger(__name__)
 
 """
 Database migrations for schema changes.
@@ -11,7 +14,7 @@ so it is safe to run multiple times.
 def run_migrations():
     conn = get_db_connection()
     if conn is None:
-        print("Migration skipped: no database connection")
+        logger.warning("Migration skipped: no database connection")
         return False
 
     try:
@@ -41,11 +44,19 @@ def run_migrations():
         add_deletion_tracking()
         add_questionnaire_names()
         add_questionnaire_tracking_to_submissions()
+        add_2fa_and_email()
+        add_audit_client_id()
+        add_auditors_table()
+        add_last_login_column()
+        add_data_breaches_table()
+        add_dsr_table()
+        add_breach_notifications_table()
 
-        print("Migrations completed successfully")
+        logger.info("Migrations completed successfully")
         return True
     except Exception as e:
-        print(f"Error running migrations: {e}")
+        logger.error("Error running migrations: %s", e)
+        conn.rollback()
         conn.close()
         return False
 
@@ -89,10 +100,11 @@ def add_deletion_tracking():
         conn.commit()
         cur.close()
         conn.close()
-        print("Deletion tracking migration completed")
+        logger.info("Deletion tracking migration completed")
         return True
     except Exception as e:
-        print(f"Error in deletion tracking migration: {e}")
+        logger.error("Error in deletion tracking migration: %s", e)
+        conn.rollback()
         conn.close()
         return False
 
@@ -109,7 +121,7 @@ def add_questionnaire_names():
     try:
         cur = conn.cursor()
 
-        # Add questionnaire_name column (nullable initially for migration)
+        # Add questionnaire_name column
         cur.execute("""
             ALTER TABLE questionnaire_fields
                 ADD COLUMN IF NOT EXISTS questionnaire_name VARCHAR(255);
@@ -146,10 +158,66 @@ def add_questionnaire_names():
         conn.commit()
         cur.close()
         conn.close()
-        print("Questionnaire names migration completed")
+        logger.info("Questionnaire names migration completed")
         return True
     except Exception as e:
-        print(f"Error in questionnaire names migration: {e}")
+        logger.error("Error in questionnaire names migration: %s", e)
+        conn.rollback()
+        conn.close()
+        return False
+
+
+def add_2fa_and_email():
+    """
+    Add email storage to users table and create OTP/password-reset token tables.
+    Supports email-based 2FA and password reset via AWS SES.
+    """
+    conn = get_db_connection()
+    if conn is None:
+        return False
+
+    try:
+        cur = conn.cursor()
+
+        # Add encrypted email column to users table
+        cur.execute("""
+            ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS email_enc BYTEA;
+        """)
+
+        # OTP tokens for 2FA - one active token per user at a time
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS otp_tokens (
+                id           SERIAL PRIMARY KEY,
+                user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                token_hash   VARCHAR(64) NOT NULL,
+                expires_at   TIMESTAMPTZ NOT NULL,
+                used         BOOLEAN NOT NULL DEFAULT FALSE,
+                attempts     INTEGER NOT NULL DEFAULT 0,
+                created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+
+        # Password reset tokens - one active token per user at a time
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id           SERIAL PRIMARY KEY,
+                user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                token_hash   VARCHAR(64) NOT NULL,
+                expires_at   TIMESTAMPTZ NOT NULL,
+                used         BOOLEAN NOT NULL DEFAULT FALSE,
+                created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("2FA and email migration completed")
+        return True
+    except Exception as e:
+        logger.error("Error in 2FA/email migration: %s", e)
+        conn.rollback()
         conn.close()
         return False
 
@@ -188,9 +256,274 @@ def add_questionnaire_tracking_to_submissions():
         conn.commit()
         cur.close()
         conn.close()
-        print("Submissions questionnaire tracking migration completed")
+        logger.info("Submissions questionnaire tracking migration completed")
         return True
     except Exception as e:
-        print(f"Error in submissions questionnaire tracking migration: {e}")
+        logger.error("Error in submissions questionnaire tracking migration: %s", e)
+        conn.rollback()
+        conn.close()
+        return False
+
+
+def add_audit_client_id():
+    """
+    Add client_id column to audit_logs for per-client filtering.
+    Each client should only see audit logs related to their own data.
+    Backfills existing rows where the client can be determined.
+    """
+    conn = get_db_connection()
+    if conn is None:
+        return False
+
+    try:
+        cur = conn.cursor()
+
+        # Add client_id column (nullable - some logs are not client-specific)
+        cur.execute("""
+            ALTER TABLE audit_logs
+                ADD COLUMN IF NOT EXISTS client_id INT;
+        """)
+
+        # Add index for fast filtering by client
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_audit_client_id
+                ON audit_logs(client_id);
+        """)
+
+        # Backfill: where actor is a client, set client_id = actor_id
+        cur.execute("""
+            UPDATE audit_logs
+            SET client_id = actor_id
+            WHERE actor_type = 'client' AND client_id IS NULL AND actor_id IS NOT NULL;
+        """)
+
+        # Backfill: where details JSONB contains client_id
+        cur.execute("""
+            UPDATE audit_logs
+            SET client_id = (details->>'client_id')::INT
+            WHERE client_id IS NULL
+              AND details->>'client_id' IS NOT NULL;
+        """)
+
+        # Backfill: where target_table is 'submissions' and target_id links to a submission
+        cur.execute("""
+            UPDATE audit_logs al
+            SET client_id = s.client_id
+            FROM submissions s
+            WHERE al.target_table = 'submissions'
+              AND al.target_id = s.submission_id
+              AND al.client_id IS NULL
+              AND s.client_id IS NOT NULL;
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("Audit client_id migration completed")
+        return True
+    except Exception as e:
+        logger.error("Error in audit client_id migration: %s", e)
+        conn.rollback()
+        conn.close()
+        return False
+
+
+def add_auditors_table():
+    """
+    Create auditors table for external auditor access to the full audit trail.
+    Auditors see all logs unfiltered, unlike clients who only see their own.
+    """
+    conn = get_db_connection()
+    if conn is None:
+        return False
+
+    try:
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS auditors (
+                auditor_id SERIAL PRIMARY KEY,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("Auditors table migration completed")
+        return True
+    except Exception as e:
+        logger.error("Error in auditors table migration: %s", e)
+        conn.rollback()
+        conn.close()
+        return False
+
+
+def add_last_login_column():
+    """
+    Add last_login column to users table for data retention tracking.
+    GDPR Article 5(1)(e) - Storage Limitation: data should not be kept
+    longer than necessary. This column tracks when users last logged in
+    so inactive accounts can be identified for cleanup.
+    """
+    conn = get_db_connection()
+    if conn is None:
+        return False
+
+    try:
+        cur = conn.cursor()
+
+        cur.execute("""
+            ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;
+        """)
+
+        # Backfill existing users with current timestamp
+        cur.execute("""
+            UPDATE users SET last_login = NOW() WHERE last_login IS NULL;
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("Last login column migration completed")
+        return True
+    except Exception as e:
+        logger.error("Error in last login migration: %s", e)
+        conn.rollback()
+        conn.close()
+        return False
+
+
+def add_data_breaches_table():
+    """
+    Create data_breaches table for GDPR Article 33-34 breach notification.
+    Tracks data breaches, their severity, status, and the 72-hour
+    reporting deadline to the supervisory authority.
+    """
+    conn = get_db_connection()
+    if conn is None:
+        return False
+
+    try:
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS data_breaches (
+                breach_id SERIAL PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                severity VARCHAR(20) NOT NULL DEFAULT 'medium',
+                discovered_at TIMESTAMPTZ DEFAULT NOW(),
+                reported_at TIMESTAMPTZ,
+                resolved_at TIMESTAMPTZ,
+                affected_users_count INT DEFAULT 0,
+                data_types_affected TEXT,
+                remedial_actions TEXT,
+                reported_by INT,
+                status VARCHAR(20) DEFAULT 'open',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("Data breaches table migration completed")
+        return True
+    except Exception as e:
+        logger.error("Error in data breaches table migration: %s", e)
+        conn.rollback()
+        conn.close()
+        return False
+
+
+def add_dsr_table():
+    """
+    Create data_subject_requests table for GDPR Articles 12-23.
+    Tracks formal data subject requests with 30-day response deadlines.
+    """
+    conn = get_db_connection()
+    if conn is None:
+        return False
+
+    try:
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS data_subject_requests (
+                dsr_id          SERIAL PRIMARY KEY,
+                user_id         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                username        VARCHAR(100),
+                request_type    VARCHAR(30) NOT NULL,
+                status          VARCHAR(20) NOT NULL DEFAULT 'pending',
+                created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                completed_at    TIMESTAMPTZ,
+                deadline        TIMESTAMPTZ NOT NULL,
+                notes           TEXT,
+                source          VARCHAR(20) DEFAULT 'web'
+            );
+        """)
+
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_dsr_user_id ON data_subject_requests(user_id);
+        """)
+
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_dsr_status ON data_subject_requests(status);
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("DSR table migration completed")
+        return True
+    except Exception as e:
+        logger.error("Error in DSR table migration: %s", e)
+        conn.rollback()
+        conn.close()
+        return False
+
+
+def add_breach_notifications_table():
+    """
+    Create breach_notifications table for GDPR Article 34.
+    Tracks email notifications sent to users about data breaches.
+    """
+    conn = get_db_connection()
+    if conn is None:
+        return False
+
+    try:
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS breach_notifications (
+                notification_id   SERIAL PRIMARY KEY,
+                breach_id         INTEGER NOT NULL REFERENCES data_breaches(breach_id),
+                user_id           INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                email_address     VARCHAR(255) NOT NULL,
+                sent_at           TIMESTAMPTZ,
+                status            VARCHAR(20) NOT NULL DEFAULT 'pending',
+                error_message     TEXT,
+                created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_breach_notif_breach
+                ON breach_notifications(breach_id);
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("Breach notifications table migration completed")
+        return True
+    except Exception as e:
+        logger.error("Error in breach notifications table migration: %s", e)
+        conn.rollback()
         conn.close()
         return False

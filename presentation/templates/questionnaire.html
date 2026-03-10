@@ -7,36 +7,44 @@
     <div class="questionnaire-container">
         <div class="auth-heading">
             <h1>{{ client_name }}</h1>
-            <h4 style="color: var(--text-secondary); margin-top: 10px;">{{ questionnaire_name }}</h4>
+            <h4 style="color: var(--color-text-secondary); margin-top: 10px; font-weight: 500;">{{ questionnaire_name }}</h4>
         </div>
         <div class="questionnaire-card">
-            <h2>Please answer all questions</h2>
+            <h2><i class="bi bi-clipboard2-check me-2" style="font-size:1.1rem;" aria-hidden="true"></i>Please answer all questions</h2>
             <form action="{{ url_for('questionnaire_bp.questionnaire_form', client_id=client_id, questionnaire_name=questionnaire_name) }}"
                   method="POST" class="questionnaire-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="client_id" value="{{ client_id }}">
                 {% for f in static_fields %}
                 <div class="mb-3">
-                    <label>{{ f[1] }}</label>
-                    <input type="{{ f[2] }}" name="{{ f[0] }}" class="form-control" required>
+                    <!-- for= links label to input - screen reader form access -->
+                    <label for="static_{{ f[0] }}">{{ f[1] }}</label>
+                    <input type="{{ f[2] }}" name="{{ f[0] }}" id="static_{{ f[0] }}" class="form-control" placeholder="Enter {{ f[1]|lower }}" required>
                 </div>
                 {% endfor %}
 
                 {% for f in dynamic_fields %}
                 <div class="mb-3">
-                    <label>{{ f[1] }}</label>
-                    <input type="{{ f[2] }}" name="field_{{ f[0] }}" class="form-control" required>
+                    <label for="field_{{ f[0] }}">{{ f[1] }}</label>
+                    <input type="{{ f[2] }}" name="field_{{ f[0] }}" id="field_{{ f[0] }}" class="form-control" placeholder="Enter {{ f[1]|lower }}" required>
                 </div>
                 {% endfor %}
 
                 <div class="consent-check">
                     <input class="form-check-input" type="checkbox" name="consent" id="consentCheck" required>
                     <label class="form-check-label" for="consentCheck">
-                        I consent to the use of my data
+                        I consent to <strong>{{ client_name }}</strong> processing my responses to this questionnaire
+                        for the purpose of organ donation management. My data will be stored encrypted and shared
+                        only in anonymised form. I understand I can withdraw consent at any time.
                     </label>
+                    <!-- sr-only text warns screen reader about new tab -->
+                    <a href="{{ url_for('pages_bp.privacy_policy') }}" target="_blank" rel="noopener" class="consent-privacy-link">
+                        <i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>Read our Privacy Policy<span class="sr-only"> (opens in new tab)</span>
+                    </a>
                 </div>
 
                 <button type="submit" class="btn-submit-questionnaire">
-                    <i class="bi bi-send me-2"></i>Submit
+                    <i class="bi bi-send me-2" aria-hidden="true"></i>Submit Questionnaire
                 </button>
             </form>
         </div>

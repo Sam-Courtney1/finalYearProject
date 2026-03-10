@@ -67,7 +67,7 @@ def client_register():
         return render_template("client_register.html")
 
 """
-This lohout function simply clears the session id
+This logout function simply clears the session id
 which will logout the user and redirect them to the login page
 """
 
@@ -79,7 +79,6 @@ def client_logout():
 
 """
 Check the user is logged in, if they are not then return them to the login page
-
 If they are logged in then show them the client dashboard
 """
 @clients.route("/dashboard")
@@ -96,7 +95,7 @@ def client_dashboard():
 
 """
 Ensure the user is logged in, set the client id for the session
-If a post request is recieved then sotre the new fields the client 
+If a post request is recieved then store the new fields the client 
 has entered and insert them into the database
 
 If a get request is recieved then display the questionnaire to the client

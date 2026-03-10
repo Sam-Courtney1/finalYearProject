@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}GDPR Compliance Dashboard{% endblock %}
+{% block body_class %}audit-page{% endblock %}
+
+{% block navbar %}
+<nav class="navbar audit-navbar">
+    <div class="container-fluid">
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_bp.audit_dashboard') }}">
+                <i class="bi bi-arrow-left me-1"></i>Back to Audit Dashboard
+            </a>
+            <span class="badge bg-primary">
+                <i class="bi bi-shield-check me-1"></i>GDPR Compliance
+            </span>
+        </div>
+        <span class="navbar-text">
+            <i class="bi bi-person-circle me-1"></i>{{ client_username }}
+        </span>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-2"><i class="bi bi-shield-check me-2"></i>GDPR Compliance Dashboard</h1>
+    <p class="text-muted mb-4">
+        Overall compliance status across all GDPR requirements
+    </p>
+
+    <!-- Overall Status Banner -->
+    <div class="row mb-4">
+        <div class="col-12">
+            {% if overview.overall_status == 'compliant' %}
+            <div class="alert alert-success d-flex align-items-center" role="alert">
+                <i class="bi bi-check-circle-fill me-3" style="font-size: 2rem;"></i>
+                <div>
+                    <h4 class="alert-heading mb-1">Compliant</h4>
+                    <p class="mb-0">All GDPR requirements are being met. No overdue items or outstanding issues.</p>
+                </div>
+            </div>
+            {% elif overview.overall_status == 'attention' %}
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 2rem;"></i>
+                <div>
+                    <h4 class="alert-heading mb-1">Attention Required</h4>
+                    <p class="mb-0">There are open items that need review. Check the details below for action items.</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-danger d-flex align-items-center" role="alert">
+                <i class="bi bi-x-octagon-fill me-3" style="font-size: 2rem;"></i>
+                <div>
+                    <h4 class="alert-heading mb-1">Non-Compliant</h4>
+                    <p class="mb-0">There are overdue breach reports or data subject requests that require immediate action.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <!-- Breaches Card -->
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="filter-form h-100">
+                <h5><i class="bi bi-exclamation-triangle me-2"></i>Breaches</h5>
+                <p class="text-muted small">GDPR Articles 33-34</p>
+                <div class="d-flex flex-column gap-2 mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Open</span>
+                        <span class="badge {% if overview.breach.open_count > 0 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ overview.breach.open_count }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Overdue</span>
+                        <span class="badge {% if overview.breach.overdue_count > 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ overview.breach.overdue_count }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Resolved</span>
+                        <span class="badge bg-success">{{ overview.breach.resolved_count }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Total</span>
+                        <span class="badge bg-secondary">{{ overview.breach.total_count }}</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin_bp.breach_dashboard') }}" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-arrow-right me-1"></i>View Breach Register
+                </a>
+            </div>
+        </div>
+
+        <!-- DSR Card -->
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="filter-form h-100">
+                <h5><i class="bi bi-person-lines-fill me-2"></i>Data Subject Requests</h5>
+                <p class="text-muted small">GDPR Articles 12-23</p>
+                <div class="d-flex flex-column gap-2 mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Pending</span>
+                        <span class="badge {% if overview.dsr.pending_count > 0 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ overview.dsr.pending_count }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Overdue</span>
+                        <span class="badge {% if overview.dsr.overdue_count > 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ overview.dsr.overdue_count }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>In Progress</span>
+                        <span class="badge bg-info text-dark">{{ overview.dsr.in_progress_count }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Completed</span>
+                        <span class="badge bg-success">{{ overview.dsr.completed_count }}</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin_bp.dsr_dashboard') }}" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-arrow-right me-1"></i>View DSR Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Retention Card -->
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="filter-form h-100">
+                <h5><i class="bi bi-clock-history me-2"></i>Data Retention</h5>
+                <p class="text-muted small">GDPR Article 5(1)(e)</p>
+                <div class="d-flex flex-column gap-2 mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Total Users</span>
+                        <span class="badge bg-secondary">{{ overview.retention.total_users }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Inactive Users</span>
+                        <span class="badge {% if overview.retention.inactive_users > 0 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ overview.retention.inactive_users }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Expired Submissions</span>
+                        <span class="badge {% if overview.retention.expired_submissions > 0 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ overview.retention.expired_submissions }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Retention Period</span>
+                        <span class="badge bg-secondary">{{ overview.retention.retention_days }} days</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin_bp.retention_dashboard') }}" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-arrow-right me-1"></i>View Retention Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Backups Card -->
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="filter-form h-100">
+                <h5><i class="bi bi-cloud-arrow-up me-2"></i>Backups</h5>
+                <p class="text-muted small">Data Protection</p>
+                <div class="d-flex flex-column gap-2 mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Status</span>
+                        {% if overview.backup.enabled %}
+                        <span class="badge bg-success">Enabled</span>
+                        {% else %}
+                        <span class="badge bg-danger">Disabled</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Retention</span>
+                        <span class="badge bg-secondary">{{ overview.backup.retention_days }} days</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Window</span>
+                        <span class="badge bg-secondary">{{ overview.backup.window }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Provider</span>
+                        <span class="badge bg-secondary">AWS RDS</span>
+                    </div>
+                </div>
+                <div class="text-muted small text-center">
+                    Managed via AWS Console
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <h5 class="mt-4"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
+    <div class="d-flex gap-2 flex-wrap mb-4">
+        <a href="{{ url_for('admin_bp.audit_dashboard') }}" class="btn btn-outline-light">
+            <i class="bi bi-journal-text me-1"></i>Audit Trail
+        </a>
+        <a href="{{ url_for('admin_bp.breach_dashboard') }}" class="btn btn-outline-light">
+            <i class="bi bi-exclamation-triangle me-1"></i>Breach Register
+        </a>
+        <a href="{{ url_for('admin_bp.dsr_dashboard') }}" class="btn btn-outline-light">
+            <i class="bi bi-person-lines-fill me-1"></i>DSR Log
+        </a>
+        <a href="{{ url_for('admin_bp.retention_dashboard') }}" class="btn btn-outline-light">
+            <i class="bi bi-clock-history me-1"></i>Retention Manager
+        </a>
+    </div>
+</div>
+{% endblock %}

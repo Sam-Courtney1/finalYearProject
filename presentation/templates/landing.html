@@ -21,10 +21,7 @@
     <!-- Layer 3: Subtle animated grid lines -->
     <canvas id="grid-canvas" class="landing-grid-canvas"></canvas>
 
-    <!-- Layer 4: Cursor echo trails -->
-    <canvas id="spotlight-canvas" class="landing-spotlight-canvas"></canvas>
-
-    <!-- Layer 5: Foreground content -->
+    <!-- Layer 4: Foreground content -->
     <div class="landing-content">
 
         <!-- Navigation -->
@@ -34,6 +31,7 @@
                 <span>Organ Donation System</span>
             </div>
             <div class="landing-nav__links">
+                <a href="{{ url_for('pages_bp.privacy_policy') }}"><i class="bi bi-shield-lock me-1"></i>Privacy Policy</a>
             </div>
         </nav>
 
@@ -56,23 +54,53 @@
                 <div class="landing-login__card">
                     <h2>Sign In</h2>
 
-                    {% for message in get_flashed_messages() %}
-                    <div class="flash-message">
-                        <i class="bi bi-exclamation-triangle"></i>{{ message }}
+                    {% for category, message in get_flashed_messages(with_categories=true) %}
+                    <div class="flash-message" role="alert">
+                        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>{{ message }}
                     </div>
+                    {% if category == 'account_deleted' %}
+                    <script>localStorage.removeItem('remembered_username');</script>
+                    {% endif %}
                     {% endfor %}
 
-                    <form action="{{ url_for('auth_bp.login') }}" method="POST">
-                        <input type="text" name="username" placeholder="Username" required
+                    <form action="{{ url_for('auth_bp.login') }}" method="POST" id="loginForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <!-- sr-only labels for screen reader form access -->
+                        <label for="loginUsername" class="sr-only">Username</label>
+                        <input type="text" name="username" id="loginUsername" placeholder="Enter your username" required
                                autocomplete="username">
-                        <input type="password" name="password" placeholder="Password" required
+                        <label for="loginPassword" class="sr-only">Password</label>
+                        <input type="password" name="password" id="loginPassword" placeholder="Enter your password" required
                                autocomplete="current-password">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.5rem 0 0.75rem;">
+                            <label style="font-size:0.8rem;color:#bbb;cursor:pointer;display:flex;align-items:center;gap:0.35rem;">
+                                <input type="checkbox" id="rememberMe" style="accent-color:#7c3aed;width:14px;height:14px;">
+                                Remember me
+                            </label>
+                            <a href="{{ url_for('auth_bp.forgot_password_page') }}"
+                               style="font-size:0.8rem;color:#9a8fc2;text-decoration:none;">
+                                Forgot password?
+                            </a>
+                        </div>
                         <div class="button-group">
                             <button type="submit" class="login-btn">
                                 <i class="bi bi-box-arrow-in-right"></i>Login
                             </button>
                         </div>
                     </form>
+                    <script>
+                    (function() {
+                        const KEY = 'remembered_username';
+                        const input = document.getElementById('loginUsername');
+                        const checkbox = document.getElementById('rememberMe');
+                        const saved = localStorage.getItem(KEY);
+                        if (saved) { input.value = saved; checkbox.checked = true; }
+                        document.getElementById('loginForm').addEventListener('submit', function() {
+                            if (checkbox.checked) { localStorage.setItem(KEY, input.value); }
+                            else { localStorage.removeItem(KEY); }
+                        });
+                    })();
+                    </script>
                     <div class="button-group">
                         <a href="{{ url_for('auth_bp.register_page') }}" class="register-btn">
                             <i class="bi bi-person-plus"></i>Register
