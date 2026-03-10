@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "GDPR Compliance",
+    "slug": "gdpr-compliance",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": [
+      "expo-asset"
+    ],
+    "extra": {
+      "apiBaseUrl": "http://192.168.0.249:5000/api"
+    }
+  }
+}
