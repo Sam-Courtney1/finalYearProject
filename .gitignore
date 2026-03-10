@@ -2,9 +2,11 @@
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
-mobile_app
 project_overview.md
 data/__pycache__
 application/services/__pycache__
 application/routes/__pycache__
 .coverage
+explained.md
+project_overview.md
+README.md
