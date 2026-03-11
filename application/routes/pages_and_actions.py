@@ -165,6 +165,7 @@ def login():
         # Generate and send OTP
         otp_code = generate_otp()
         store_otp(user_id, otp_code)
+        session['otp_created_at'] = time.time()
         sent, err = send_otp_email(user_email, otp_code)
 
         if not sent:
@@ -206,7 +207,11 @@ def logout():
 def verify_2fa_page():
     if 'pending_2fa_user' not in session:
         return redirect(url_for('auth_bp.login_page'))
-    return render_template('verify_2fa.html')
+    # Calculate true remaining seconds so the timer survives page refreshes
+    created = session.get('otp_created_at', time.time())
+    elapsed = time.time() - created
+    remaining = max(0, 600 - int(elapsed))
+    return render_template('verify_2fa.html', otp_remaining=remaining)
 
 
 @auth_bp.route('/verify-2fa', methods=['POST'])
@@ -268,6 +273,7 @@ def resend_2fa():
         if not store_otp(user_id, otp_code):
             flash("Could not generate verification code. Please try again.")
             return redirect(url_for('auth_bp.verify_2fa_page'))
+        session['otp_created_at'] = time.time()
         success, error = send_otp_email(row[0], otp_code)
         if success:
             flash("A new verification code has been sent to your email.")

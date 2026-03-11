@@ -34,7 +34,7 @@
 
 <!-- aria-live for screen reader countdown updates -->
 <div style="text-align:center;margin-top:1rem;font-size:0.85rem;color:var(--text-muted);" aria-live="polite" aria-atomic="true">
-    Code expires in <span id="countdown" style="font-weight:600;color:var(--primary);">10:00</span>
+    Code expires in <span id="countdown" style="font-weight:600;color:var(--primary);">{{ '%d:%02d' | format(otp_remaining // 60, otp_remaining % 60) }}</span>
 </div>
 
 <div style="text-align:center;margin-top:0.75rem;">
@@ -48,8 +48,8 @@
 </div>
 
 <script>
-    // 10-minute countdown timer for the OTP code
-    let seconds = 600;
+    // Countdown timer using server-calculated remaining seconds
+    let seconds = {{ otp_remaining }};
     const el = document.getElementById('countdown');
     const timer = setInterval(() => {
         seconds--;
