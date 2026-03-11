@@ -23,13 +23,13 @@
     <div class="row justify-content-center">
         {% for s in submissions %}
         <div class="col-md-8 mb-3">
-            <div class="user-select-card stagger-item" style="animation: fadeInUp 0.5s ease-out both;cursor:default;">
+            <div class="user-select-card stagger-item" style="animation: fadeInUp 0.5s ease-out both;">
                 <div class="d-flex align-items-center">
                     <div class="select-icon">
                         <i class="bi bi-file-earmark-text"></i>
                     </div>
                     <div>
-                        <h5 style="margin:0 0 4px;font-weight:600;">{{ s[2] }} - {{ s[4] }}</h5>
+                        <h5>{{ s[2] }} - {{ s[4] }}</h5>
                         {% if s[3] %}
                         <span class="status-badge status-badge-withdrawn">
                             <i class="bi bi-x-circle-fill"></i>Consent Withdrawn

@@ -9,7 +9,7 @@
     <p class="subtitle-text">Manage your data, questionnaires, and privacy settings</p>
 
     <div class="user-homepage-grid">
-        <a href="{{ url_for('pages_bp.right_to_access') }}" class="user-action-card" style="text-decoration:none;">
+        <a href="{{ url_for('pages_bp.right_to_access') }}" class="user-action-card">
             <div class="card-icon card-icon--purple">
                 <!-- aria-hidden for decorative icons -->
                 <i class="bi bi-eye" aria-hidden="true"></i>
@@ -18,7 +18,7 @@
             <p>View all your stored personal data</p>
         </a>
 
-        <a href="{{ url_for('questionnaire_bp.select_submission_to_edit') }}" class="user-action-card" style="text-decoration:none;">
+        <a href="{{ url_for('questionnaire_bp.select_submission_to_edit') }}" class="user-action-card">
             <div class="card-icon card-icon--blue">
                 <i class="bi bi-pencil-square" aria-hidden="true"></i>
             </div>
@@ -26,7 +26,7 @@
             <p>Modify your questionnaire responses</p>
         </a>
 
-        <a href="{{ url_for('pages_bp.consent_management') }}" class="user-action-card" style="text-decoration:none;">
+        <a href="{{ url_for('pages_bp.consent_management') }}" class="user-action-card">
             <div class="card-icon card-icon--green">
                 <i class="bi bi-shield-check" aria-hidden="true"></i>
             </div>
@@ -34,7 +34,7 @@
             <p>Control how your data is used</p>
         </a>
 
-        <button type="button" class="user-action-card user-action-card--danger" style="width:100%;border:1px solid rgba(220,38,38,0.15);" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+        <button type="button" class="user-action-card user-action-card--danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
                 <div class="card-icon card-icon--red">
                     <i class="bi bi-trash3" aria-hidden="true"></i>
                 </div>
@@ -45,7 +45,7 @@
         <!-- Delete Account Confirmation Modal -->
         <div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content" style="border-radius:12px;">
+                <div class="modal-content">
                     <div class="modal-header border-0 pb-0">
                         <h5 class="modal-title" id="deleteAccountModalLabel">
                             <i class="bi bi-exclamation-triangle-fill text-danger me-2" aria-hidden="true"></i>Delete Account

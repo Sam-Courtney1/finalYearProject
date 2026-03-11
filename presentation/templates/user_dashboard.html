@@ -3,137 +3,144 @@
 {% block title %}My Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="mb-2"><i class="bi bi-speedometer2 me-2"></i>My Dashboard</h1>
-    <p class="text-muted mb-4">Welcome back, <strong>{{ username }}</strong>. Here's an overview of your data.</p>
+<div class="page-content">
+    <h2 class="page-title"><i class="bi bi-speedometer2 me-2"></i>My Dashboard</h2>
+    <p class="page-subtitle">Welcome back, <strong>{{ username }}</strong>. Here's an overview of your data.</p>
 
     <!-- Stats Row -->
-    <div class="row mb-4">
-        <div class="col-sm-6 col-md-3 mb-3">
-            <div class="card text-center h-100" style="border-left: 4px solid var(--primary);">
-                <div class="card-body">
-                    <h2 class="mb-1" style="color: var(--primary);">{{ stats.total_submissions }}</h2>
-                    <small class="text-muted">Questionnaires Filled</small>
-                </div>
-            </div>
+    <div class="dashboard-stats" style="animation: fadeInUp 0.5s ease-out 0.1s both;">
+        <div class="dashboard-stat dashboard-stat--primary">
+            <div class="stat-value">{{ stats.total_submissions }}</div>
+            <div class="stat-name">Questionnaires Filled</div>
         </div>
-        <div class="col-sm-6 col-md-3 mb-3">
-            <div class="card text-center h-100" style="border-left: 4px solid #6f42c1;">
-                <div class="card-body">
-                    <h2 class="mb-1" style="color: #6f42c1;">{{ stats.total_organisations }}</h2>
-                    <small class="text-muted">Organisations</small>
-                </div>
-            </div>
+        <div class="dashboard-stat dashboard-stat--purple">
+            <div class="stat-value">{{ stats.total_organisations }}</div>
+            <div class="stat-name">Organisations</div>
         </div>
-        <div class="col-sm-6 col-md-3 mb-3">
-            <div class="card text-center h-100" style="border-left: 4px solid #198754;">
-                <div class="card-body">
-                    <h2 class="mb-1" style="color: #198754;">{{ stats.active_consents }}</h2>
-                    <small class="text-muted">Active Consents</small>
-                </div>
-            </div>
+        <div class="dashboard-stat dashboard-stat--success">
+            <div class="stat-value">{{ stats.active_consents }}</div>
+            <div class="stat-name">Active Consents</div>
         </div>
-        <div class="col-sm-6 col-md-3 mb-3">
-            <div class="card text-center h-100" style="border-left: 4px solid #dc3545;">
-                <div class="card-body">
-                    <h2 class="mb-1" style="color: #dc3545;">{{ stats.withdrawn_consents }}</h2>
-                    <small class="text-muted">Withdrawn Consents</small>
-                </div>
-            </div>
+        <div class="dashboard-stat dashboard-stat--danger">
+            <div class="stat-value">{{ stats.withdrawn_consents }}</div>
+            <div class="stat-name">Withdrawn Consents</div>
         </div>
     </div>
 
     <!-- Submissions Table -->
-    <h5 class="mt-4 mb-3"><i class="bi bi-clipboard2-check me-2"></i>My Submissions</h5>
+    <div class="section-header" style="animation: fadeInUp 0.5s ease-out 0.2s both;">
+        <i class="bi bi-clipboard2-check"></i>
+        <h5>My Submissions</h5>
+    </div>
+
     {% if stats.submissions %}
-    <div class="table-responsive mb-4">
-        <table class="table table-hover">
-            <thead class="table-light">
+    <div class="table-wrapper" style="animation: fadeInUp 0.5s ease-out 0.25s both;">
+        <table class="table table-modern align-middle">
+            <thead>
                 <tr>
-                    <th>Organisation</th>
-                    <th>Questionnaire</th>
-                    <th>Consent Status</th>
-                    <th>Submitted</th>
+                    <th scope="col">Organisation</th>
+                    <th scope="col">Questionnaire</th>
+                    <th scope="col">Consent Status</th>
+                    <th scope="col">Submitted</th>
                 </tr>
             </thead>
             <tbody>
                 {% for sub in stats.submissions %}
                 <tr>
-                    <td>{{ sub.org_name }}</td>
+                    <td><strong>{{ sub.org_name }}</strong></td>
                     <td>{{ sub.questionnaire_name or 'Main Questionnaire' }}</td>
                     <td>
                         {% if sub.consent_withdrawn %}
-                        <span class="badge bg-danger">Withdrawn</span>
+                        <span class="status-badge status-badge-withdrawn">
+                            <i class="bi bi-x-circle-fill"></i>Withdrawn
+                        </span>
                         {% else %}
-                        <span class="badge bg-success">Active</span>
+                        <span class="status-badge status-badge-active">
+                            <i class="bi bi-check-circle-fill"></i>Active
+                        </span>
                         {% endif %}
                     </td>
-                    <td><small>{{ sub.created_at.strftime('%Y-%m-%d') if sub.created_at else 'N/A' }}</small></td>
+                    <td>{{ sub.created_at.strftime('%Y-%m-%d') if sub.created_at else 'N/A' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <div class="alert alert-light text-center py-4">
-        <i class="bi bi-clipboard-x" style="font-size: 2rem;"></i>
-        <p class="mt-2 mb-0">You haven't filled any questionnaires yet.</p>
+    <div class="empty-state" style="animation: fadeInUp 0.5s ease-out 0.25s both;">
+        <div class="empty-state-icon">
+            <i class="bi bi-clipboard-x"></i>
+        </div>
+        <p>You haven't filled any questionnaires yet.</p>
     </div>
     {% endif %}
 
     <!-- DSR History -->
-    <h5 class="mt-4 mb-3"><i class="bi bi-person-lines-fill me-2"></i>My Data Requests</h5>
-    <p class="text-muted small">A record of every time you've exercised your GDPR rights through this system.</p>
+    <div class="section-header" style="animation: fadeInUp 0.5s ease-out 0.3s both;">
+        <i class="bi bi-person-lines-fill"></i>
+        <h5>My Data Requests</h5>
+        <span class="section-hint">A record of your GDPR rights activity</span>
+    </div>
+
     {% if dsrs %}
-    <div class="table-responsive mb-4">
-        <table class="table table-hover">
-            <thead class="table-light">
+    <div class="table-wrapper" style="animation: fadeInUp 0.5s ease-out 0.35s both;">
+        <table class="table table-modern align-middle">
+            <thead>
                 <tr>
-                    <th>Request Type</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th>Completed</th>
+                    <th scope="col">Request Type</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Completed</th>
                 </tr>
             </thead>
             <tbody>
                 {% for dsr in dsrs %}
                 <tr>
                     <td>
-                        <span class="badge
-                            {% if dsr.request_type == 'access' %}bg-primary
-                            {% elif dsr.request_type == 'erasure' %}bg-danger
-                            {% elif dsr.request_type == 'portability' %}bg-success
-                            {% elif dsr.request_type == 'rectification' %}bg-warning text-dark
-                            {% else %}bg-secondary{% endif %}">
+                        <span class="status-badge
+                            {% if dsr.request_type == 'access' %}status-badge-active
+                            {% elif dsr.request_type == 'erasure' %}status-badge-withdrawn
+                            {% else %}status-badge-active{% endif %}">
                             {{ dsr.request_type | capitalize }}
                         </span>
                     </td>
                     <td>
                         {% if dsr.status == 'completed' %}
-                        <span class="badge bg-success">Completed</span>
+                        <span class="status-badge status-badge-active">
+                            <i class="bi bi-check-circle-fill"></i>Completed
+                        </span>
                         {% elif dsr.status == 'in_progress' %}
-                        <span class="badge bg-info text-dark">In Progress</span>
+                        <span class="status-badge" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af;">
+                            <i class="bi bi-arrow-repeat"></i>In Progress
+                        </span>
                         {% else %}
-                        <span class="badge bg-warning text-dark">Pending</span>
+                        <span class="status-badge" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;">
+                            <i class="bi bi-clock"></i>Pending
+                        </span>
                         {% endif %}
                     </td>
-                    <td><small>{{ dsr.created_at.strftime('%Y-%m-%d %H:%M') if dsr.created_at else 'N/A' }}</small></td>
-                    <td><small>{{ dsr.completed_at.strftime('%Y-%m-%d %H:%M') if dsr.completed_at else '-' }}</small></td>
+                    <td>{{ dsr.created_at.strftime('%Y-%m-%d %H:%M') if dsr.created_at else 'N/A' }}</td>
+                    <td>{{ dsr.completed_at.strftime('%Y-%m-%d %H:%M') if dsr.completed_at else '-' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <div class="alert alert-light text-center py-4">
-        <i class="bi bi-shield-check" style="font-size: 2rem;"></i>
-        <p class="mt-2 mb-0">No data requests recorded yet. They will appear here when you access, export, or delete your data.</p>
+    <div class="empty-state" style="animation: fadeInUp 0.5s ease-out 0.35s both;">
+        <div class="empty-state-icon">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <p>No data requests recorded yet. They will appear here when you access, export, or delete your data.</p>
     </div>
     {% endif %}
 
     <!-- Quick Actions -->
-    <h5 class="mt-4 mb-3"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
-    <div class="d-flex gap-2 flex-wrap mb-4">
+    <div class="section-header" style="animation: fadeInUp 0.5s ease-out 0.4s both;">
+        <i class="bi bi-lightning"></i>
+        <h5>Quick Actions</h5>
+    </div>
+    <div class="quick-actions" style="animation: fadeInUp 0.5s ease-out 0.45s both;">
         <a href="{{ url_for('questionnaire_bp.select_questionnaire') }}" class="btn btn-primary">
             <i class="bi bi-clipboard2-pulse me-1"></i>Fill Questionnaire
         </a>
