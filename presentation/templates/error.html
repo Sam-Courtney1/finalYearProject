@@ -4,24 +4,24 @@
 {% block body_class %}error-page{% endblock %}
 
 {% block content %}
-<div class="container d-flex align-items-center justify-content-center" style="min-height: 70vh;">
-    <div class="text-center">
-        <h1 class="display-1 fw-bold text-muted">{{ error_code }}</h1>
-        <p class="lead mb-4">{{ message }}</p>
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="error-content">
+        <div class="error-code">{{ error_code }}</div>
+        <p class="error-message">{{ message }}</p>
         {% if session.get('user_id') %}
-        <a href="{{ url_for('home_bp.homepage') }}" class="btn btn-primary">
+        <a href="{{ url_for('home_bp.homepage') }}" class="btn btn-primary" style="padding:14px 28px;">
             <i class="bi bi-house me-1"></i>Return to Homepage
         </a>
         {% elif session.get('client_id') %}
-        <a href="{{ url_for('client_bp.client_dashboard') }}" class="btn btn-primary">
+        <a href="{{ url_for('client_bp.client_dashboard') }}" class="btn btn-primary" style="padding:14px 28px;">
             <i class="bi bi-house me-1"></i>Return to Dashboard
         </a>
         {% elif session.get('auditor_id') %}
-        <a href="{{ url_for('admin_bp.audit_dashboard') }}" class="btn btn-primary">
+        <a href="{{ url_for('admin_bp.audit_dashboard') }}" class="btn btn-primary" style="padding:14px 28px;">
             <i class="bi bi-house me-1"></i>Return to Audit Dashboard
         </a>
         {% else %}
-        <a href="{{ url_for('auth_bp.login_page') }}" class="btn btn-primary">
+        <a href="{{ url_for('auth_bp.login_page') }}" class="btn btn-primary" style="padding:14px 28px;">
             <i class="bi bi-house me-1"></i>Return to Login
         </a>
         {% endif %}
