@@ -88,7 +88,7 @@ class TestAPIAgeValidation:
                            }),
                            content_type='application/json')
         assert resp.status_code == 400
-        assert 'Age must be between 16 and 120' in resp.get_json()['error']
+        assert 'You must be at least 18 years old' in resp.get_json()['error']
 
     def test_age_too_old_rejected(self, client):
         resp = client.post('/api/register',
@@ -99,7 +99,7 @@ class TestAPIAgeValidation:
                            }),
                            content_type='application/json')
         assert resp.status_code == 400
-        assert 'Age must be between 16 and 120' in resp.get_json()['error']
+        assert 'Please enter a valid age' in resp.get_json()['error']
 
     def test_age_non_numeric_rejected(self, client):
         resp = client.post('/api/register',
