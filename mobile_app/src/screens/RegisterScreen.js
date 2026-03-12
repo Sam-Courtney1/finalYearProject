@@ -45,6 +45,11 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'All fields are required');
       return;
     }
+    const ageNum = parseInt(age, 10);
+    if (isNaN(ageNum) || ageNum < 18) {
+      Alert.alert('Error', 'You must be at least 18 years old to use this system');
+      return;
+    }
     setLoading(true);
     try {
       const data = await registerAPI(username, password, age, address, email);
@@ -126,7 +131,7 @@ export default function RegisterScreen() {
         <Text style={styles.label}>Age</Text>
         <TextInput
           style={styles.input}
-          placeholder="Your age"
+          placeholder="Your age (must be 18+)"
           value={age}
           onChangeText={setAge}
           keyboardType="numeric"

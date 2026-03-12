@@ -10,6 +10,7 @@ In this way all data is entered into the database in accordance
 with GDPR security measures.
 """
 
+
 def insert_questionnaire(user_id, first_name, age, address, blood_type, organ, consent):
     with get_db() as (conn, cur):
         cur.execute("""

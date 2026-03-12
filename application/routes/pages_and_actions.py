@@ -2,13 +2,19 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from application.services.authentication import register_user, authenticate_user, validate_password
 from werkzeug.security import check_password_hash
 from application.services.decorators import require_user_login
-from data.user_database import find_by_username, find_by_id, get_user_data, delete_user, delete_user_data_only, update_last_login
+from data.user_database import (
+    find_by_username, find_by_id, get_user_data, delete_user,
+    delete_user_data_only, update_last_login, create_user_profile
+)
 from data.db_connection import get_db
 from application.services.audit_service import (
     audit_log, log_login_success, log_login_failed, log_logout,
     log_data_create, log_data_delete, log_data_update, log_data_export
 )
-from data.submission_database import get_user_submissions, withdraw_consent, reinstate_consent, delete_single_submission, get_user_dashboard_stats
+from data.submission_database import (
+    get_user_submissions, withdraw_consent, reinstate_consent,
+    delete_single_submission, get_user_dashboard_stats
+)
 from data.dsr_database import get_dsrs_for_user
 from application.services.otp_service import (
     generate_otp, store_otp, verify_otp,
@@ -22,13 +28,24 @@ import os
 import csv
 import io
 import time
-from datetime import datetime
+from datetime import datetime, timezone
+from urllib.parse import urlparse
 
-"""
-auth_bp is an object of Blueprint that stores its name (auth_bp) 
-The module where it is definined is inside of __name__
-And all routes that belong to it
-"""
+
+def _safe_referrer_redirect(fallback):
+    """Redirect to request.referrer only if it belongs to the same host, preventing open redirects."""
+    ref = request.referrer
+    if ref:
+        ref_parsed = urlparse(ref)
+        host_parsed = urlparse(request.host_url)
+        if ref_parsed.netloc == host_parsed.netloc:
+            return redirect(ref)
+    return redirect(fallback)
+
+
+# auth_bp is an object of Blueprint that stores its name (auth_bp)
+# The module where it is definined is inside of __name__
+# And all routes that belong to it
 
 auth_bp = Blueprint('auth_bp', __name__)
 pages_bp = Blueprint('pages_bp', __name__)
@@ -36,22 +53,25 @@ pages_bp = Blueprint('pages_bp', __name__)
 # Below are all the routes and actions that are assigned to auth_bp
 # These include displaying pages to users and allowing them to login and register
 
+
 @auth_bp.route('/')
 def login_page():
     return render_template('landing.html')
+
 
 @auth_bp.route('/register')
 def register_page():
     return render_template('Register.html')
 
-@auth_bp.route('/register_user', methods = ['POST'])
+
+@auth_bp.route('/register_user', methods=['POST'])
 @limiter.limit("3 per minute")
 def register():
     username = request.form['username']
     password = request.form['password']
-    age      = request.form['age']
-    address  = request.form['address']
-    email    = request.form.get('email', '').strip()
+    age = request.form['age']
+    address = request.form['address']
+    email = request.form.get('email', '').strip()
 
     if not email:
         flash("Email address is required for account verification.")
@@ -63,11 +83,14 @@ def register():
         flash(msg)
         return redirect(url_for('auth_bp.register_page'))
 
-    # Validate age is a reasonable integer (16-120)
+    # Validate age — must be 18+ to use the system (GDPR Article 8)
     try:
         age_int = int(age)
-        if age_int < 16 or age_int > 120:
-            flash("Age must be between 16 and 120.")
+        if age_int < 18:
+            flash("You must be at least 18 years old to use this system.")
+            return redirect(url_for('auth_bp.register_page'))
+        if age_int > 120:
+            flash("Please enter a valid age.")
             return redirect(url_for('auth_bp.register_page'))
         age = age_int
     except (ValueError, TypeError):
@@ -92,30 +115,8 @@ def register():
     session['user_id'] = user[0]
     user_id = user[0]
 
-    key = os.getenv("APP_ENC_KEY")
-
-    with get_db() as (conn, cur):
-        # Store encrypted email on the users record
-        cur.execute("""
-            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
-        """, (email, key, user_id))
-
-        cur.execute("""
-            INSERT INTO submissions (user_id, client_id, consent)
-            VALUES (%s, NULL, FALSE)
-            RETURNING submission_id;
-        """, (user_id,))
-        submission_id = cur.fetchone()[0]
-
-        cur.execute("""
-            INSERT INTO pii (submission_id, first_name_enc, address_enc)
-            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
-        """, (submission_id, username, key, address, key))
-
-        cur.execute("""
-            INSERT INTO demographic_data (submission_id, age)
-            VALUES (%s, %s);
-        """, (submission_id, age))
+    # Create the user profile (encrypted email, base submission, PII, demographics)
+    create_user_profile(user_id, username, email, address, age)
 
     # Log new user registration
     log_data_create('users', user_id, {'action': 'registration'})
@@ -128,8 +129,7 @@ def register():
     return redirect(url_for('home_bp.homepage'))
 
 
-
-@auth_bp.route('/login', methods = ['POST'])
+@auth_bp.route('/login', methods=['POST'])
 @limiter.limit("5 per minute")
 def login():
     username = request.form['username']
@@ -169,17 +169,12 @@ def login():
         sent, err = send_otp_email(user_email, otp_code)
 
         if not sent:
-            # SES failed — skip 2FA to avoid blocking dev work
+            # Email delivery failed — do NOT skip 2FA as this would silently
+            # downgrade security. Clear the pending state and ask user to retry.
             session.pop('pending_2fa_user', None)
             session.pop('pending_2fa_username', None)
-            session['user_id'] = user_id
-            session['username'] = username
-            session.permanent = True
-            session['last_activity'] = time.time()
-            update_last_login(user_id)
-            log_login_success(user_id, 'user')
-            flash(f"2FA skipped — email failed: {err}")
-            return redirect(url_for('home_bp.homepage'))
+            flash("Could not send verification code. Please try again later.")
+            return redirect(url_for('auth_bp.login_page'))
 
         return redirect(url_for('auth_bp.verify_2fa_page'))
     else:
@@ -187,6 +182,7 @@ def login():
         log_login_failed(username, 'user')
         flash("Username or password is incorrect. Please register an account or login with valid credentials")
         return redirect(url_for('auth_bp.login_page'))
+
 
 @auth_bp.route('/logout')
 def logout():
@@ -219,9 +215,9 @@ def verify_2fa():
     if 'pending_2fa_user' not in session:
         return redirect(url_for('auth_bp.login_page'))
 
-    user_id  = session['pending_2fa_user']
+    user_id = session['pending_2fa_user']
     username = session.get('pending_2fa_username', '')
-    entered  = request.form.get('otp_code', '').strip()
+    entered = request.form.get('otp_code', '').strip()
 
     success, reason = verify_otp(user_id, entered)
 
@@ -312,7 +308,10 @@ def forgot_password():
         if row and row[0]:
             token = generate_reset_token()
             store_reset_token(user_id, token)
-            reset_url = url_for('auth_bp.reset_password_page', token=token, _external=True)
+            # Build reset URL using SERVER_NAME or request.host to avoid Host header injection
+            base_url = os.environ.get('APP_BASE_URL', request.host_url.rstrip('/'))
+            reset_path = url_for('auth_bp.reset_password_page', token=token)
+            reset_url = base_url + reset_path
             send_password_reset_email(row[0], reset_url)
 
     # Always show the same message to prevent username enumeration
@@ -337,7 +336,7 @@ def reset_password(token):
         return redirect(url_for('auth_bp.login_page'))
 
     new_password = request.form.get('password', '')
-    confirm      = request.form.get('confirm_password', '')
+    confirm = request.form.get('confirm_password', '')
 
     valid, msg = validate_password(new_password)
     if not valid:
@@ -358,24 +357,22 @@ def reset_password(token):
     flash("Password updated successfully. Please log in with your new password.")
     return redirect(url_for('auth_bp.login_page'))
 
-"""
-The below 2 functions are core to GDPR regulations
-They allow users to access all information gathered about them
-and also allows them to delete there account
-"""
 
-@pages_bp.route('/right_to_access', methods = ['GET'])
+# The below 2 functions are core to GDPR regulations
+# They allow users to access all information gathered about them
+# and also allows them to delete there account
+
+@pages_bp.route('/right_to_access', methods=['GET'])
 @require_user_login
 @audit_log('view', 'user_data')
 def right_to_access():
     user_id = session['user_id']
     static_data, dynamic_data = get_user_data(user_id)
     log_dsr(user_id, session.get('username'), 'access')
-    return render_template('access_data.html', static_data = static_data, dynamic_data = dynamic_data)
+    return render_template('access_data.html', static_data=static_data, dynamic_data=dynamic_data)
 
 
-
-@pages_bp.route('/right_to_forget', methods = ['POST'])
+@pages_bp.route('/right_to_forget', methods=['POST'])
 @require_user_login
 @audit_log('delete', 'users')
 def right_to_forget():
@@ -396,6 +393,7 @@ def right_to_forget():
     flash('Your account has been deleted.', 'account_deleted')
     return redirect(url_for('auth_bp.login_page'))
 
+
 @pages_bp.route('/delete_user_data', methods=['POST'])
 @require_user_login
 @audit_log('delete', 'submissions')
@@ -408,11 +406,9 @@ def delete_user_data():
     return redirect(url_for('home_bp.homepage'))
 
 
-"""
-The below routes handle per-client consent management.
-Users can view their consent status, withdraw consent (soft withdrawal
-that hides data from clients but keeps it), and re-give consent.
-"""
+# The below routes handle per-client consent management.
+# Users can view their consent status, withdraw consent (soft withdrawal
+# that hides data from clients but keeps it), and re-give consent.
 
 @pages_bp.route('/consent', methods=['GET'])
 @require_user_login
@@ -430,7 +426,7 @@ def withdraw_consent_route(submission_id):
     success = withdraw_consent(submission_id, user_id)
 
     if success:
-        log_dsr(user_id, session.get('username'), 'rectification')
+        log_dsr(user_id, session.get('username'), 'consent_withdrawal')
         log_data_update('submissions', submission_id, {
             'action': 'consent_withdrawn',
             'user_id': user_id
@@ -450,7 +446,7 @@ def reinstate_consent_route(submission_id):
     success = reinstate_consent(submission_id, user_id)
 
     if success:
-        log_dsr(user_id, session.get('username'), 'rectification')
+        log_dsr(user_id, session.get('username'), 'consent_reinstatement')
         log_data_update('submissions', submission_id, {
             'action': 'consent_reinstated',
             'user_id': user_id
@@ -487,12 +483,12 @@ def delete_submission_route(submission_id):
         flash("Could not delete submission. Submission not found or access denied.")
 
     # Redirect back to the referring page (consent management or edit page)
-    return redirect(request.referrer or url_for('pages_bp.consent_management'))
+    return _safe_referrer_redirect(url_for('pages_bp.consent_management'))
 
 
 @pages_bp.route('/privacy')
 def privacy_policy():
-    return render_template('privacy_policy.html', current_date=datetime.utcnow().strftime('%d %B %Y'))
+    return render_template('privacy_policy.html', current_date=datetime.now(timezone.utc).strftime('%d %B %Y'))
 
 
 @pages_bp.route('/dashboard')
@@ -542,7 +538,7 @@ def export_user_data():
             writer.writerow([row[0], row[1], row[2], row[3], consent_status])
 
     output.seek(0)
-    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
 
     log_dsr(user_id, session.get('username'), 'portability')
     log_data_export(user_id, 'csv', {'action': 'user_data_portability'})

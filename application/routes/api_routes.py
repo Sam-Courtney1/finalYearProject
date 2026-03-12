@@ -3,7 +3,10 @@ from functools import wraps
 from application.extensions import limiter
 from application.services.jwt_utils import create_token, decode_token
 from application.services.authentication import register_user, authenticate_user, validate_password
-from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only, update_last_login
+from data.user_database import (
+    find_by_username, get_user_data, delete_user,
+    delete_user_data_only, update_last_login, create_user_profile
+)
 from data.db_connection import get_db
 from application.services.log_form_data import handle_questionnaire_submission
 from application.services.audit_service import (
@@ -16,7 +19,6 @@ from data.submission_database import (
 )
 from application.services.dsr_service import log_dsr
 from data.dsr_database import get_dsrs_for_user
-import os
 
 """
 API routes for the mobile app
@@ -75,6 +77,17 @@ def api_register():
     if not email:
         return jsonify({"error": "Email address is required for account verification"}), 400
 
+    # Validate age — must be 18+ to use the system (GDPR Article 8)
+    try:
+        age_int = int(age)
+        if age_int < 18:
+            return jsonify({"error": "You must be at least 18 years old to use this system"}), 400
+        if age_int > 120:
+            return jsonify({"error": "Please enter a valid age"}), 400
+        age = age_int
+    except (ValueError, TypeError):
+        return jsonify({"error": "Age must be a valid number"}), 400
+
     # Validate password strength
     valid, msg = validate_password(password)
     if not valid:
@@ -99,32 +112,8 @@ def api_register():
     session['user_id'] = user_id
     session['username'] = username
 
-    # Insert submission, encrypted PII and demographic records
-    # Same SQL as the register route in pages_and_actions.py
-    with get_db() as (conn, cur):
-        cur.execute("""
-            INSERT INTO submissions (user_id, client_id, consent)
-            VALUES (%s, NULL, FALSE) RETURNING submission_id;
-        """, (user_id,))
-        submission_id = cur.fetchone()[0]
-
-        key = os.getenv("APP_ENC_KEY")
-
-        # Store encrypted email on the users record (for 2FA OTP delivery)
-        cur.execute("""
-            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
-        """, (email, key, user_id))
-
-        # Encrypt name and address before storing
-        cur.execute("""
-            INSERT INTO pii (submission_id, first_name_enc, address_enc)
-            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
-        """, (submission_id, username, key, address, key))
-
-        cur.execute("""
-            INSERT INTO demographic_data (submission_id, age)
-            VALUES (%s, %s);
-        """, (submission_id, age))
+    # Create the user profile (encrypted email, base submission, PII, demographics)
+    create_user_profile(user_id, username, email, address, age)
 
     # Log the registration and login for the audit trail
     log_data_create('users', user_id, {'action': 'registration', 'source': 'mobile_api'})
@@ -226,7 +215,11 @@ def api_delete_data():
     """Deletes the users questionnaire data but keeps their account active"""
     user_id = session['user_id']
     log_dsr(user_id, session.get('username'), 'erasure', source='mobile_api')
-    log_data_delete('submissions', user_id, {'action': 'delete_data_only', 'account_preserved': True, 'source': 'mobile_api'})
+    log_data_delete('submissions', user_id, {
+        'action': 'delete_data_only',
+        'account_preserved': True,
+        'source': 'mobile_api'
+    })
     delete_user_data_only(user_id)
     return jsonify({"message": "Data deleted, account preserved"}), 200
 
@@ -438,7 +431,7 @@ def api_withdraw_consent(submission_id):
     if not success:
         return jsonify({"error": "Submission not found or access denied"}), 404
 
-    log_dsr(user_id, session.get('username'), 'rectification', source='mobile_api')
+    log_dsr(user_id, session.get('username'), 'consent_withdrawal', source='mobile_api')
     log_data_update('submissions', submission_id, {
         'action': 'consent_withdrawn',
         'user_id': user_id,
@@ -459,7 +452,7 @@ def api_reinstate_consent(submission_id):
     if not success:
         return jsonify({"error": "Submission not found or access denied"}), 404
 
-    log_dsr(user_id, session.get('username'), 'rectification', source='mobile_api')
+    log_dsr(user_id, session.get('username'), 'consent_reinstatement', source='mobile_api')
     log_data_update('submissions', submission_id, {
         'action': 'consent_reinstated',
         'user_id': user_id,

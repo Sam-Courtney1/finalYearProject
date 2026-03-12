@@ -1,26 +1,27 @@
 from data.db_connection import get_db
 
-"""
-This file holds functions to allow clients to create new fields in there questionnaries
-The insert field takes the infomation from the client (client_id is stored in the session)
-All other variables are passed in directly from the form
-"""
+# This file holds functions to allow clients to create new fields in there questionnaries
+# The insert field takes the infomation from the client (client_id is stored in the session)
+# All other variables are passed in directly from the form
 
-def insert_field(client_id, questionnaire_name, label, field_type, category, is_required = True):
+
+def insert_field(client_id, questionnaire_name, label, field_type, category, is_required=True):
     """
     Insert a new field into a specific questionnaire for a client.
     """
     with get_db() as (conn, cur):
         cur.execute("""
-                    INSERT INTO questionnaire_fields (client_id, questionnaire_name, field_label, field_type, category, is_required)
+                    INSERT INTO questionnaire_fields
+                    (client_id, questionnaire_name, field_label, field_type, category, is_required)
                     VALUES (%s, %s, %s, %s, %s, %s);
                     """, (client_id, questionnaire_name, label, field_type, category, is_required))
 
-"""
-This returns all fields for a specifc client's specific questionnaire
-Is used to display to the list of fields to the client
-when the client is editing the questionnaire
-"""
+
+# This returns all fields for a specifc client's specific questionnaire
+# Is used to display to the list of fields to the client
+# when the client is editing the questionnaire
+
+
 def get_fields_for_client(client_id, questionnaire_name):
     """
     Returns all fields for a specific client's specific questionnaire.
@@ -34,9 +35,10 @@ def get_fields_for_client(client_id, questionnaire_name):
                     """, (client_id, questionnaire_name))
         return cur.fetchall()
 
-"""
-Deletes a custom field from a specific client
-"""
+
+# Deletes a custom field from a specific client
+
+
 def delete_field(field_id, client_id):
     with get_db() as (conn, cur):
         cur.execute("""

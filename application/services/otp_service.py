@@ -77,7 +77,7 @@ def verify_otp(user_id: int, entered_code: str) -> tuple[bool, str]:
             if not row:
                 return False, 'not_found'
 
-            token_id, stored_hash, expires_at, used, attempts = row
+            token_id, stored_hash, expires_at, _used, attempts = row
 
             # Already exhausted all attempts — block immediately
             if attempts >= MAX_OTP_ATTEMPTS:
@@ -141,8 +141,8 @@ def store_reset_token(user_id: int, token: str) -> bool:
                 VALUES (%s, %s, %s);
             """, (user_id, hash_token(token), expires_at))
         return True
-    except Exception as e:
-        logger.error("Error storing reset token: %s", e)
+    except Exception:
+        logger.error("Failed to store password reset request for user_id=%s", user_id)
         return False
 
 
@@ -166,13 +166,13 @@ def verify_reset_token(token: str) -> int | None:
             if not row:
                 return None
 
-            token_id, user_id, expires_at = row
+            _token_id, user_id, expires_at = row
             if datetime.now(timezone.utc) > expires_at:
                 return None
 
             return user_id
-    except Exception as e:
-        logger.error("Error verifying reset token: %s", e)
+    except Exception:
+        logger.error("Failed to verify password reset request")
         return None
 
 
@@ -184,5 +184,5 @@ def invalidate_reset_token(token: str) -> None:
                 UPDATE password_reset_tokens SET used = TRUE
                 WHERE token_hash = %s;
             """, (hash_token(token),))
-    except Exception as e:
-        logger.error("Error invalidating reset token: %s", e)
+    except Exception:
+        logger.error("Failed to invalidate password reset request")

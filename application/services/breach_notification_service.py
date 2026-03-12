@@ -1,7 +1,7 @@
 from data.breach_database import get_breach_by_id
 from data.breach_notification_database import (
     insert_breach_notification, update_notification_status,
-    get_all_user_emails, get_notification_summary
+    get_all_user_emails
 )
 from application.services.email_service import _send_email
 import logging
@@ -31,7 +31,8 @@ def send_breach_notification_email(to_email, breach_title, description,
             <h2 style="margin: 0;">Data Breach Notification</h2>
         </div>
         <div style="border: 1px solid #ddd; padding: 20px; border-radius: 0 0 4px 4px;">
-            <p>We are writing to inform you of a data breach that may affect your personal data held by the Organ Donation System.</p>
+            <p>We are writing to inform you of a data breach that may affect your personal
+            data held by the Organ Donation System.</p>
 
             <h3 style="color: #dc3545;">What Happened</h3>
             <p><strong>{breach_title}</strong></p>
@@ -55,7 +56,8 @@ def send_breach_notification_email(to_email, breach_title, description,
                <a href="mailto:{contact_email}">{contact_email}</a></p>
 
             <p style="color: #666; font-size: 12px; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px;">
-                This notification is sent in accordance with GDPR Article 34 (Communication of a personal data breach to the data subject).
+                This notification is sent in accordance with GDPR Article 34
+                (Communication of a personal data breach to the data subject).
             </p>
         </div>
     </div>

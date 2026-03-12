@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Data Subject Requests | GDPR Compliance{% endblock %}
-{% block body_class %}audit-page{% endblock %}
+{% block title %}Data Subject Requests | GDPR Compliance{% endblock title %}
+{% block body_class %}audit-page{% endblock body_class %}
 
 {% block navbar %}
 <nav class="navbar audit-navbar">
@@ -19,7 +19,7 @@
         </span>
     </div>
 </nav>
-{% endblock %}
+{% endblock navbar %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -59,7 +59,7 @@
 
     <!-- Filter Form -->
     <div class="filter-form mb-4">
-        <form method="GET" class="row g-3">
+        <form method="get" class="row g-3">
             <div class="col-md-4">
                 <label class="form-label" for="statusFilter">Filter by Status</label>
                 <select name="status" id="statusFilter" class="form-select">
@@ -138,7 +138,7 @@
                     </td>
                     <td>
                         {% if dsr.status != 'completed' %}
-                        <form method="POST" action="{{ url_for('admin_bp.update_dsr', dsr_id=dsr.dsr_id) }}" class="d-inline">
+                        <form method="post" action="{{ url_for('admin_bp.update_dsr', dsr_id=dsr.dsr_id) }}" class="d-inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="status" value="completed">
                             <button type="submit" class="btn btn-sm btn-outline-success" title="Mark Complete">
@@ -146,7 +146,7 @@
                             </button>
                         </form>
                         {% if dsr.status == 'pending' %}
-                        <form method="POST" action="{{ url_for('admin_bp.update_dsr', dsr_id=dsr.dsr_id) }}" class="d-inline">
+                        <form method="post" action="{{ url_for('admin_bp.update_dsr', dsr_id=dsr.dsr_id) }}" class="d-inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="status" value="in_progress">
                             <button type="submit" class="btn btn-sm btn-outline-info" title="Mark In Progress">
@@ -178,4 +178,4 @@
     <p class="text-muted"><small>Showing {{ dsrs|length }} request(s). Auto-completed requests are logged when users exercise their GDPR rights through the system.</small></p>
     {% endif %}
 </div>
-{% endblock %}
+{% endblock content %}

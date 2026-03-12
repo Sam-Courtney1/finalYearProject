@@ -34,7 +34,8 @@ class TestAPIAuth:
         resp = client.post('/api/register',
                            data=json.dumps({
                                'username': 'new', 'password': 'weak',
-                               'age': '25', 'address': '123 St'
+                               'age': '25', 'address': '123 St',
+                               'email': 'test@example.com'
                            }),
                            content_type='application/json')
         assert resp.status_code == 400

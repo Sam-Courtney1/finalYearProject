@@ -8,31 +8,40 @@ import warnings
 from datetime import timedelta
 
 """
-This is the main file for the system and is where the 
-Flask entry point is declared, env variables are imported 
-and where flask is told where to find the HTML templates 
+This is the main file for the system and is where the
+Flask entry point is declared, env variables are imported
+and where flask is told where to find the HTML templates
 and static file ie css
 
-Blueprints are Imported and then registered 
+Blueprints are Imported and then registered
 Blueprints are a collection of routes
 Once delcared here they can be used anywhere in the system to call
 functions and new pages such as login or homapage
 """
 
+
 def create_app():
     load_dotenv()
     app = Flask(__name__,
-                template_folder = os.path.join('presentation', 'templates'),
-                static_folder = os.path.join('presentation', 'static')
+                template_folder=os.path.join('presentation', 'templates'),
+                static_folder=os.path.join('presentation', 'static')
                 )
-    # Secret key must be set properly in production — refuse to start with the default
-    secret_key = os.getenv("APP_ENC_KEY")
-    if not secret_key or secret_key == "test":
+    # Flask session secret — separate from the database encryption key (APP_ENC_KEY)
+    # so that a leaked session key does not compromise encrypted PII/Medical data.
+    flask_secret = os.getenv("FLASK_SECRET_KEY")
+    if not flask_secret or flask_secret == "test":
+        if os.getenv("AWS_EXECUTION_ENV"):
+            raise RuntimeError("FLASK_SECRET_KEY must be set in production. Do not use the default.")
+        warnings.warn("FLASK_SECRET_KEY not set — using insecure default. Set it in .env for development.")
+        flask_secret = "insecure-dev-session-key-do-not-use-in-production"
+    app.secret_key = flask_secret
+
+    # Validate that the database encryption key is also set
+    db_enc_key = os.getenv("APP_ENC_KEY")
+    if not db_enc_key or db_enc_key == "test":
         if os.getenv("AWS_EXECUTION_ENV"):
             raise RuntimeError("APP_ENC_KEY must be set in production. Do not use the default.")
         warnings.warn("APP_ENC_KEY not set — using insecure default. Set it in .env for development.")
-        secret_key = "insecure-dev-key-do-not-use-in-production"
-    app.secret_key = secret_key
 
     # Sessions marked permanent will expire after this duration of inactivity
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
@@ -117,7 +126,7 @@ def create_app():
     SESSION_TIMEOUT_SECONDS = 600  # 10 minutes
 
     # Check_session_timeout is called by browser not be a specific file
-    # This is why it says it is not being used 
+    # This is why it says it is not being used
     @app.before_request
     def check_session_timeout():
         if 'user_id' not in session:
@@ -150,4 +159,4 @@ application = create_app()
 # Only executes when ran locally
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    application.run(host="0.0.0.0", port=port, debug=True)
+    application.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true")

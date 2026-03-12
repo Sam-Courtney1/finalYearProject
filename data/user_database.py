@@ -1,26 +1,56 @@
 from data.db_connection import get_db
 import os
 
-"""
-This file returns information about a user based on there username
-It is used for loggin into the ststem
+# This file returns information about a user based on there username
+# It is used for loggin into the ststem
+#
+# This file contains all database operations concerning the end user
 
-This file contains all database operations concerning the end user
-"""
 
 def find_by_username(username):
     with get_db() as (conn, cur):
         cur.execute("SELECT id, password FROM users WHERE username = %s", (username,))
         return cur.fetchone()
 
+
 def find_by_id(user_id):
     with get_db() as (conn, cur):
         cur.execute("SELECT id, password FROM users WHERE id = %s", (user_id,))
         return cur.fetchone()
 
+
 def insert_user(username, hashed_password):
     with get_db() as (conn, cur):
         cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
+
+
+def create_user_profile(user_id, username, email, address, age):
+    """
+    Create the initial user profile after registration.
+    Stores encrypted email, creates a base submission, and inserts PII + demographics.
+    Shared by both the web register route and the mobile API register route.
+    """
+    key = os.getenv("APP_ENC_KEY")
+    with get_db() as (conn, cur):
+        cur.execute("""
+            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
+        """, (email, key, user_id))
+
+        cur.execute("""
+            INSERT INTO submissions (user_id, client_id, consent)
+            VALUES (%s, NULL, FALSE) RETURNING submission_id;
+        """, (user_id,))
+        submission_id = cur.fetchone()[0]
+
+        cur.execute("""
+            INSERT INTO pii (submission_id, first_name_enc, address_enc)
+            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+        """, (submission_id, username, key, address, key))
+
+        cur.execute("""
+            INSERT INTO demographic_data (submission_id, age)
+            VALUES (%s, %s);
+        """, (submission_id, age))
 
 
 def update_last_login(user_id):
@@ -29,13 +59,12 @@ def update_last_login(user_id):
         cur.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user_id,))
 
 
-"""
-The function below is used when a user requests to see there data
-An sql request is made to return this data and tables are joined
-on submissions.submission_id. This ensures that all user data is
-returned to the user and also ensures that only that users data is
-shown and no one elses.
-"""
+# The function below is used when a user requests to see there data
+# An sql request is made to return this data and tables are joined
+# on submissions.submission_id. This ensures that all user data is
+# returned to the user and also ensures that only that users data is
+# shown and no one elses.
+
 
 def get_user_data(user_id):
     with get_db() as (conn, cur):
@@ -57,16 +86,14 @@ def get_user_data(user_id):
         # Static fields are the fields which are always used ie age , name and address
         static_data = cur.fetchall()
 
-        """
-        Gather all of the data from the fields that the client has added
-        Joins all tables and returns based on the user_id so that only
-        the data related to that user is returned
-
-        ::text is needed as to change the binary data into letters
-
-        The CASE acts as an if statment and only decrypts data if it is
-        encrypted in the first place
-        """
+        # Gather all of the data from the fields that the client has added
+        # Joins all tables and returns based on the user_id so that only
+        # the data related to that user is returned
+        #
+        # ::text is needed as to change the binary data into letters
+        #
+        # The CASE acts as an if statment and only decrypts data if it is
+        # encrypted in the first place
         cur.execute("""
             SELECT
                 c.username AS company_name,
@@ -90,10 +117,11 @@ def get_user_data(user_id):
 
         return static_data, dynamic_data
 
-"""
-This function takes the users id and make's a query to delete the user
-All records related to that user id are automatically deleted
-"""
+
+# This function takes the users id and make's a query to delete the user
+# All records related to that user id are automatically deleted
+
+
 def delete_user(user_id):
     with get_db() as (conn, cur):
         cur.execute("""

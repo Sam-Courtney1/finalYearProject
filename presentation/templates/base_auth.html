@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block body_class %}auth-page{% endblock %}
+{% block body_class %}auth-page{% endblock body_class %}
 
-{% block flash_messages %}{% endblock %}
+{% block flash_messages %}{% endblock flash_messages %}
 
 {% block content %}
 <div class="auth-background">
     <div class="auth-container">
         <div class="auth-heading">
-            <h1>{% block auth_title %}Organ Donation System{% endblock %}</h1>
+            <h1>{% block auth_title %}Organ Donation System{% endblock auth_title %}</h1>
         </div>
-        {% block auth_animals %}{% endblock %}
+        {% block auth_animals %}{% endblock auth_animals %}
         <div class="auth-card">
-            {% block auth_back %}{% endblock %}
-            <h2>{% block card_title %}{% endblock %}</h2>
+            {% block auth_back %}{% endblock auth_back %}
+            <h2>{% block card_title %}{% endblock card_title %}</h2>
 
             <!-- Flash messages - aria-live for screen reader -->
             <div role="status" aria-live="polite">
@@ -23,8 +23,8 @@
             {% endfor %}
             </div>
 
-            {% block card_content %}{% endblock %}
+            {% block card_content %}{% endblock card_content %}
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}

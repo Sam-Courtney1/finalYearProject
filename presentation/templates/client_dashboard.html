@@ -1,10 +1,10 @@
 {% extends "base_client.html" %}
 
-{% block title %}Client Dashboard | Organ Donation System{% endblock %}
+{% block title %}Client Dashboard | Organ Donation System{% endblock title %}
 
 {% block content %}
 <div class="homepage-main">
-    <h1>Hi {{username}}</h1>
+    <h1>Hi {{ username }}</h1>
     <p class="welcome-text">Welcome to your organisation dashboard</p>
     <p class="subtitle-text">Manage questionnaires, view submissions, and monitor audit logs</p>
 
@@ -37,4 +37,4 @@
         </a>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}

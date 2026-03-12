@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block body_class %}user-page{% endblock %}
+{% block body_class %}user-page{% endblock body_class %}
 
 {% block extra_scripts %}
 <!-- Session inactivity timeout: warn at 9 min, redirect at 10 min -->
@@ -109,4 +109,4 @@
         </div>
     </div>
 </nav>
-{% endblock %}
+{% endblock navbar %}

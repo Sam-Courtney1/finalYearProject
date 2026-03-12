@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Data Retention | GDPR Compliance{% endblock %}
-{% block body_class %}audit-page{% endblock %}
+{% block title %}Data Retention | GDPR Compliance{% endblock title %}
+{% block body_class %}audit-page{% endblock body_class %}
 
 {% block navbar %}
 <nav class="navbar audit-navbar">
@@ -19,7 +19,7 @@
         </span>
     </div>
 </nav>
-{% endblock %}
+{% endblock navbar %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -59,7 +59,7 @@
 
     <!-- Retention Period Filter -->
     <div class="filter-form mb-4">
-        <form method="GET" class="row g-3">
+        <form method="get" class="row g-3">
             <div class="col-md-4">
                 <label class="form-label" for="retentionDays">Retention Period (days)</label>
                 <select name="days" id="retentionDays" class="form-select">
@@ -81,14 +81,14 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex gap-2">
-                <form method="POST" action="{{ url_for('admin_bp.retention_preview') }}">
+                <form method="post" action="{{ url_for('admin_bp.retention_preview') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="days" value="{{ retention_days }}">
                     <button type="submit" class="btn btn-outline-warning">
                         <i class="bi bi-eye me-1"></i>Preview Cleanup
                     </button>
                 </form>
-                <form method="POST" action="{{ url_for('admin_bp.retention_cleanup') }}"
+                <form method="post" action="{{ url_for('admin_bp.retention_cleanup') }}"
                       onsubmit="return confirm('Are you sure you want to run retention cleanup? This will permanently delete expired data.');">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="days" value="{{ retention_days }}">
@@ -172,4 +172,4 @@
         </table>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}

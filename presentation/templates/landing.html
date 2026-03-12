@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Organ Donation System | GDPR-Compliant Data Protection{% endblock %}
-{% block body_class %}landing-page{% endblock %}
+{% block title %}Organ Donation System | GDPR-Compliant Data Protection{% endblock title %}
+{% block body_class %}landing-page{% endblock body_class %}
 
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-{% endblock %}
+{% endblock extra_head %}
 
-{% block flash_messages %}{% endblock %}
+{% block flash_messages %}{% endblock flash_messages %}
 
 {% block content %}
 <div class="landing-wrapper">
@@ -63,7 +63,7 @@
                     {% endif %}
                     {% endfor %}
 
-                    <form action="{{ url_for('auth_bp.login') }}" method="POST" id="loginForm">
+                    <form action="{{ url_for('auth_bp.login') }}" method="post" id="loginForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <!-- sr-only labels for screen reader form access -->
                         <label for="loginUsername" class="sr-only">Username</label>
@@ -132,8 +132,8 @@
 
     </div>
 </div>
-{% endblock %}
+{% endblock content %}
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='landing.js') }}"></script>
-{% endblock %}
+{% endblock extra_scripts %}

@@ -62,7 +62,11 @@ def _send_email(to_email: str, subject: str, body_html: str) -> tuple[bool, str]
     password = os.getenv("SMTP_PASSWORD", "")
 
     if not sender or not password:
-        msg = f"SMTP_EMAIL or SMTP_PASSWORD not set — SMTP_EMAIL={'set' if sender else 'MISSING'}, SMTP_PASSWORD={'set' if password else 'MISSING'}"
+        msg = (
+            f"SMTP_EMAIL or SMTP_PASSWORD not set — "
+            f"SMTP_EMAIL={'set' if sender else 'MISSING'}, "
+            f"SMTP_PASSWORD={'set' if password else 'MISSING'}"
+        )
         logger.warning(msg)
         return False, msg
 

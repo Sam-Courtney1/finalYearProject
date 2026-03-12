@@ -10,7 +10,7 @@ from data.retention_database import get_retention_stats, get_inactive_users, get
 from application.services.retention_service import run_retention_cleanup
 from data.breach_database import (
     insert_breach, get_all_breaches, get_breach_by_id,
-    update_breach_status, get_open_breaches_count
+    update_breach_status
 )
 from application.services.breach_service import check_72h_deadline, get_breach_summary
 from application.services.breach_notification_service import notify_all_affected_users
@@ -24,6 +24,19 @@ import ipaddress
 import json
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
+
+
+def _sanitize_csv_value(value):
+    """Sanitize a value for CSV export to prevent formula injection.
+    Prefixes cells starting with =, +, -, @, \\t, \\r with a single quote."""
+    if value is None:
+        return ''
+    s = str(value)
+    if s and s[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + s
+    return s
+
 
 """
 Admin Routes Blueprint
@@ -59,8 +72,11 @@ def audit_dashboard():
     # Calculate date filter
     start_date = None
     if date_range and date_range != 'all':
-        days = int(date_range)
-        start_date = datetime.utcnow() - timedelta(days=days)
+        try:
+            days = int(date_range)
+        except (ValueError, TypeError):
+            days = 7  # Default to 7 days if input is invalid
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
     # Get logs with pagination (filtered by client_id for clients)
     offset = (page - 1) * per_page
@@ -127,8 +143,11 @@ def export_audit_logs():
     # Calculate date filter
     start_date = None
     if date_range and date_range != 'all':
-        days = int(date_range)
-        start_date = datetime.utcnow() - timedelta(days=days)
+        try:
+            days = int(date_range)
+        except (ValueError, TypeError):
+            days = 30  # Default to 30 days if input is invalid
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
     # Get all matching logs (up to 10000), filtered by client_id for clients
     logs = get_audit_logs(
@@ -149,24 +168,24 @@ def export_audit_logs():
         'Target Table', 'Target ID', 'IP Address', 'User Agent', 'Details'
     ])
 
-    # Write data
+    # Write data (sanitized to prevent CSV formula injection)
     for log in logs:
         writer.writerow([
-            log.get('log_id'),
-            log.get('timestamp'),
-            log.get('actor_id'),
-            log.get('actor_type'),
-            log.get('action'),
-            log.get('target_table'),
-            log.get('target_id'),
-            log.get('ip_address'),
-            log.get('user_agent'),
-            log.get('details')
+            _sanitize_csv_value(log.get('log_id')),
+            _sanitize_csv_value(log.get('timestamp')),
+            _sanitize_csv_value(log.get('actor_id')),
+            _sanitize_csv_value(log.get('actor_type')),
+            _sanitize_csv_value(log.get('action')),
+            _sanitize_csv_value(log.get('target_table')),
+            _sanitize_csv_value(log.get('target_id')),
+            _sanitize_csv_value(log.get('ip_address')),
+            _sanitize_csv_value(log.get('user_agent')),
+            _sanitize_csv_value(log.get('details'))
         ])
 
     # Create response
     output.seek(0)
-    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
 
     return Response(
         output.getvalue(),
@@ -267,7 +286,11 @@ def geolocate_ip(ip):
                 'message': 'Cannot geolocate private or reserved IP addresses'
             })
 
+        # Construct URL with validated IP — only allow HTTP to ip-api.com (SSRF-safe)
         api_url = f"http://ip-api.com/json/{ip}?fields=status,message,country,city,lat,lon,isp"
+        parsed_url = urlparse(api_url)
+        if parsed_url.scheme != 'http' or parsed_url.hostname != 'ip-api.com':
+            return jsonify({'success': False, 'message': 'Invalid geolocation request'})
         req = urllib.request.Request(api_url, headers={'User-Agent': 'GDPR-Audit-Dashboard'})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode())
@@ -336,6 +359,7 @@ def retention_preview():
         return redirect(url_for('admin_bp.audit_dashboard'))
 
     days = request.form.get('days', 365, type=int)
+    days = max(1, min(days, 3650))  # Clamp to valid range
     result = run_retention_cleanup(days=days, dry_run=True)
 
     flash(f"Preview: {result['inactive_users_count']} inactive users and "
@@ -353,6 +377,7 @@ def retention_cleanup():
         return redirect(url_for('admin_bp.audit_dashboard'))
 
     days = request.form.get('days', 365, type=int)
+    days = max(1, min(days, 3650))  # Clamp to valid range
     result = run_retention_cleanup(days=days, dry_run=False)
 
     flash(f"Retention cleanup complete: {result['deleted_submissions']} submissions deleted, "
@@ -491,9 +516,9 @@ def update_breach(breach_id):
     reported_at = None
     resolved_at = None
     if status == 'reported':
-        reported_at = datetime.utcnow()
+        reported_at = datetime.now(timezone.utc)
     elif status == 'resolved':
-        resolved_at = datetime.utcnow()
+        resolved_at = datetime.now(timezone.utc)
 
     success = update_breach_status(
         breach_id=breach_id,

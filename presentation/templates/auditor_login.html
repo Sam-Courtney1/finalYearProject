@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Auditor Login | Organ Donation System{% endblock %}
+{% block title %}Auditor Login | Organ Donation System{% endblock title %}
 
 {% block content %}
 <div class="auditor-login-wrapper">
@@ -17,7 +17,11 @@
         </div>
         {% endfor %}
 
+<<<<<<< HEAD
         <form action="{{ url_for('admin_bp.auditor_login') }}" method="POST">
+=======
+        <form action="{{ url_for('admin_bp.auditor_login') }}" method="post">
+>>>>>>> mobile-code
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
                 <label for="username" class="form-label"><i class="bi bi-person me-1" aria-hidden="true"></i>Username</label>
@@ -35,4 +39,4 @@
         </form>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}
