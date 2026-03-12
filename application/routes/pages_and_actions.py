@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from application.services.authentication import register_user, authenticate_user, validate_password
 from werkzeug.security import check_password_hash
 from application.services.decorators import require_user_login
-from data.user_database import find_by_username, find_by_id, get_user_data, delete_user, delete_user_data_only, update_last_login
+from data.user_database import find_by_username, find_by_id, get_user_data, delete_user, delete_user_data_only, update_last_login, create_user_profile
 from data.db_connection import get_db
 from application.services.audit_service import (
     audit_log, log_login_success, log_login_failed, log_logout,
@@ -22,7 +22,19 @@ import os
 import csv
 import io
 import time
-from datetime import datetime
+from datetime import datetime, timezone
+from urllib.parse import urlparse
+
+
+def _safe_referrer_redirect(fallback):
+    """Redirect to request.referrer only if it belongs to the same host, preventing open redirects."""
+    ref = request.referrer
+    if ref:
+        ref_parsed = urlparse(ref)
+        host_parsed = urlparse(request.host_url)
+        if ref_parsed.netloc == host_parsed.netloc:
+            return redirect(ref)
+    return redirect(fallback)
 
 """
 auth_bp is an object of Blueprint that stores its name (auth_bp) 
@@ -92,30 +104,8 @@ def register():
     session['user_id'] = user[0]
     user_id = user[0]
 
-    key = os.getenv("APP_ENC_KEY")
-
-    with get_db() as (conn, cur):
-        # Store encrypted email on the users record
-        cur.execute("""
-            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
-        """, (email, key, user_id))
-
-        cur.execute("""
-            INSERT INTO submissions (user_id, client_id, consent)
-            VALUES (%s, NULL, FALSE)
-            RETURNING submission_id;
-        """, (user_id,))
-        submission_id = cur.fetchone()[0]
-
-        cur.execute("""
-            INSERT INTO pii (submission_id, first_name_enc, address_enc)
-            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
-        """, (submission_id, username, key, address, key))
-
-        cur.execute("""
-            INSERT INTO demographic_data (submission_id, age)
-            VALUES (%s, %s);
-        """, (submission_id, age))
+    # Create the user profile (encrypted email, base submission, PII, demographics)
+    create_user_profile(user_id, username, email, address, age)
 
     # Log new user registration
     log_data_create('users', user_id, {'action': 'registration'})
@@ -312,7 +302,10 @@ def forgot_password():
         if row and row[0]:
             token = generate_reset_token()
             store_reset_token(user_id, token)
-            reset_url = url_for('auth_bp.reset_password_page', token=token, _external=True)
+            # Build reset URL using SERVER_NAME or request.host to avoid Host header injection
+            base_url = os.environ.get('APP_BASE_URL', request.host_url.rstrip('/'))
+            reset_path = url_for('auth_bp.reset_password_page', token=token)
+            reset_url = base_url + reset_path
             send_password_reset_email(row[0], reset_url)
 
     # Always show the same message to prevent username enumeration
@@ -487,12 +480,12 @@ def delete_submission_route(submission_id):
         flash("Could not delete submission. Submission not found or access denied.")
 
     # Redirect back to the referring page (consent management or edit page)
-    return redirect(request.referrer or url_for('pages_bp.consent_management'))
+    return _safe_referrer_redirect(url_for('pages_bp.consent_management'))
 
 
 @pages_bp.route('/privacy')
 def privacy_policy():
-    return render_template('privacy_policy.html', current_date=datetime.utcnow().strftime('%d %B %Y'))
+    return render_template('privacy_policy.html', current_date=datetime.now(timezone.utc).strftime('%d %B %Y'))
 
 
 @pages_bp.route('/dashboard')
@@ -542,7 +535,7 @@ def export_user_data():
             writer.writerow([row[0], row[1], row[2], row[3], consent_status])
 
     output.seek(0)
-    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
 
     log_dsr(user_id, session.get('username'), 'portability')
     log_data_export(user_id, 'csv', {'action': 'user_data_portability'})

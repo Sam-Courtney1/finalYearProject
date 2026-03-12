@@ -142,7 +142,7 @@ def store_reset_token(user_id: int, token: str) -> bool:
             """, (user_id, hash_token(token), expires_at))
         return True
     except Exception as e:
-        logger.error("Error storing reset token: %s", e)
+        logger.error("Failed to store password reset request for user_id=%s", user_id)
         return False
 
 
@@ -172,7 +172,7 @@ def verify_reset_token(token: str) -> int | None:
 
             return user_id
     except Exception as e:
-        logger.error("Error verifying reset token: %s", e)
+        logger.error("Failed to verify password reset request")
         return None
 
 
@@ -185,4 +185,4 @@ def invalidate_reset_token(token: str) -> None:
                 WHERE token_hash = %s;
             """, (hash_token(token),))
     except Exception as e:
-        logger.error("Error invalidating reset token: %s", e)
+        logger.error("Failed to invalidate password reset request")

@@ -1,11 +1,12 @@
+/* global requestAnimationFrame */
 (function () {
     'use strict';
 
-    var canvas, ctx;
-    var particles = [];
-    var mouseX = -1, mouseY = -1;
-    var PARTICLE_COUNT = 60;
-    var MAX_DIST = 120;
+    let canvas, ctx;
+    let particles = [];
+    let mouseX = -1, mouseY = -1;
+    const PARTICLE_COUNT = 60;
+    const MAX_DIST = 120;
 
     function Particle(w, h) {
         this.x = Math.random() * w;
@@ -20,9 +21,9 @@
         canvas = document.getElementById('cl-particles');
         if (!canvas) return;
 
-        var dpr = window.devicePixelRatio || 1;
-        var w = window.innerWidth;
-        var h = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
 
         canvas.width = w * dpr;
         canvas.height = h * dpr;
@@ -33,7 +34,7 @@
         ctx.scale(dpr, dpr);
 
         particles = [];
-        for (var i = 0; i < PARTICLE_COUNT; i++) {
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
             particles.push(new Particle(w, h));
         }
     }
@@ -41,19 +42,19 @@
     function animate() {
         if (!ctx) return;
 
-        var w = window.innerWidth;
-        var h = window.innerHeight;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
         ctx.clearRect(0, 0, w, h);
 
-        for (var i = 0; i < particles.length; i++) {
-            var p = particles[i];
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
 
             if (mouseX > 0 && mouseY > 0) {
-                var dx = p.x - mouseX;
-                var dy = p.y - mouseY;
-                var dist = Math.sqrt(dx * dx + dy * dy);
+                const dx = p.x - mouseX;
+                const dy = p.y - mouseY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < 150) {
-                    var force = (150 - dist) / 150 * 0.008;
+                    const force = (150 - dist) / 150 * 0.008;
                     p.vx += dx * force;
                     p.vy += dy * force;
                 }
@@ -76,14 +77,14 @@
         }
 
         ctx.lineWidth = 0.5;
-        for (i = 0; i < particles.length; i++) {
-            for (var j = i + 1; j < particles.length; j++) {
-                dx = particles[i].x - particles[j].x;
-                dy = particles[i].y - particles[j].y;
-                dist = Math.sqrt(dx * dx + dy * dy);
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const dx = particles[i].x - particles[j].x;
+                const dy = particles[i].y - particles[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
 
                 if (dist < MAX_DIST) {
-                    var alpha = (1 - dist / MAX_DIST) * 0.08;
+                    const alpha = (1 - dist / MAX_DIST) * 0.08;
                     ctx.beginPath();
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.lineTo(particles[j].x, particles[j].y);

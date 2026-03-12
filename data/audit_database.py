@@ -1,7 +1,7 @@
 import hashlib
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from data.db_connection import get_db_connection, get_db
 
 logger = logging.getLogger(__name__)
@@ -123,7 +123,7 @@ def insert_audit_log(actor_id, actor_type, action, target_table=None,
     try:
         # Get previous hash for chain linking
         previous_hash = get_last_hash()
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Compute hash for this entry (client_id excluded from hash)
         current_hash = compute_hash(

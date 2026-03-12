@@ -3,7 +3,7 @@ from functools import wraps
 from application.extensions import limiter
 from application.services.jwt_utils import create_token, decode_token
 from application.services.authentication import register_user, authenticate_user, validate_password
-from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only, update_last_login
+from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only, update_last_login, create_user_profile
 from data.db_connection import get_db
 from application.services.log_form_data import handle_questionnaire_submission
 from application.services.audit_service import (
@@ -75,6 +75,15 @@ def api_register():
     if not email:
         return jsonify({"error": "Email address is required for account verification"}), 400
 
+    # Validate age is a reasonable integer (16-120)
+    try:
+        age_int = int(age)
+        if age_int < 16 or age_int > 120:
+            return jsonify({"error": "Age must be between 16 and 120"}), 400
+        age = age_int
+    except (ValueError, TypeError):
+        return jsonify({"error": "Age must be a valid number"}), 400
+
     # Validate password strength
     valid, msg = validate_password(password)
     if not valid:
@@ -99,32 +108,8 @@ def api_register():
     session['user_id'] = user_id
     session['username'] = username
 
-    # Insert submission, encrypted PII and demographic records
-    # Same SQL as the register route in pages_and_actions.py
-    with get_db() as (conn, cur):
-        cur.execute("""
-            INSERT INTO submissions (user_id, client_id, consent)
-            VALUES (%s, NULL, FALSE) RETURNING submission_id;
-        """, (user_id,))
-        submission_id = cur.fetchone()[0]
-
-        key = os.getenv("APP_ENC_KEY")
-
-        # Store encrypted email on the users record (for 2FA OTP delivery)
-        cur.execute("""
-            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
-        """, (email, key, user_id))
-
-        # Encrypt name and address before storing
-        cur.execute("""
-            INSERT INTO pii (submission_id, first_name_enc, address_enc)
-            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
-        """, (submission_id, username, key, address, key))
-
-        cur.execute("""
-            INSERT INTO demographic_data (submission_id, age)
-            VALUES (%s, %s);
-        """, (submission_id, age))
+    # Create the user profile (encrypted email, base submission, PII, demographics)
+    create_user_profile(user_id, username, email, address, age)
 
     # Log the registration and login for the audit trail
     log_data_create('users', user_id, {'action': 'registration', 'source': 'mobile_api'})

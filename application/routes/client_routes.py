@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from urllib.parse import urlparse
 from werkzeug.security import generate_password_hash, check_password_hash
 from application.services.decorators import require_client_login
 from application.services.authentication import validate_password
@@ -202,8 +203,11 @@ def client_delete_field(field_id):
     # Log field deletion before deleting
     log_data_delete('questionnaire_fields', field_id, {'client_id': client_id}, client_id=client_id)
     delete_field(field_id, client_id)
-    # Redirect back to referring page (the questionnaire editor)
-    return redirect(request.referrer or url_for("client_bp.client_questionnaire_list"))
+    # Redirect back to referring page (the questionnaire editor) with open redirect protection
+    ref = request.referrer
+    if ref and urlparse(ref).netloc == urlparse(request.host_url).netloc:
+        return redirect(ref)
+    return redirect(url_for("client_bp.client_questionnaire_list"))
 
 
 @client_bp.route("/questionnaire/<questionnaire_name>/data", methods=["GET"])

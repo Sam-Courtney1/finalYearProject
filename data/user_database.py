@@ -23,6 +23,35 @@ def insert_user(username, hashed_password):
         cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
 
 
+def create_user_profile(user_id, username, email, address, age):
+    """
+    Create the initial user profile after registration.
+    Stores encrypted email, creates a base submission, and inserts PII + demographics.
+    Shared by both the web register route and the mobile API register route.
+    """
+    key = os.getenv("APP_ENC_KEY")
+    with get_db() as (conn, cur):
+        cur.execute("""
+            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
+        """, (email, key, user_id))
+
+        cur.execute("""
+            INSERT INTO submissions (user_id, client_id, consent)
+            VALUES (%s, NULL, FALSE) RETURNING submission_id;
+        """, (user_id,))
+        submission_id = cur.fetchone()[0]
+
+        cur.execute("""
+            INSERT INTO pii (submission_id, first_name_enc, address_enc)
+            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+        """, (submission_id, username, key, address, key))
+
+        cur.execute("""
+            INSERT INTO demographic_data (submission_id, age)
+            VALUES (%s, %s);
+        """, (submission_id, age))
+
+
 def update_last_login(user_id):
     """Update the last_login timestamp for data retention tracking."""
     with get_db() as (conn, cur):

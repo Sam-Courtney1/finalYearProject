@@ -1,3 +1,4 @@
+/* global requestAnimationFrame */
 (function () {
     'use strict';
 
@@ -41,19 +42,19 @@
 
     // ── Encryption simulation ──────────────────────────────────────────
     function generateEncryptedValue(plaintext) {
-        var hex = '0123456789abcdef';
-        var len = Math.max(String(plaintext).length * 2, 20);
-        var result = '\\xc30d04';
-        for (var i = 0; i < len; i++) {
+        const hex = '0123456789abcdef';
+        const len = Math.max(String(plaintext).length * 2, 20);
+        let result = '\\xc30d04';
+        for (let i = 0; i < len; i++) {
             result += hex[Math.floor(Math.random() * 16)];
         }
         return result;
     }
 
     // Pre-generate encrypted versions for consistency
-    var encryptedCache = [];
+    const encryptedCache = [];
     RECORDS.forEach(function (record) {
-        var encrypted = {};
+        const encrypted = {};
         FIELD_ORDER.forEach(function (field) {
             if (UNENCRYPTED_FIELDS.has(field)) {
                 encrypted[field] = String(record[field]);
@@ -65,15 +66,15 @@
     });
 
     // ── State ──────────────────────────────────────────────────────────
-    var targetX = -200, targetY = -200;
-    var currentX = -200, currentY = -200;
-    var isTouch = ('ontouchstart' in window);
-    var spotlightRadius = isTouch ? 90 : 130;
+    let targetX = -200, targetY = -200;
+    let currentX = -200, currentY = -200;
+    const isTouch = ('ontouchstart' in window);
+    const spotlightRadius = isTouch ? 90 : 130;
 
     // ── DOM references ─────────────────────────────────────────────────
-    var plaintextGrid, encryptedGrid, gridCanvas;
-    var gridCtx;
-    var invertibles;
+    let plaintextGrid, encryptedGrid, gridCanvas;
+    let gridCtx;
+    let invertibles;
 
     // ── Populate data grids ────────────────────────────────────────────
     function populateDataGrids() {
@@ -81,22 +82,22 @@
         encryptedGrid = document.getElementById('data-grid-encrypted');
         if (!plaintextGrid || !encryptedGrid) return;
 
-        var cols = Math.ceil(window.innerWidth * 1.2 / 220);
-        var rows = Math.ceil(window.innerHeight * 1.2 / 44);
-        var totalCells = cols * rows;
+        const cols = Math.ceil(window.innerWidth * 1.2 / 220);
+        const rows = Math.ceil(window.innerHeight * 1.2 / 44);
+        const totalCells = cols * rows;
 
-        var ptHTML = '';
-        var encHTML = '';
+        let ptHTML = '';
+        let encHTML = '';
 
-        for (var i = 0; i < totalCells; i++) {
-            var recordIdx = i % RECORDS.length;
-            var fieldIdx = (i + Math.floor(i / RECORDS.length)) % FIELD_ORDER.length;
-            var field = FIELD_ORDER[fieldIdx];
-            var record = RECORDS[recordIdx];
-            var encRecord = encryptedCache[recordIdx];
+        for (let i = 0; i < totalCells; i++) {
+            const recordIdx = i % RECORDS.length;
+            const fieldIdx = (i + Math.floor(i / RECORDS.length)) % FIELD_ORDER.length;
+            const field = FIELD_ORDER[fieldIdx];
+            const record = RECORDS[recordIdx];
+            const encRecord = encryptedCache[recordIdx];
 
-            var ptValue = String(record[field]);
-            var encValue = encRecord[field];
+            const ptValue = String(record[field]);
+            const encValue = encRecord[field];
 
             ptHTML += '<div class="data-cell"><span class="data-cell__label">' +
                 field + ': </span>' + ptValue + '</div>';
@@ -113,9 +114,9 @@
         gridCanvas = document.getElementById('grid-canvas');
         if (!gridCanvas) return;
 
-        var w = window.innerWidth;
-        var h = window.innerHeight;
-        var dpr = window.devicePixelRatio || 1;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
 
         gridCanvas.width = w * dpr;
         gridCanvas.height = h * dpr;
@@ -134,7 +135,7 @@
 
 
     // ── Animated grid lines ────────────────────────────────────────────
-    var gridFrameCount = 0;
+    let gridFrameCount = 0;
 
     function drawGrid() {
         if (!gridCtx) return;
@@ -142,17 +143,17 @@
         // Throttle to ~30fps
         if (gridFrameCount % 2 !== 0) return;
 
-        var w = window.innerWidth;
-        var h = window.innerHeight;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
         gridCtx.clearRect(0, 0, w, h);
 
-        var spacing = 60;
+        const spacing = 60;
 
         gridCtx.lineWidth = 0.5;
         // Vertical lines
-        for (var x = 0; x < w; x += spacing) {
-            var distX = Math.abs(x - currentX);
-            var brightness = Math.max(0.03, 0.12 - distX / 900);
+        for (let x = 0; x < w; x += spacing) {
+            const distX = Math.abs(x - currentX);
+            const brightness = Math.max(0.03, 0.12 - distX / 900);
             gridCtx.strokeStyle = 'rgba(124, 58, 237, ' + brightness + ')';
             gridCtx.beginPath();
             gridCtx.moveTo(x, 0);
@@ -160,9 +161,9 @@
             gridCtx.stroke();
         }
         // Horizontal lines
-        for (var y = 0; y < h; y += spacing) {
-            var distY = Math.abs(y - currentY);
-            var brightness2 = Math.max(0.03, 0.12 - distY / 900);
+        for (let y = 0; y < h; y += spacing) {
+            const distY = Math.abs(y - currentY);
+            const brightness2 = Math.max(0.03, 0.12 - distY / 900);
             gridCtx.strokeStyle = 'rgba(124, 58, 237, ' + brightness2 + ')';
             gridCtx.beginPath();
             gridCtx.moveTo(0, y);
@@ -172,7 +173,7 @@
 
         // Glow at cursor intersection
         if (currentX > 0 && currentY > 0) {
-            var gradient = gridCtx.createRadialGradient(
+            const gradient = gridCtx.createRadialGradient(
                 currentX, currentY, 0,
                 currentX, currentY, 200
             );
@@ -185,19 +186,19 @@
 
     // ── Parallax ───────────────────────────────────────────────────────
     function updateParallax() {
-        var parallaxEls = document.querySelectorAll('[data-parallax-speed]');
+        const parallaxEls = document.querySelectorAll('[data-parallax-speed]');
         if (!parallaxEls.length) return;
 
-        var cx = window.innerWidth / 2;
-        var cy = window.innerHeight / 2;
-        var dx = (currentX - cx) / cx || 0;
-        var dy = (currentY - cy) / cy || 0;
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (currentX - cx) / cx || 0;
+        const dy = (currentY - cy) / cy || 0;
 
-        for (var i = 0; i < parallaxEls.length; i++) {
-            var el = parallaxEls[i];
-            var speed = parseFloat(el.dataset.parallaxSpeed) || 0;
-            var moveX = dx * speed * -30;
-            var moveY = dy * speed * -30;
+        for (let i = 0; i < parallaxEls.length; i++) {
+            const el = parallaxEls[i];
+            const speed = parseFloat(el.dataset.parallaxSpeed) || 0;
+            const moveX = dx * speed * -30;
+            const moveY = dy * speed * -30;
             el.style.transform = 'translate(' + moveX + 'px, ' + moveY + 'px)';
         }
     }
@@ -206,12 +207,12 @@
     function updateInversion() {
         if (!invertibles) return;
 
-        for (var i = 0; i < invertibles.length; i++) {
-            var el = invertibles[i];
-            var rect = el.getBoundingClientRect();
-            var elCx = rect.left + rect.width / 2;
-            var elCy = rect.top + rect.height / 2;
-            var dist = Math.hypot(elCx - currentX, elCy - currentY);
+        for (let i = 0; i < invertibles.length; i++) {
+            const el = invertibles[i];
+            const rect = el.getBoundingClientRect();
+            const elCx = rect.left + rect.width / 2;
+            const elCy = rect.top + rect.height / 2;
+            const dist = Math.hypot(elCx - currentX, elCy - currentY);
 
             if (dist < spotlightRadius + Math.max(rect.width, rect.height) / 2) {
                 el.classList.add('landing--inverted');
@@ -224,14 +225,14 @@
     // ── Data grid parallax (subtle shift) ──────────────────────────────
     function updateGridParallax() {
         if (!plaintextGrid || !encryptedGrid) return;
-        var cx = window.innerWidth / 2;
-        var cy = window.innerHeight / 2;
-        var dx = (currentX - cx) / cx || 0;
-        var dy = (currentY - cy) / cy || 0;
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (currentX - cx) / cx || 0;
+        const dy = (currentY - cy) / cy || 0;
 
-        var offsetX = -10 + dx * -1.5;
-        var offsetY = -10 + dy * -1.5;
-        var transform = 'translate(' + offsetX + '%, ' + offsetY + '%)';
+        const offsetX = -10 + dx * -1.5;
+        const offsetY = -10 + dy * -1.5;
+        const transform = 'translate(' + offsetX + '%, ' + offsetY + '%)';
         plaintextGrid.style.transform = transform;
         encryptedGrid.style.transform = transform;
     }
