@@ -1,18 +1,18 @@
 {% extends "base_auth.html" %}
 
-{% block title %}Register | Organ Donation System{% endblock %}
-{% block auth_title %}Welcome to the<br>Organ Donation System{% endblock %}
-{% block card_title %}Register{% endblock %}
+{% block title %}Register | Organ Donation System{% endblock title %}
+{% block auth_title %}Welcome to the<br>Organ Donation System{% endblock auth_title %}
+{% block card_title %}Register{% endblock card_title %}
 
 {% block auth_back %}
 <!-- aria-label for icon-only link - screen reader -->
 <a href="{{ url_for('auth_bp.login_page') }}" class="back-arrow" aria-label="Back to login">
     <i class="bi bi-arrow-left" aria-hidden="true"></i>
 </a>
-{% endblock %}
+{% endblock auth_back %}
 
 {% block card_content %}
-<form action="/register_user" method="POST">
+<form action="{{ url_for('auth_bp.register') }}" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <!-- for= labels link to inputs - screen reader form access -->
     <label for="regUsername" class="sr-only">Username</label>
@@ -38,4 +38,4 @@
         </button>
     </div>
 </form>
-{% endblock %}
+{% endblock card_content %}

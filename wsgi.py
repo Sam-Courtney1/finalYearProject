@@ -8,22 +8,23 @@ import warnings
 from datetime import timedelta
 
 """
-This is the main file for the system and is where the 
-Flask entry point is declared, env variables are imported 
-and where flask is told where to find the HTML templates 
+This is the main file for the system and is where the
+Flask entry point is declared, env variables are imported
+and where flask is told where to find the HTML templates
 and static file ie css
 
-Blueprints are Imported and then registered 
+Blueprints are Imported and then registered
 Blueprints are a collection of routes
 Once delcared here they can be used anywhere in the system to call
 functions and new pages such as login or homapage
 """
 
+
 def create_app():
     load_dotenv()
     app = Flask(__name__,
-                template_folder = os.path.join('presentation', 'templates'),
-                static_folder = os.path.join('presentation', 'static')
+                template_folder=os.path.join('presentation', 'templates'),
+                static_folder=os.path.join('presentation', 'static')
                 )
     # Secret key must be set properly in production — refuse to start with the default
     secret_key = os.getenv("APP_ENC_KEY")
@@ -117,7 +118,7 @@ def create_app():
     SESSION_TIMEOUT_SECONDS = 600  # 10 minutes
 
     # Check_session_timeout is called by browser not be a specific file
-    # This is why it says it is not being used 
+    # This is why it says it is not being used
     @app.before_request
     def check_session_timeout():
         if 'user_id' not in session:

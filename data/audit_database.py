@@ -6,15 +6,14 @@ from data.db_connection import get_db_connection, get_db
 
 logger = logging.getLogger(__name__)
 
-"""
-Audit Logging Database Operations
-GDPR Article 32 - Security of Processing
+# Audit Logging Database Operations
+# GDPR Article 32 - Security of Processing
+#
+# This module handles all database operations for the audit logging system.
+# It provides tamper evident logging through hash chaining, where each log
+# entry contains a hash of the previous entry, making it detectable if
+# logs are modified or deleted.
 
-This module handles all database operations for the audit logging system.
-It provides tamper evident logging through hash chaining, where each log
-entry contains a hash of the previous entry, making it detectable if
-logs are modified or deleted.
-"""
 
 def create_audit_table():
     """
@@ -54,12 +53,10 @@ def create_audit_table():
                 ON audit_logs(action);
         """)
 
-        """
-        Create indexs above to allow for much faster searching
-        For example when executing select * from audit_logs where action = 'delete';
-        Rather then going though all rows, an index is kept to store what rows are delete's
-        This means that not every row is needed to be searched
-        """
+        # Create indexs above to allow for much faster searching
+        # For example when executing select * from audit_logs where action = 'delete';
+        # Rather then going though all rows, an index is kept to store what rows are delete's
+        # This means that not every row is needed to be searched
 
         conn.commit()
         cur.close()
@@ -106,7 +103,10 @@ def compute_hash(timestamp, actor_id, actor_type, action, target_table,
     # IE {"b":2, "a":1}, {"a":1, "b":2}. With sort_keys=True A will always be first
     details_str = json.dumps(details, sort_keys=True) if details else 'null'
     # Join all data together to build a string
-    data = f"{timestamp}|{actor_id}|{actor_type}|{action}|{target_table}|{target_id}|{ip_str}|{details_str}|{previous_hash}"
+    data = (
+        f"{timestamp}|{actor_id}|{actor_type}|{action}|{target_table}|"
+        f"{target_id}|{ip_str}|{details_str}|{previous_hash}"
+    )
     # The data is then converted into bytes and sha256 runs on those bytes
     # .hexdigest() returns the result as a 64 character hex string
     return hashlib.sha256(data.encode()).hexdigest()
@@ -148,6 +148,7 @@ def insert_audit_log(actor_id, actor_type, action, target_table=None,
     except Exception as e:
         logger.error("Error inserting audit log: %s", e)
         return None
+
 
 # Use the value's the user has passed or set to NONE
 def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
@@ -277,8 +278,10 @@ def verify_audit_chain():
 
             # Check previous hash matches (chain linking)
             if previous_hash != expected_prev_hash:
-                logger.warning("Chain broken at log_id %s: expected prev_hash %s, got %s",
-                             log_id, expected_prev_hash, previous_hash)
+                logger.warning(
+                    "Chain broken at log_id %s: expected prev_hash %s, got %s",
+                    log_id, expected_prev_hash, previous_hash
+                )
                 return False
 
             # Verify current hash matches the data (tamper detection)
@@ -291,7 +294,10 @@ def verify_audit_chain():
             )
 
             if computed_hash != current_hash:
-                logger.warning("Tamper detected at log_id %s: stored hash doesn't match computed hash", log_id)
+                logger.warning(
+                    "Tamper detected at log_id %s: stored hash doesn't match computed hash",
+                    log_id
+                )
                 return False
 
             expected_prev_hash = current_hash

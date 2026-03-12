@@ -1,15 +1,15 @@
 {% extends "base_auth.html" %}
 
-{% block title %}Verify Your Identity | Organ Donation System{% endblock %}
-{% block auth_title %}Organ Donation System{% endblock %}
-{% block card_title %}Check Your Email{% endblock %}
+{% block title %}Verify Your Identity | Organ Donation System{% endblock title %}
+{% block auth_title %}Organ Donation System{% endblock auth_title %}
+{% block card_title %}Check Your Email{% endblock card_title %}
 
 {% block auth_back %}
 <!-- aria-label for icon-only link - screen reader -->
 <a href="{{ url_for('auth_bp.login_page') }}" class="back-arrow" aria-label="Back to login">
     <i class="bi bi-arrow-left" aria-hidden="true"></i>
 </a>
-{% endblock %}
+{% endblock auth_back %}
 
 {% block card_content %}
 <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.25rem;">
@@ -17,7 +17,7 @@
     Enter it below to complete your login.
 </p>
 
-<form action="{{ url_for('auth_bp.verify_2fa') }}" method="POST">
+<form action="{{ url_for('auth_bp.verify_2fa') }}" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <!-- for= links label to input - screen reader form access -->
     <label class="form-label" for="otpInput"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>Verification Code</label>
@@ -38,7 +38,7 @@
 </div>
 
 <div style="text-align:center;margin-top:0.75rem;">
-    <form action="{{ url_for('auth_bp.resend_2fa') }}" method="POST" style="display:inline;">
+    <form action="{{ url_for('auth_bp.resend_2fa') }}" method="post" style="display:inline;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" style="background:none;border:none;color:var(--primary);
                 cursor:pointer;font-size:0.85rem;text-decoration:underline;padding:0;">
@@ -65,4 +65,4 @@
         }
     }, 1000);
 </script>
-{% endblock %}
+{% endblock card_content %}

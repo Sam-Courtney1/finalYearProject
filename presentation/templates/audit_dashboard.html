@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Audit Dashboard | GDPR Compliance{% endblock %}
-{% block body_class %}audit-page{% endblock %}
+{% block title %}Audit Dashboard | GDPR Compliance{% endblock title %}
+{% block body_class %}audit-page{% endblock body_class %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-{% endblock %}
+{% endblock extra_head %}
 
 {% block navbar %}
 <nav class="navbar audit-navbar">
@@ -40,7 +40,7 @@
         {% endif %}
     </div>
 </nav>
-{% endblock %}
+{% endblock navbar %}
 
 {% block flash_messages %}
 {% for message in get_flashed_messages() %}
@@ -51,7 +51,7 @@
     </div>
 </div>
 {% endfor %}
-{% endblock %}
+{% endblock flash_messages %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -134,7 +134,7 @@
 
     <!-- Filters -->
     <div class="filter-form">
-        <form method="GET" class="row g-3">
+        <form method="get" class="row g-3">
             <div class="col-md-3">
                 <!-- for= links label to select - screen reader form access -->
                 <label class="form-label" for="filterAction">Action Type</label>
@@ -306,7 +306,7 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}
 
 {% block extra_scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -379,4 +379,4 @@
         document.getElementById('activity-map').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 </script>
-{% endblock %}
+{% endblock extra_scripts %}

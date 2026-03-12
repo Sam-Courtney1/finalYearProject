@@ -10,7 +10,7 @@ from data.retention_database import get_retention_stats, get_inactive_users, get
 from application.services.retention_service import run_retention_cleanup
 from data.breach_database import (
     insert_breach, get_all_breaches, get_breach_by_id,
-    update_breach_status, get_open_breaches_count
+    update_breach_status
 )
 from application.services.breach_service import check_72h_deadline, get_breach_summary
 from application.services.breach_notification_service import notify_all_affected_users
@@ -36,6 +36,7 @@ def _sanitize_csv_value(value):
     if s and s[0] in ('=', '+', '-', '@', '\t', '\r'):
         return "'" + s
     return s
+
 
 """
 Admin Routes Blueprint

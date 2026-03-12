@@ -5,7 +5,10 @@ from application.services.decorators import require_client_login
 from application.services.authentication import validate_password
 from application.extensions import limiter
 from data.client_database import insert_client, find_client_by_username
-from data.questionnaire_client import insert_field, get_fields_for_client, delete_field, get_questionnaires_for_client, questionnaire_name_exists
+from data.questionnaire_client import (
+    insert_field, get_fields_for_client, delete_field,
+    get_questionnaires_for_client, questionnaire_name_exists
+)
 from data.submission_database import get_submissions_for_questionnaire
 from application.services.audit_service import (
     log_login_success, log_login_failed, log_logout,
@@ -21,6 +24,7 @@ separate from end users who fill them out.
 """
 
 client_bp = Blueprint('client_bp', __name__)
+
 
 @client_bp.route("/", methods=["GET", "POST"])
 @limiter.limit("5 per minute", methods=["POST"])
@@ -138,7 +142,10 @@ def client_create_questionnaire():
 
         # Check if name already exists for this client
         if questionnaire_name_exists(client_id, questionnaire_name):
-            flash(f"A questionnaire named '{questionnaire_name}' already exists. Please choose a different name.", "danger")
+            flash(
+                f"A questionnaire named '{questionnaire_name}' already exists."
+                " Please choose a different name.", "danger"
+            )
             return render_template("client_create_questionnaire.html")
 
         flash(f"Questionnaire '{questionnaire_name}' created successfully! Now add fields below.", "success")

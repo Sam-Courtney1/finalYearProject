@@ -1,6 +1,6 @@
 {% extends "base_user.html" %}
 
-{% block title %}{{ client_name }} - {{ questionnaire_name }} | Organ Donation System{% endblock %}
+{% block title %}{{ client_name }} - {{ questionnaire_name }} | Organ Donation System{% endblock title %}
 
 {% block content %}
 <div class="auth-background">
@@ -12,7 +12,7 @@
         <div class="questionnaire-card">
             <h2><i class="bi bi-clipboard2-check me-2" style="font-size:1.1rem;" aria-hidden="true"></i>Please answer all questions</h2>
             <form action="{{ url_for('questionnaire_bp.questionnaire_form', client_id=client_id, questionnaire_name=questionnaire_name) }}"
-                  method="POST" class="questionnaire-form">
+                  method="post" class="questionnaire-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="client_id" value="{{ client_id }}">
                 {% for f in static_fields %}
@@ -50,4 +50,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}

@@ -5,14 +5,13 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-"""
-This file connects to the database using pyscog2
-The variables are stored in a .env file rather then being hardcoded
-This ensures they are not pushed to GitHub and leaked
-They are also stored in AWS under secrets manager
-In this configuration the database can be connected to securly
-without leaking any sensitive information
-"""
+# This file connects to the database using pyscog2
+# The variables are stored in a .env file rather then being hardcoded
+# This ensures they are not pushed to GitHub and leaked
+# They are also stored in AWS under secrets manager
+# In this configuration the database can be connected to securly
+# without leaking any sensitive information
+
 
 def get_db_connection():
     try:
@@ -45,4 +44,3 @@ def get_db():
     finally:
         cur.close()
         conn.close()
-

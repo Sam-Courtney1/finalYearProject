@@ -36,6 +36,7 @@ def register_user(username, password):
     hashed = generate_password_hash(password)
     insert_user(username, hashed)
 
+
 def authenticate_user(username, password):
     user = find_by_username(username)
     if user and check_password_hash(user[1], password):

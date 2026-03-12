@@ -6,7 +6,7 @@ from application.services.audit_service import audit_log, log_data_create, log_d
 from data.submission_database import get_user_submissions, get_submission_answers, update_submission_answers
 
 """
-questionnaire_bp is an object of Blueprint that stores its name (questionnaire_bp) 
+questionnaire_bp is an object of Blueprint that stores its name (questionnaire_bp)
 The module where it is definined is inside of __name__
 And all routes that belong to it
 """
@@ -19,10 +19,12 @@ These include displaying pages to users and allowing them to login and register
 
 
 The questionnaire_form accepts an arugment of client id to identify which companies
-form it is processing. If a post request is recieved then the form will send the data to 
+form it is processing. If a post request is recieved then the form will send the data to
 the server to be processed and if it recieves a get request it will display the questionaire page
 """
-@questionnaire_bp.route('/questionnaire/<int:client_id>/<questionnaire_name>', methods = ['GET', 'POST'])
+
+
+@questionnaire_bp.route('/questionnaire/<int:client_id>/<questionnaire_name>', methods=['GET', 'POST'])
 @require_user_login
 @audit_log('view', 'questionnaire_fields', get_client_id=lambda **kw: kw.get('client_id'))
 def questionnaire_form(client_id, questionnaire_name):
@@ -66,25 +68,24 @@ def questionnaire_form(client_id, questionnaire_name):
 
     return render_template(
         'questionnaire.html',
-        static_fields = static_fields,
-        dynamic_fields = fields,
-        client_id = client_id,
-        questionnaire_name = questionnaire_name,
-        client_name = client_name
+        static_fields=static_fields,
+        dynamic_fields=fields,
+        client_id=client_id,
+        questionnaire_name=questionnaire_name,
+        client_name=client_name
     )
 
 # Note: The old /questionnaire POST route is now redundant
 # Submissions are handled by the route above with client_id and questionnaire_name
 
-"""
-The below function shows all available questionnaires grouped by client/organization.
-Displays organization name with their available questionnaires.
-"""
+# The below function shows all available questionnaires grouped by client/organization.
+# Displays organization name with their available questionnaires.
+
+
 @questionnaire_bp.route('/questionnaire', methods=['GET'])
 @require_user_login
 @audit_log('view', 'questionnaire_selection')
 def select_questionnaire():
-
     with get_db() as (conn, cur):
         # Get all distinct questionnaires with client info
         cur.execute("""
@@ -106,7 +107,7 @@ def select_questionnaire():
             }
         clients_dict[client_name]['questionnaires'].append(q_name)
 
-    return render_template('questionnaire_select.html', clients = clients_dict)
+    return render_template('questionnaire_select.html', clients=clients_dict)
 
 
 """
@@ -114,6 +115,7 @@ The below routes allow users to edit their previously submitted questionnaire an
 The user first selects which client's submission to edit, then sees a pre-populated
 form with their current answers (decrypted), and can save changes.
 """
+
 
 @questionnaire_bp.route('/edit', methods=['GET'])
 @require_user_login

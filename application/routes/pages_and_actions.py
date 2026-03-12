@@ -2,13 +2,19 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from application.services.authentication import register_user, authenticate_user, validate_password
 from werkzeug.security import check_password_hash
 from application.services.decorators import require_user_login
-from data.user_database import find_by_username, find_by_id, get_user_data, delete_user, delete_user_data_only, update_last_login, create_user_profile
+from data.user_database import (
+    find_by_username, find_by_id, get_user_data, delete_user,
+    delete_user_data_only, update_last_login, create_user_profile
+)
 from data.db_connection import get_db
 from application.services.audit_service import (
     audit_log, log_login_success, log_login_failed, log_logout,
     log_data_create, log_data_delete, log_data_update, log_data_export
 )
-from data.submission_database import get_user_submissions, withdraw_consent, reinstate_consent, delete_single_submission, get_user_dashboard_stats
+from data.submission_database import (
+    get_user_submissions, withdraw_consent, reinstate_consent,
+    delete_single_submission, get_user_dashboard_stats
+)
 from data.dsr_database import get_dsrs_for_user
 from application.services.otp_service import (
     generate_otp, store_otp, verify_otp,
@@ -36,11 +42,10 @@ def _safe_referrer_redirect(fallback):
             return redirect(ref)
     return redirect(fallback)
 
-"""
-auth_bp is an object of Blueprint that stores its name (auth_bp) 
-The module where it is definined is inside of __name__
-And all routes that belong to it
-"""
+
+# auth_bp is an object of Blueprint that stores its name (auth_bp)
+# The module where it is definined is inside of __name__
+# And all routes that belong to it
 
 auth_bp = Blueprint('auth_bp', __name__)
 pages_bp = Blueprint('pages_bp', __name__)
@@ -48,22 +53,25 @@ pages_bp = Blueprint('pages_bp', __name__)
 # Below are all the routes and actions that are assigned to auth_bp
 # These include displaying pages to users and allowing them to login and register
 
+
 @auth_bp.route('/')
 def login_page():
     return render_template('landing.html')
+
 
 @auth_bp.route('/register')
 def register_page():
     return render_template('Register.html')
 
-@auth_bp.route('/register_user', methods = ['POST'])
+
+@auth_bp.route('/register_user', methods=['POST'])
 @limiter.limit("3 per minute")
 def register():
     username = request.form['username']
     password = request.form['password']
-    age      = request.form['age']
-    address  = request.form['address']
-    email    = request.form.get('email', '').strip()
+    age = request.form['age']
+    address = request.form['address']
+    email = request.form.get('email', '').strip()
 
     if not email:
         flash("Email address is required for account verification.")
@@ -118,8 +126,7 @@ def register():
     return redirect(url_for('home_bp.homepage'))
 
 
-
-@auth_bp.route('/login', methods = ['POST'])
+@auth_bp.route('/login', methods=['POST'])
 @limiter.limit("5 per minute")
 def login():
     username = request.form['username']
@@ -178,6 +185,7 @@ def login():
         flash("Username or password is incorrect. Please register an account or login with valid credentials")
         return redirect(url_for('auth_bp.login_page'))
 
+
 @auth_bp.route('/logout')
 def logout():
     # Log logout before clearing session (need user_id)
@@ -209,9 +217,9 @@ def verify_2fa():
     if 'pending_2fa_user' not in session:
         return redirect(url_for('auth_bp.login_page'))
 
-    user_id  = session['pending_2fa_user']
+    user_id = session['pending_2fa_user']
     username = session.get('pending_2fa_username', '')
-    entered  = request.form.get('otp_code', '').strip()
+    entered = request.form.get('otp_code', '').strip()
 
     success, reason = verify_otp(user_id, entered)
 
@@ -330,7 +338,7 @@ def reset_password(token):
         return redirect(url_for('auth_bp.login_page'))
 
     new_password = request.form.get('password', '')
-    confirm      = request.form.get('confirm_password', '')
+    confirm = request.form.get('confirm_password', '')
 
     valid, msg = validate_password(new_password)
     if not valid:
@@ -351,24 +359,22 @@ def reset_password(token):
     flash("Password updated successfully. Please log in with your new password.")
     return redirect(url_for('auth_bp.login_page'))
 
-"""
-The below 2 functions are core to GDPR regulations
-They allow users to access all information gathered about them
-and also allows them to delete there account
-"""
 
-@pages_bp.route('/right_to_access', methods = ['GET'])
+# The below 2 functions are core to GDPR regulations
+# They allow users to access all information gathered about them
+# and also allows them to delete there account
+
+@pages_bp.route('/right_to_access', methods=['GET'])
 @require_user_login
 @audit_log('view', 'user_data')
 def right_to_access():
     user_id = session['user_id']
     static_data, dynamic_data = get_user_data(user_id)
     log_dsr(user_id, session.get('username'), 'access')
-    return render_template('access_data.html', static_data = static_data, dynamic_data = dynamic_data)
+    return render_template('access_data.html', static_data=static_data, dynamic_data=dynamic_data)
 
 
-
-@pages_bp.route('/right_to_forget', methods = ['POST'])
+@pages_bp.route('/right_to_forget', methods=['POST'])
 @require_user_login
 @audit_log('delete', 'users')
 def right_to_forget():
@@ -389,6 +395,7 @@ def right_to_forget():
     flash('Your account has been deleted.', 'account_deleted')
     return redirect(url_for('auth_bp.login_page'))
 
+
 @pages_bp.route('/delete_user_data', methods=['POST'])
 @require_user_login
 @audit_log('delete', 'submissions')
@@ -401,11 +408,9 @@ def delete_user_data():
     return redirect(url_for('home_bp.homepage'))
 
 
-"""
-The below routes handle per-client consent management.
-Users can view their consent status, withdraw consent (soft withdrawal
-that hides data from clients but keeps it), and re-give consent.
-"""
+# The below routes handle per-client consent management.
+# Users can view their consent status, withdraw consent (soft withdrawal
+# that hides data from clients but keeps it), and re-give consent.
 
 @pages_bp.route('/consent', methods=['GET'])
 @require_user_login

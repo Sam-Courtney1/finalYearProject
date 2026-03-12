@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Breach #{{ breach.breach_id }} | GDPR Compliance{% endblock %}
-{% block body_class %}audit-page{% endblock %}
+{% block title %}Breach #{{ breach.breach_id }} | GDPR Compliance{% endblock title %}
+{% block body_class %}audit-page{% endblock body_class %}
 
 {% block navbar %}
 <nav class="navbar audit-navbar">
@@ -19,7 +19,7 @@
         </span>
     </div>
 </nav>
-{% endblock %}
+{% endblock navbar %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -138,7 +138,7 @@
         <div class="col-md-5">
             <div class="filter-form mb-4">
                 <h5><i class="bi bi-pencil-square me-2"></i>Update Breach</h5>
-                <form method="POST" action="{{ url_for('admin_bp.update_breach', breach_id=breach.breach_id) }}">
+                <form method="post" action="{{ url_for('admin_bp.update_breach', breach_id=breach.breach_id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label class="form-label" for="updateStatus">Status</label>
@@ -173,7 +173,7 @@
                     <span class="badge bg-secondary">{{ notif_summary.total }} Total</span>
                 </div>
                 {% endif %}
-                <form method="POST" action="{{ url_for('admin_bp.notify_breach_users', breach_id=breach.breach_id) }}"
+                <form method="post" action="{{ url_for('admin_bp.notify_breach_users', breach_id=breach.breach_id) }}"
                       onsubmit="return confirm('This will send breach notification emails to ALL users with an email on file. Continue?');">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-danger w-100">
@@ -230,4 +230,4 @@
     </div>
     {% endif %}
 </div>
-{% endblock %}
+{% endblock content %}

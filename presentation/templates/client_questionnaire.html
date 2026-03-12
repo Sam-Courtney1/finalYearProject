@@ -1,6 +1,6 @@
 {% extends "base_client.html" %}
 
-{% block title %}Edit {{ questionnaire_name }} | Organ Donation System{% endblock %}
+{% block title %}Edit {{ questionnaire_name }} | Organ Donation System{% endblock title %}
 
 {% block content %}
 <div class="page-container mt-4">
@@ -29,7 +29,7 @@
 
     <div class="form-card mb-4" style="animation: slideInUp 0.5s ease-out 0.15s both;">
         <h5 style="margin-bottom:16px;font-weight:600;color:var(--color-text);"><i class="bi bi-plus-circle me-2" style="color:var(--client-primary);"></i>Add New Field</h5>
-        <form method="POST" class="row g-2">
+        <form method="post" class="row g-2">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="col-md-4">
                 <!-- sr-only labels for screen reader form access -->
@@ -91,7 +91,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <form method="POST" action="{{ url_for('client_bp.client_delete_field', field_id=f[0]) }}"
+                        <form method="post" action="{{ url_for('client_bp.client_delete_field', field_id=f[0]) }}"
                               onsubmit="return confirm('Delete this field?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <!-- aria-label for icon-only button - screen reader -->
@@ -106,4 +106,4 @@
         </table>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}

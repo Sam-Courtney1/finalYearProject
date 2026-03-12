@@ -3,7 +3,10 @@ from functools import wraps
 from application.extensions import limiter
 from application.services.jwt_utils import create_token, decode_token
 from application.services.authentication import register_user, authenticate_user, validate_password
-from data.user_database import find_by_username, get_user_data, delete_user, delete_user_data_only, update_last_login, create_user_profile
+from data.user_database import (
+    find_by_username, get_user_data, delete_user,
+    delete_user_data_only, update_last_login, create_user_profile
+)
 from data.db_connection import get_db
 from application.services.log_form_data import handle_questionnaire_submission
 from application.services.audit_service import (
@@ -16,7 +19,6 @@ from data.submission_database import (
 )
 from application.services.dsr_service import log_dsr
 from data.dsr_database import get_dsrs_for_user
-import os
 
 """
 API routes for the mobile app
@@ -211,7 +213,11 @@ def api_delete_data():
     """Deletes the users questionnaire data but keeps their account active"""
     user_id = session['user_id']
     log_dsr(user_id, session.get('username'), 'erasure', source='mobile_api')
-    log_data_delete('submissions', user_id, {'action': 'delete_data_only', 'account_preserved': True, 'source': 'mobile_api'})
+    log_data_delete('submissions', user_id, {
+        'action': 'delete_data_only',
+        'account_preserved': True,
+        'source': 'mobile_api'
+    })
     delete_user_data_only(user_id)
     return jsonify({"message": "Data deleted, account preserved"}), 200
 

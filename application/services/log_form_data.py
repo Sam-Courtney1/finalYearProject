@@ -1,4 +1,3 @@
-from data.questionnaire import insert_questionnaire
 from data.db_connection import get_db
 from werkzeug.security import generate_password_hash
 import os
@@ -12,6 +11,8 @@ Submision_id is added into pii aswell as first name and addess which are both en
 
 Submissoin_id and age are put into the demographic_data table as plain text
 """
+
+
 def handle_questionnaire_submission(user_id, client_id, questionnaire_name, form_data):
     """
     Handles questionnaire submission with questionnaire_name parameter.
@@ -64,4 +65,3 @@ def handle_questionnaire_submission(user_id, client_id, questionnaire_name, form
                             INSERT INTO answers (submission_id, field_id, value)
                             VALUES (%s, %s, %s);
                             """, (submission_id, field_id, value))
-

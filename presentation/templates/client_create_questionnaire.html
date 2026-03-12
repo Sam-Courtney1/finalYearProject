@@ -1,6 +1,6 @@
 {% extends "base_client.html" %}
 
-{% block title %}Create Questionnaire | Organ Donation System{% endblock %}
+{% block title %}Create Questionnaire | Organ Donation System{% endblock title %}
 
 {% block content %}
 <div class="page-container mt-5">
@@ -20,7 +20,7 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="form-card" style="animation: slideInUp 0.5s ease-out 0.2s both;">
-                <form method="POST">
+                <form method="post">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-4">
                         <label for="questionnaire_name" class="form-label"><i class="bi bi-tag me-1"></i>Questionnaire Name</label>
@@ -51,4 +51,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}

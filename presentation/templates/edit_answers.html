@@ -1,6 +1,6 @@
 {% extends "base_user.html" %}
 
-{% block title %}Edit Answers | Organ Donation System{% endblock %}
+{% block title %}Edit Answers | Organ Donation System{% endblock title %}
 
 {% block content %}
 <div class="page-container mt-5">
@@ -21,7 +21,7 @@
         <div class="col-md-8">
             <div class="form-card" style="animation: fadeInUp 0.5s ease-out 0.2s both;">
                 <form action="{{ url_for('questionnaire_bp.save_edited_submission', submission_id=submission_id) }}"
-                      method="POST">
+                      method="post">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     {% for f in fields %}
@@ -55,4 +55,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}
