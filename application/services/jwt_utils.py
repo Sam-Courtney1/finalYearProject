@@ -3,13 +3,13 @@ import os
 import warnings
 from datetime import datetime, timedelta, timezone
 
-# Uses the same encryption key as the rest of the app to sign tokens
-# Guarded the same way as wsgi.py — refuses to start in production without it
-JWT_SECRET = os.getenv("APP_ENC_KEY")
+# Separate JWT signing key — distinct from the database encryption key (APP_ENC_KEY)
+# and the Flask session key (FLASK_SECRET_KEY) so a compromise of one does not affect the others.
+JWT_SECRET = os.getenv("JWT_SECRET_KEY")
 if not JWT_SECRET or JWT_SECRET == "test":
     if os.getenv("AWS_EXECUTION_ENV"):
-        raise RuntimeError("APP_ENC_KEY must be set in production for JWT signing.")
-    warnings.warn("JWT_SECRET not set — using insecure default. Set APP_ENC_KEY in .env.")
+        raise RuntimeError("JWT_SECRET_KEY must be set in production for JWT signing.")
+    warnings.warn("JWT_SECRET_KEY not set — using insecure default. Set it in .env.")
     JWT_SECRET = "insecure-dev-jwt-do-not-use-in-production"
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 24

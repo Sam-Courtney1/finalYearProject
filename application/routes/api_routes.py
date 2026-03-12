@@ -77,11 +77,13 @@ def api_register():
     if not email:
         return jsonify({"error": "Email address is required for account verification"}), 400
 
-    # Validate age is a reasonable integer (16-120)
+    # Validate age — must be 18+ to use the system (GDPR Article 8)
     try:
         age_int = int(age)
-        if age_int < 16 or age_int > 120:
-            return jsonify({"error": "Age must be between 16 and 120"}), 400
+        if age_int < 18:
+            return jsonify({"error": "You must be at least 18 years old to use this system"}), 400
+        if age_int > 120:
+            return jsonify({"error": "Please enter a valid age"}), 400
         age = age_int
     except (ValueError, TypeError):
         return jsonify({"error": "Age must be a valid number"}), 400
@@ -429,7 +431,7 @@ def api_withdraw_consent(submission_id):
     if not success:
         return jsonify({"error": "Submission not found or access denied"}), 404
 
-    log_dsr(user_id, session.get('username'), 'rectification', source='mobile_api')
+    log_dsr(user_id, session.get('username'), 'consent_withdrawal', source='mobile_api')
     log_data_update('submissions', submission_id, {
         'action': 'consent_withdrawn',
         'user_id': user_id,
@@ -450,7 +452,7 @@ def api_reinstate_consent(submission_id):
     if not success:
         return jsonify({"error": "Submission not found or access denied"}), 404
 
-    log_dsr(user_id, session.get('username'), 'rectification', source='mobile_api')
+    log_dsr(user_id, session.get('username'), 'consent_reinstatement', source='mobile_api')
     log_data_update('submissions', submission_id, {
         'action': 'consent_reinstated',
         'user_id': user_id,

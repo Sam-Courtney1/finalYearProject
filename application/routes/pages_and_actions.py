@@ -83,11 +83,14 @@ def register():
         flash(msg)
         return redirect(url_for('auth_bp.register_page'))
 
-    # Validate age is a reasonable integer (16-120)
+    # Validate age — must be 18+ to use the system (GDPR Article 8)
     try:
         age_int = int(age)
-        if age_int < 16 or age_int > 120:
-            flash("Age must be between 16 and 120.")
+        if age_int < 18:
+            flash("You must be at least 18 years old to use this system.")
+            return redirect(url_for('auth_bp.register_page'))
+        if age_int > 120:
+            flash("Please enter a valid age.")
             return redirect(url_for('auth_bp.register_page'))
         age = age_int
     except (ValueError, TypeError):
@@ -166,17 +169,12 @@ def login():
         sent, err = send_otp_email(user_email, otp_code)
 
         if not sent:
-            # SES failed — skip 2FA to avoid blocking dev work
+            # Email delivery failed — do NOT skip 2FA as this would silently
+            # downgrade security. Clear the pending state and ask user to retry.
             session.pop('pending_2fa_user', None)
             session.pop('pending_2fa_username', None)
-            session['user_id'] = user_id
-            session['username'] = username
-            session.permanent = True
-            session['last_activity'] = time.time()
-            update_last_login(user_id)
-            log_login_success(user_id, 'user')
-            flash(f"2FA skipped — email failed: {err}")
-            return redirect(url_for('home_bp.homepage'))
+            flash("Could not send verification code. Please try again later.")
+            return redirect(url_for('auth_bp.login_page'))
 
         return redirect(url_for('auth_bp.verify_2fa_page'))
     else:
@@ -428,7 +426,7 @@ def withdraw_consent_route(submission_id):
     success = withdraw_consent(submission_id, user_id)
 
     if success:
-        log_dsr(user_id, session.get('username'), 'rectification')
+        log_dsr(user_id, session.get('username'), 'consent_withdrawal')
         log_data_update('submissions', submission_id, {
             'action': 'consent_withdrawn',
             'user_id': user_id
@@ -448,7 +446,7 @@ def reinstate_consent_route(submission_id):
     success = reinstate_consent(submission_id, user_id)
 
     if success:
-        log_dsr(user_id, session.get('username'), 'rectification')
+        log_dsr(user_id, session.get('username'), 'consent_reinstatement')
         log_data_update('submissions', submission_id, {
             'action': 'consent_reinstated',
             'user_id': user_id

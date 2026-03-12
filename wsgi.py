@@ -26,14 +26,22 @@ def create_app():
                 template_folder=os.path.join('presentation', 'templates'),
                 static_folder=os.path.join('presentation', 'static')
                 )
-    # Secret key must be set properly in production — refuse to start with the default
-    secret_key = os.getenv("APP_ENC_KEY")
-    if not secret_key or secret_key == "test":
+    # Flask session secret — separate from the database encryption key (APP_ENC_KEY)
+    # so that a leaked session key does not compromise encrypted PII/Medical data.
+    flask_secret = os.getenv("FLASK_SECRET_KEY")
+    if not flask_secret or flask_secret == "test":
+        if os.getenv("AWS_EXECUTION_ENV"):
+            raise RuntimeError("FLASK_SECRET_KEY must be set in production. Do not use the default.")
+        warnings.warn("FLASK_SECRET_KEY not set — using insecure default. Set it in .env for development.")
+        flask_secret = "insecure-dev-session-key-do-not-use-in-production"
+    app.secret_key = flask_secret
+
+    # Validate that the database encryption key is also set
+    db_enc_key = os.getenv("APP_ENC_KEY")
+    if not db_enc_key or db_enc_key == "test":
         if os.getenv("AWS_EXECUTION_ENV"):
             raise RuntimeError("APP_ENC_KEY must be set in production. Do not use the default.")
         warnings.warn("APP_ENC_KEY not set — using insecure default. Set it in .env for development.")
-        secret_key = "insecure-dev-key-do-not-use-in-production"
-    app.secret_key = secret_key
 
     # Sessions marked permanent will expire after this duration of inactivity
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
