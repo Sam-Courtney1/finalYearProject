@@ -4,7 +4,48 @@
 {% block body_class %}audit-page{% endblock body_class %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+    /* Critical Leaflet CSS - inline fallback for correct rendering */
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-zoom-box,
+    .leaflet-image-layer,
+    .leaflet-layer {
+        position: absolute !important;
+        left: 0;
+        top: 0;
+    }
+    .leaflet-container {
+        overflow: hidden !important;
+    }
+    .leaflet-tile {
+        filter: inherit;
+        visibility: hidden;
+    }
+    .leaflet-tile-loaded {
+        visibility: inherit;
+    }
+    .leaflet-container img {
+        max-width: none !important;
+        max-height: none !important;
+    }
+    /* Pane z-index hierarchy so circles/markers render above tiles */
+    .leaflet-tile-pane    { z-index: 200; }
+    .leaflet-overlay-pane { z-index: 400; }
+    .leaflet-shadow-pane  { z-index: 500; }
+    .leaflet-marker-pane  { z-index: 600; }
+    .leaflet-tooltip-pane { z-index: 650; }
+    .leaflet-popup-pane   { z-index: 700; }
+    .leaflet-map-pane     { z-index: 0; }
+    /* Ensure controls (zoom, attribution) stay visible */
+    .leaflet-control-container { z-index: 800; }
+</style>
 {% endblock extra_head %}
 
 {% block navbar %}
@@ -43,9 +84,9 @@
 {% endblock navbar %}
 
 {% block flash_messages %}
-{% for message in get_flashed_messages() %}
+{% for category, message in get_flashed_messages(with_categories=true) %}
 <div class="container-fluid mt-3">
-    <div class="alert alert-modern alert-dismissible fade show" role="alert">
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
         <i class="bi bi-info-circle" aria-hidden="true"></i>{{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
     </div>
@@ -309,15 +350,26 @@
 {% endblock content %}
 
 {% block extra_scripts %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
+    // Fix default marker icon path for CDN loading
+    L.Icon.Default.mergeOptions({
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+    });
+
     // Initialise map centred on Ireland with a wide zoom
-    var map = L.map('activity-map', { maxZoom: 14 }).setView([53.35, -6.26], 6);
+    var map = L.map('activity-map').setView([53.35, -6.26], 6);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 15
+        maxZoom: 18
     }).addTo(map);
+
+    // Force Leaflet to recalculate container size and tile positions
+    setTimeout(function() { map.invalidateSize(); }, 200);
+    window.addEventListener('load', function() { map.invalidateSize(); });
 
     var currentMarker = null;
     var currentCircle = null;

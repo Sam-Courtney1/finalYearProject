@@ -40,7 +40,12 @@ def store_otp(user_id: int, otp_code: str) -> bool:
     """
     try:
         with get_db() as (conn, cur):
-            # Invalidate previous tokens for this user
+            # Lock existing unused tokens to prevent race conditions, then invalidate
+            cur.execute("""
+                SELECT 1 FROM otp_tokens
+                WHERE user_id = %s AND used = FALSE
+                FOR UPDATE;
+            """, (user_id,))
             cur.execute("""
                 UPDATE otp_tokens SET used = TRUE
                 WHERE user_id = %s AND used = FALSE;
@@ -78,34 +83,34 @@ def verify_otp(user_id: int, entered_code: str) -> tuple[bool, str]:
                 return False, 'not_found'
 
             token_id, stored_hash, expires_at, _used, attempts = row
+            mark_used = False
 
             # Already exhausted all attempts — block immediately
             if attempts >= MAX_OTP_ATTEMPTS:
+                mark_used = True
+                result = (False, 'max_attempts')
+            else:
+                # Increment attempt counter
+                cur.execute("""
+                    UPDATE otp_tokens SET attempts = attempts + 1 WHERE id = %s;
+                """, (token_id,))
+
+                now = datetime.now(timezone.utc)
+                if now > expires_at:
+                    mark_used = True
+                    result = (False, 'expired')
+                elif hash_token(entered_code) != stored_hash:
+                    if attempts + 1 >= MAX_OTP_ATTEMPTS:
+                        mark_used = True
+                    result = (False, 'max_attempts' if mark_used else 'invalid')
+                else:
+                    mark_used = True
+                    result = (True, 'ok')
+
+            if mark_used:
                 cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
-                return False, 'max_attempts'
 
-            # Increment attempt counter
-            cur.execute("""
-                UPDATE otp_tokens SET attempts = attempts + 1 WHERE id = %s;
-            """, (token_id,))
-
-            # Check expiry
-            now = datetime.now(timezone.utc)
-            if now > expires_at:
-                cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
-                return False, 'expired'
-
-            # Verify hash
-            if hash_token(entered_code) != stored_hash:
-                # If this was the last allowed attempt, mark as used and return max_attempts
-                if attempts + 1 >= MAX_OTP_ATTEMPTS:
-                    cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
-                    return False, 'max_attempts'
-                return False, 'invalid'
-
-            # Success — mark token as used
-            cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
-            return True, 'ok'
+            return result
 
     except Exception as e:
         logger.error("Error verifying OTP: %s", e)

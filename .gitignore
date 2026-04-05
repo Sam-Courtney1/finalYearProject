@@ -4,6 +4,8 @@
 !.elasticbeanstalk/*.global.yml
 project_overview.md
 __pycache__/
+node_modules/
+mobile_app
 .coverage
 explained.md
 project_overview.md

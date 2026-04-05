@@ -4,6 +4,7 @@ from flask_wtf.csrf import CSRFProtect, CSRFError
 from dotenv import load_dotenv
 import os
 import time
+import logging
 import warnings
 from datetime import timedelta
 
@@ -22,6 +23,15 @@ functions and new pages such as login or homapage
 
 def create_app():
     load_dotenv()
+
+    # Configure logging so that logger.info/warning/error calls across all
+    # modules actually produce output instead of being silently dropped.
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    logging.basicConfig(
+        level=getattr(logging, log_level, logging.INFO),
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
     app = Flask(__name__,
                 template_folder=os.path.join('presentation', 'templates'),
                 static_folder=os.path.join('presentation', 'static')
@@ -30,7 +40,7 @@ def create_app():
     # so that a leaked session key does not compromise encrypted PII/Medical data.
     flask_secret = os.getenv("FLASK_SECRET_KEY")
     if not flask_secret or flask_secret == "test":
-        if os.getenv("AWS_EXECUTION_ENV"):
+        if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):
             raise RuntimeError("FLASK_SECRET_KEY must be set in production. Do not use the default.")
         warnings.warn("FLASK_SECRET_KEY not set — using insecure default. Set it in .env for development.")
         flask_secret = "insecure-dev-session-key-do-not-use-in-production"
@@ -39,7 +49,7 @@ def create_app():
     # Validate that the database encryption key is also set
     db_enc_key = os.getenv("APP_ENC_KEY")
     if not db_enc_key or db_enc_key == "test":
-        if os.getenv("AWS_EXECUTION_ENV"):
+        if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):
             raise RuntimeError("APP_ENC_KEY must be set in production. Do not use the default.")
         warnings.warn("APP_ENC_KEY not set — using insecure default. Set it in .env for development.")
 
@@ -105,6 +115,23 @@ def create_app():
     # API routes use JWT authentication, not session cookies, so CSRF is not needed
     csrf.exempt(api_bp)
 
+    # Security headers — defence-in-depth against XSS, clickjacking, MIME sniffing
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        if os.getenv("FLASK_ENV") == "production" or os.getenv("AWS_EXECUTION_ENV"):
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net unpkg.com cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; "
+            "font-src 'self' fonts.gstatic.com cdn.jsdelivr.net; "
+            "img-src 'self' data: tile.openstreetmap.org *.tile.openstreetmap.org; "
+            "connect-src 'self' ip-api.com"
+        )
+        return response
+
     # Health check endpoint for the ELB — exempt from rate limiting and CSRF
     # so that repeated health check requests don't get 429'd.
     @app.route('/health')
@@ -150,6 +177,18 @@ def create_app():
     # This will again execute sql if tables or rows don't exist
     from data.migrations import run_migrations
     run_migrations()
+
+    # Create performance index on submissions.created_at for retention queries.
+    # IF NOT EXISTS makes this safe to run on every startup.
+    try:
+        from data.db_connection import get_db
+        with get_db() as (conn, cur):
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_submissions_created_at
+                ON submissions(created_at);
+            """)
+    except Exception:
+        pass  # Table may not exist yet on first run
 
     return app
 

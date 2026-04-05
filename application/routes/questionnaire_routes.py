@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from application.services.decorators import require_user_login
 from application.services.log_form_data import handle_questionnaire_submission
+from application.services.consent_service import validate_consent
 from data.db_connection import get_db
 from application.services.audit_service import audit_log, log_data_create, log_data_update
 from data.submission_database import get_user_submissions, get_submission_answers, update_submission_answers
@@ -24,6 +25,17 @@ the server to be processed and if it recieves a get request it will display the 
 """
 
 
+def _valid_questionnaire_name(name):
+    """Validate questionnaire name: non-empty, max 100 chars, no path traversal."""
+    if not name or len(name.strip()) == 0:
+        return False
+    if len(name) > 100:
+        return False
+    if '/' in name or '\\' in name or '..' in name:
+        return False
+    return True
+
+
 @questionnaire_bp.route('/questionnaire/<int:client_id>/<questionnaire_name>', methods=['GET', 'POST'])
 @require_user_login
 @audit_log('view', 'questionnaire_fields', get_client_id=lambda **kw: kw.get('client_id'))
@@ -32,9 +44,17 @@ def questionnaire_form(client_id, questionnaire_name):
     Display and submit a specific questionnaire for a client.
     URL now includes questionnaire_name to distinguish between multiple questionnaires.
     """
+    if not _valid_questionnaire_name(questionnaire_name):
+        flash("Invalid questionnaire name.", "danger")
+        return redirect(url_for('questionnaire_bp.select_questionnaire'))
 
     if request.method == 'POST':
         user_id = session['user_id']
+        consent_ok, consent_err = validate_consent(request.form)
+        if not consent_ok:
+            flash(consent_err, "danger")
+            return redirect(url_for('questionnaire_bp.questionnaire_form',
+                                    client_id=client_id, questionnaire_name=questionnaire_name))
         handle_questionnaire_submission(user_id, client_id, questionnaire_name, request.form)
         # Log questionnaire submission
         log_data_create('questionnaire_submission', user_id, {
@@ -42,7 +62,7 @@ def questionnaire_form(client_id, questionnaire_name):
             'questionnaire_name': questionnaire_name,
             'fields_submitted': len([k for k in request.form.keys() if k != 'client_id'])
         }, client_id=client_id)
-        flash(f"Questionnaire '{questionnaire_name}' submitted successfully!")
+        flash(f"Questionnaire '{questionnaire_name}' submitted successfully!", "success")
         return redirect(url_for('home_bp.homepage'))
 
     # GET request: fetch fields for this specific questionnaire
@@ -131,7 +151,7 @@ def select_submission_to_edit():
 def edit_submission(submission_id):
     answers = get_submission_answers(submission_id, session['user_id'])
     if answers is None:
-        flash("Submission not found or access denied.")
+        flash("Submission not found or access denied.", "danger")
         return redirect(url_for('questionnaire_bp.select_submission_to_edit'))
 
     return render_template('edit_answers.html', fields=answers, submission_id=submission_id)
@@ -153,7 +173,7 @@ def save_edited_submission(submission_id):
     count = update_submission_answers(submission_id, user_id, updated_fields)
 
     if count is None:
-        flash("Submission not found or access denied.")
+        flash("Submission not found or access denied.", "danger")
         return redirect(url_for('questionnaire_bp.select_submission_to_edit'))
 
     log_data_update('answers', submission_id, {
@@ -162,5 +182,5 @@ def save_edited_submission(submission_id):
         'field_ids': list(updated_fields.keys())
     })
 
-    flash(f"Your answers have been updated ({count} field(s) changed).")
+    flash(f"Your answers have been updated ({count} field(s) changed).", "success")
     return redirect(url_for('pages_bp.right_to_access'))

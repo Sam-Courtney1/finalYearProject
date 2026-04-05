@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, Response, jsonify
 from werkzeug.security import check_password_hash
 from application.services.decorators import require_audit_access
+from application.extensions import limiter
 from data.audit_database import (
     get_audit_logs, get_audit_log_count, get_action_summary,
     verify_audit_chain, create_audit_table, find_auditor_by_username
@@ -49,6 +50,25 @@ External auditors see the full unfiltered audit trail for regulatory compliance.
 admin_bp = Blueprint('admin_bp', __name__)
 
 
+def _require_auditor(message="Only auditors can access this feature."):
+    """Return a redirect response if the current user is not an auditor, or None if they are."""
+    if 'auditor_id' not in session:
+        flash(message, "warning")
+        return redirect(url_for('admin_bp.audit_dashboard'))
+    return None
+
+
+def _parse_date_range(date_range_str, default_days=7):
+    """Parse a date_range query parameter into a UTC start_date, or None for 'all'."""
+    if not date_range_str or date_range_str == 'all':
+        return None
+    try:
+        days = int(date_range_str)
+    except (ValueError, TypeError):
+        days = default_days
+    return datetime.now(timezone.utc) - timedelta(days=days)
+
+
 @admin_bp.route('/')
 @require_audit_access
 @audit_log('view', 'audit_logs')
@@ -69,14 +89,7 @@ def audit_dashboard():
     actor_type_filter = request.args.get('actor_type')
     date_range = request.args.get('date_range', '7')  # days
 
-    # Calculate date filter
-    start_date = None
-    if date_range and date_range != 'all':
-        try:
-            days = int(date_range)
-        except (ValueError, TypeError):
-            days = 7  # Default to 7 days if input is invalid
-        start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    start_date = _parse_date_range(date_range, default_days=7)
 
     # Get logs with pagination (filtered by client_id for clients)
     offset = (page - 1) * per_page
@@ -140,14 +153,7 @@ def export_audit_logs():
     actor_type_filter = request.args.get('actor_type')
     date_range = request.args.get('date_range', '30')
 
-    # Calculate date filter
-    start_date = None
-    if date_range and date_range != 'all':
-        try:
-            days = int(date_range)
-        except (ValueError, TypeError):
-            days = 30  # Default to 30 days if input is invalid
-        start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    start_date = _parse_date_range(date_range, default_days=30)
 
     # Get all matching logs (up to 10000), filtered by client_id for clients
     logs = get_audit_logs(
@@ -206,11 +212,11 @@ def verify_chain():
     is_valid = verify_audit_chain()
 
     if is_valid is None:
-        flash("Error verifying audit chain. Database connection issue.", "error")
+        flash("Error verifying audit chain. Database connection issue.", "danger")
     elif is_valid:
         flash("Audit log chain integrity verified. No tampering detected.", "success")
     else:
-        flash("WARNING: Audit log chain integrity check FAILED. Possible tampering detected!", "error")
+        flash("WARNING: Audit log chain integrity check FAILED. Possible tampering detected!", "danger")
 
     return redirect(url_for('admin_bp.audit_dashboard'))
 
@@ -226,12 +232,13 @@ def init_audit_table():
     if success:
         flash("Audit table created/verified successfully.", "success")
     else:
-        flash("Error creating audit table. Check database connection.", "error")
+        flash("Error creating audit table. Check database connection.", "danger")
 
     return redirect(url_for('admin_bp.audit_dashboard'))
 
 
 @admin_bp.route('/auditor-login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute", methods=["POST"])
 def auditor_login():
     """
     Login page for external auditors.
@@ -329,9 +336,9 @@ def retention_dashboard():
     Data retention dashboard showing inactive users and expired submissions.
     Only accessible to auditors — clients should not manage other clients' data.
     """
-    if 'auditor_id' not in session:
-        flash("Only auditors can access the data retention dashboard.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can access the data retention dashboard.")
+    if denied:
+        return denied
 
     days = request.args.get('days', 365, type=int)
     stats = get_retention_stats(days)
@@ -354,16 +361,16 @@ def retention_dashboard():
 @audit_log('view', 'retention_preview')
 def retention_preview():
     """Preview what data would be deleted by a retention cleanup (dry run)."""
-    if 'auditor_id' not in session:
-        flash("Only auditors can run retention cleanup.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can run retention cleanup.")
+    if denied:
+        return denied
 
     days = request.form.get('days', 365, type=int)
     days = max(1, min(days, 3650))  # Clamp to valid range
     result = run_retention_cleanup(days=days, dry_run=True)
 
     flash(f"Preview: {result['inactive_users_count']} inactive users and "
-          f"{result['expired_submissions_count']} expired submissions would be affected.")
+          f"{result['expired_submissions_count']} expired submissions would be affected.", "info")
     return redirect(url_for('admin_bp.retention_dashboard', days=days))
 
 
@@ -372,16 +379,16 @@ def retention_preview():
 @audit_log('delete', 'retention_cleanup')
 def retention_cleanup():
     """Execute retention cleanup — deletes expired data and logs actions."""
-    if 'auditor_id' not in session:
-        flash("Only auditors can run retention cleanup.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can run retention cleanup.")
+    if denied:
+        return denied
 
     days = request.form.get('days', 365, type=int)
     days = max(1, min(days, 3650))  # Clamp to valid range
     result = run_retention_cleanup(days=days, dry_run=False)
 
     flash(f"Retention cleanup complete: {result['deleted_submissions']} submissions deleted, "
-          f"{result['anonymised_users']} inactive user accounts cleaned up.")
+          f"{result['anonymised_users']} inactive user accounts cleaned up.", "success")
     return redirect(url_for('admin_bp.retention_dashboard', days=days))
 
 
@@ -397,9 +404,9 @@ def breach_dashboard():
     Breach notification dashboard listing all recorded data breaches.
     Shows 72-hour reporting deadline countdown per GDPR Article 33.
     """
-    if 'auditor_id' not in session:
-        flash("Only auditors can access the breach register.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can access the breach register.")
+    if denied:
+        return denied
 
     breaches = get_all_breaches()
     summary = get_breach_summary()
@@ -421,9 +428,9 @@ def breach_dashboard():
 @audit_log('create', 'data_breaches')
 def create_breach():
     """Log a new data breach incident."""
-    if 'auditor_id' not in session:
-        flash("Only auditors can log breaches.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can log breaches.")
+    if denied:
+        return denied
 
     title = request.form.get('title', '').strip()
     description = request.form.get('description', '').strip()
@@ -432,7 +439,7 @@ def create_breach():
     data_types = request.form.get('data_types_affected', '').strip()
 
     if not title:
-        flash("Breach title is required.")
+        flash("Breach title is required.", "danger")
         return redirect(url_for('admin_bp.breach_dashboard'))
 
     breach_id = insert_breach(
@@ -445,9 +452,9 @@ def create_breach():
     )
 
     if breach_id:
-        flash(f"Breach #{breach_id} logged successfully. 72-hour reporting deadline is now active.")
+        flash(f"Breach #{breach_id} logged successfully. 72-hour reporting deadline is now active.", "success")
     else:
-        flash("Error logging breach. Please try again.")
+        flash("Error logging breach. Please try again.", "danger")
 
     return redirect(url_for('admin_bp.breach_dashboard'))
 
@@ -457,13 +464,13 @@ def create_breach():
 @audit_log('view', 'data_breaches')
 def breach_detail(breach_id):
     """View detailed information about a specific breach."""
-    if 'auditor_id' not in session:
-        flash("Only auditors can view breach details.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can view breach details.")
+    if denied:
+        return denied
 
     breach = get_breach_by_id(breach_id)
     if not breach:
-        flash("Breach not found.")
+        flash("Breach not found.", "danger")
         return redirect(url_for('admin_bp.breach_dashboard'))
 
     breach['hours_remaining'] = check_72h_deadline(breach)
@@ -486,17 +493,17 @@ def breach_detail(breach_id):
 @audit_log('create', 'breach_notifications')
 def notify_breach_users(breach_id):
     """Send breach notification emails to all affected users."""
-    if 'auditor_id' not in session:
-        flash("Only auditors can send breach notifications.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can send breach notifications.")
+    if denied:
+        return denied
 
     result = notify_all_affected_users(breach_id)
 
     if result['total'] == 0:
-        flash("No users with email addresses found to notify.")
+        flash("No users with email addresses found to notify.", "info")
     else:
         flash(f"Breach notification sent: {result['sent']} delivered, "
-              f"{result['failed']} failed out of {result['total']} users.")
+              f"{result['failed']} failed out of {result['total']} users.", "success")
 
     return redirect(url_for('admin_bp.breach_detail', breach_id=breach_id))
 
@@ -506,9 +513,9 @@ def notify_breach_users(breach_id):
 @audit_log('update', 'data_breaches')
 def update_breach(breach_id):
     """Update the status and remedial actions of a breach."""
-    if 'auditor_id' not in session:
-        flash("Only auditors can update breaches.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can update breaches.")
+    if denied:
+        return denied
 
     status = request.form.get('status', '')
     remedial_actions = request.form.get('remedial_actions', '').strip()
@@ -529,9 +536,9 @@ def update_breach(breach_id):
     )
 
     if success:
-        flash(f"Breach #{breach_id} updated to '{status}'.")
+        flash(f"Breach #{breach_id} updated to '{status}'.", "success")
     else:
-        flash("Error updating breach.")
+        flash("Error updating breach.", "danger")
 
     return redirect(url_for('admin_bp.breach_detail', breach_id=breach_id))
 
@@ -548,9 +555,9 @@ def dsr_dashboard():
     DSR dashboard showing all data subject requests with 30-day deadlines.
     Only accessible to auditors.
     """
-    if 'auditor_id' not in session:
-        flash("Only auditors can access the DSR dashboard.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can access the DSR dashboard.")
+    if denied:
+        return denied
 
     status_filter = request.args.get('status')
     data = get_dsr_dashboard_data(status_filter=status_filter if status_filter else None)
@@ -569,24 +576,24 @@ def dsr_dashboard():
 @audit_log('update', 'data_subject_requests')
 def update_dsr(dsr_id):
     """Update the status of a data subject request."""
-    if 'auditor_id' not in session:
-        flash("Only auditors can update DSRs.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can update DSRs.")
+    if denied:
+        return denied
 
     status = request.form.get('status', '')
     notes = request.form.get('notes', '').strip()
 
     dsr = get_dsr_by_id(dsr_id)
     if not dsr:
-        flash("DSR not found.")
+        flash("DSR not found.", "danger")
         return redirect(url_for('admin_bp.dsr_dashboard'))
 
     success = update_dsr_status(dsr_id, status, notes if notes else None)
 
     if success:
-        flash(f"DSR #{dsr_id} updated to '{status}'.")
+        flash(f"DSR #{dsr_id} updated to '{status}'.", "success")
     else:
-        flash("Error updating DSR.")
+        flash("Error updating DSR.", "danger")
 
     return redirect(url_for('admin_bp.dsr_dashboard'))
 
@@ -603,9 +610,9 @@ def compliance_dashboard():
     Overall GDPR compliance dashboard aggregating breach, DSR,
     retention, and backup status into a single overview.
     """
-    if 'auditor_id' not in session:
-        flash("Only auditors can access the compliance dashboard.")
-        return redirect(url_for('admin_bp.audit_dashboard'))
+    denied = _require_auditor("Only auditors can access the compliance dashboard.")
+    if denied:
+        return denied
 
     overview = get_compliance_overview()
 

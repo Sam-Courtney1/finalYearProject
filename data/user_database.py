@@ -1,4 +1,5 @@
 from data.db_connection import get_db
+import hashlib
 import os
 
 # This file returns information about a user based on there username
@@ -37,8 +38,8 @@ def create_user_profile(user_id, username, email, address, age):
         """, (email, key, user_id))
 
         cur.execute("""
-            INSERT INTO submissions (user_id, client_id, consent)
-            VALUES (%s, NULL, FALSE) RETURNING submission_id;
+            INSERT INTO submissions (user_id, client_id)
+            VALUES (%s, NULL) RETURNING submission_id;
         """, (user_id,))
         submission_id = cur.fetchone()[0]
 
@@ -124,9 +125,20 @@ def get_user_data(user_id):
 
 def delete_user(user_id):
     with get_db() as (conn, cur):
+        # Anonymize audit logs before deleting the user (GDPR Art. 17 + audit integrity).
+        # Replace actor_id with NULL and store a SHA-256 hash prefix in details
+        # so logs can still be correlated without identifying the user.
+        hash_prefix = hashlib.sha256(str(user_id).encode()).hexdigest()[:12]
         cur.execute("""
-                    delete from users where id = %s
-                    """, (user_id,))
+            UPDATE audit_logs
+            SET details = jsonb_set(
+                COALESCE(details, '{}'::jsonb),
+                '{anonymised_actor}', to_jsonb(%s::text)
+            ),
+            actor_id = NULL
+            WHERE actor_id = %s AND actor_type = 'user';
+        """, (f"deleted_{hash_prefix}", user_id))
+        cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
 
 
 def get_user_data_for_client(client_id):

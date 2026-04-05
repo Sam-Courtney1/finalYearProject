@@ -150,6 +150,33 @@ def insert_audit_log(actor_id, actor_type, action, target_table=None,
         return None
 
 
+def _rows_to_dicts(cur):
+    """Convert cursor results to a list of dicts using column names."""
+    columns = [desc[0] for desc in cur.description]
+    return [dict(zip(columns, row)) for row in cur.fetchall()]
+
+
+def _build_audit_filter(client_id=None, actor_id=None, actor_type=None,
+                        action=None, start_date=None, end_date=None):
+    """Build a WHERE clause and params list for audit log queries."""
+    clauses = []
+    params = []
+    for value, column in [
+        (client_id, "client_id"), (actor_id, "actor_id"),
+        (actor_type, "actor_type"), (action, "action"),
+    ]:
+        if value is not None:
+            clauses.append(f" AND {column} = %s")
+            params.append(value)
+    if start_date is not None:
+        clauses.append(" AND timestamp >= %s")
+        params.append(start_date)
+    if end_date is not None:
+        clauses.append(" AND timestamp <= %s")
+        params.append(end_date)
+    return "".join(clauses), params
+
+
 # Use the value's the user has passed or set to NONE
 def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
                    action=None, start_date=None, end_date=None, client_id=None):
@@ -161,49 +188,13 @@ def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
     """
     try:
         with get_db() as (conn, cur):
-            # Build query with filters, built with 1=1 so that futher filter can be applied
-            # By just appending them to the query
-            query = "SELECT * FROM audit_logs WHERE 1=1"
-            params = []
-
-            if client_id is not None:
-                query += " AND client_id = %s"
-                params.append(client_id)
-
-            if actor_id is not None:
-                query += " AND actor_id = %s"
-                params.append(actor_id)
-
-            if actor_type is not None:
-                query += " AND actor_type = %s"
-                params.append(actor_type)
-
-            if action is not None:
-                query += " AND action = %s"
-                params.append(action)
-
-            if start_date is not None:
-                query += " AND timestamp >= %s"
-                params.append(start_date)
-
-            if end_date is not None:
-                query += " AND timestamp <= %s"
-                params.append(end_date)
-
-            query += " ORDER BY timestamp DESC LIMIT %s OFFSET %s"
-
-            # Add both limit and offset to params
+            where_clause, params = _build_audit_filter(
+                client_id, actor_id, actor_type, action, start_date, end_date
+            )
+            query = f"SELECT * FROM audit_logs WHERE 1=1{where_clause} ORDER BY timestamp DESC LIMIT %s OFFSET %s"
             params.extend([limit, offset])
-
-            # Execute the sql
             cur.execute(query, params)
-            logs = cur.fetchall()
-
-            # Get column names for dict conversion
-            columns = [desc[0] for desc in cur.description]
-
-            # Convert to list of dicts
-            return [dict(zip(columns, log)) for log in logs]
+            return _rows_to_dicts(cur)
     except Exception as e:
         logger.error("Error retrieving audit logs: %s", e)
         return []
@@ -217,34 +208,10 @@ def get_audit_log_count(actor_id=None, actor_type=None, action=None,
     """
     try:
         with get_db() as (conn, cur):
-            query = "SELECT COUNT(*) FROM audit_logs WHERE 1=1"
-            params = []
-
-            if client_id is not None:
-                query += " AND client_id = %s"
-                params.append(client_id)
-
-            if actor_id is not None:
-                query += " AND actor_id = %s"
-                params.append(actor_id)
-
-            if actor_type is not None:
-                query += " AND actor_type = %s"
-                params.append(actor_type)
-
-            if action is not None:
-                query += " AND action = %s"
-                params.append(action)
-
-            if start_date is not None:
-                query += " AND timestamp >= %s"
-                params.append(start_date)
-
-            if end_date is not None:
-                query += " AND timestamp <= %s"
-                params.append(end_date)
-
-            cur.execute(query, params)
+            where_clause, params = _build_audit_filter(
+                client_id, actor_id, actor_type, action, start_date, end_date
+            )
+            cur.execute(f"SELECT COUNT(*) FROM audit_logs WHERE 1=1{where_clause}", params)
             return cur.fetchone()[0]
     except Exception as e:
         logger.error("Error counting audit logs: %s", e)
@@ -328,10 +295,7 @@ def get_logs_for_record(target_table, target_id):
                 ORDER BY timestamp DESC
             """, (target_table, target_id))
 
-            logs = cur.fetchall()
-            columns = [desc[0] for desc in cur.description]
-
-            return [dict(zip(columns, log)) for log in logs]
+            return _rows_to_dicts(cur)
     except Exception as e:
         logger.error("Error retrieving record logs: %s", e)
         return []

@@ -25,10 +25,10 @@ def handle_questionnaire_submission(user_id, client_id, questionnaire_name, form
     """
     with get_db() as (conn, cur):
         cur.execute("""
-                    INSERT INTO submissions (user_id, client_id, questionnaire_name, consent)
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO submissions (user_id, client_id, questionnaire_name)
+                    VALUES (%s, %s, %s)
                     RETURNING submission_id;
-                    """, (user_id, client_id, questionnaire_name, 'consent' in form_data))
+                    """, (user_id, client_id, questionnaire_name))
 
         submission_id = cur.fetchone()[0]
         key = os.getenv("APP_ENC_KEY")

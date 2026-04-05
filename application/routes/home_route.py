@@ -19,4 +19,5 @@ home_bp = Blueprint('home_bp', __name__)
 @home_bp.route('/homepage')
 @require_user_login
 def homepage():
-    return render_template('homepage.html', username=session['username'])
+    first_login = session.pop('first_login', False)
+    return render_template('homepage.html', username=session['username'], first_login=first_login)

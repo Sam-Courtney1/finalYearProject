@@ -16,8 +16,8 @@
 
             <!-- Flash messages - aria-live for screen reader -->
             <div role="status" aria-live="polite">
-            {% for message in get_flashed_messages() %}
-            <div class="flash-message" role="alert">
+            {% for category, message in get_flashed_messages(with_categories=true) %}
+            <div class="flash-message flash-{{ category }}" role="alert">
                 <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>{{ message }}
             </div>
             {% endfor %}

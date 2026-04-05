@@ -12,6 +12,18 @@ with 30-day response deadlines as required by GDPR Article 12(3).
 """
 
 
+def _row_to_dict(cur, row):
+    """Convert a single database row to a dict using cursor column names."""
+    columns = [desc[0] for desc in cur.description]
+    return dict(zip(columns, row))
+
+
+def _rows_to_dicts(cur, rows):
+    """Convert database rows to a list of dicts using cursor column names."""
+    columns = [desc[0] for desc in cur.description]
+    return [dict(zip(columns, row)) for row in rows]
+
+
 def insert_dsr(user_id, username, request_type, source='web'):
     """Insert a new DSR record with a 30-day deadline. Returns dsr_id or None."""
     try:
@@ -65,9 +77,7 @@ def get_all_dsrs(status=None, limit=100, offset=0):
                     ORDER BY created_at DESC
                     LIMIT %s OFFSET %s;
                 """, (limit, offset))
-            rows = cur.fetchall()
-            columns = [desc[0] for desc in cur.description]
-            return [dict(zip(columns, row)) for row in rows]
+            return _rows_to_dicts(cur, cur.fetchall())
     except Exception as e:
         logger.error("Error getting DSRs: %s", e)
         return []
@@ -86,8 +96,7 @@ def get_dsr_by_id(dsr_id):
             row = cur.fetchone()
             if not row:
                 return None
-            columns = [desc[0] for desc in cur.description]
-            return dict(zip(columns, row))
+            return _row_to_dict(cur, row)
     except Exception as e:
         logger.error("Error getting DSR %s: %s", dsr_id, e)
         return None
@@ -130,8 +139,7 @@ def get_dsr_summary():
                 FROM data_subject_requests;
             """)
             row = cur.fetchone()
-            columns = [desc[0] for desc in cur.description]
-            return dict(zip(columns, row))
+            return _row_to_dict(cur, row)
     except Exception as e:
         logger.error("Error getting DSR summary: %s", e)
         return {
@@ -152,9 +160,7 @@ def get_dsrs_for_user(user_id):
                 WHERE user_id = %s
                 ORDER BY created_at DESC;
             """, (user_id,))
-            rows = cur.fetchall()
-            columns = [desc[0] for desc in cur.description]
-            return [dict(zip(columns, row)) for row in rows]
+            return _rows_to_dicts(cur, cur.fetchall())
     except Exception as e:
         logger.error("Error getting DSRs for user %s: %s", user_id, e)
         return []

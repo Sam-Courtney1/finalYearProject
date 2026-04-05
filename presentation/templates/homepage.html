@@ -3,13 +3,13 @@
 {% block title %}Homepage | Organ Donation System{% endblock title %}
 
 {% block content %}
-<div class="homepage-main">
-    <h1>Hi {{ username }}</h1>
+<div class="homepage-main" id="homepage-main">
+    <h1 id="homepage-greeting">Hi {{ username }}</h1>
     <p class="welcome-text">Welcome back to your dashboard</p>
     <p class="subtitle-text">Manage your data, questionnaires, and privacy settings</p>
 
     <div class="user-homepage-grid">
-        <a href="{{ url_for('pages_bp.right_to_access') }}" class="user-action-card">
+        <a href="{{ url_for('pages_bp.right_to_access') }}" class="user-action-card" id="card-access">
             <div class="card-icon card-icon--purple">
                 <!-- aria-hidden for decorative icons -->
                 <i class="bi bi-eye" aria-hidden="true"></i>
@@ -18,7 +18,7 @@
             <p>View all your stored personal data</p>
         </a>
 
-        <a href="{{ url_for('questionnaire_bp.select_submission_to_edit') }}" class="user-action-card">
+        <a href="{{ url_for('questionnaire_bp.select_submission_to_edit') }}" class="user-action-card" id="card-edit">
             <div class="card-icon card-icon--blue">
                 <i class="bi bi-pencil-square" aria-hidden="true"></i>
             </div>
@@ -26,7 +26,7 @@
             <p>Modify your questionnaire responses</p>
         </a>
 
-        <a href="{{ url_for('pages_bp.consent_management') }}" class="user-action-card">
+        <a href="{{ url_for('pages_bp.consent_management') }}" class="user-action-card" id="card-consent">
             <div class="card-icon card-icon--green">
                 <i class="bi bi-shield-check" aria-hidden="true"></i>
             </div>
@@ -34,7 +34,7 @@
             <p>Control how your data is used</p>
         </a>
 
-        <button type="button" class="user-action-card user-action-card--danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+        <button type="button" class="user-action-card user-action-card--danger" id="card-delete" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
                 <div class="card-icon card-icon--red">
                     <i class="bi bi-trash3" aria-hidden="true"></i>
                 </div>
@@ -72,4 +72,31 @@
         </div>
     </div>
 </div>
+<!-- Tutorial Overlay -->
+<div id="tutorial-overlay" class="tutorial-overlay" style="display:none;" aria-hidden="true">
+    <div class="tutorial-spotlight" id="tutorial-spotlight"></div>
+    <div class="tutorial-tooltip" id="tutorial-tooltip" role="dialog" aria-label="Tutorial step">
+        <div class="tutorial-tooltip-inner">
+            <div class="tutorial-dots" id="tutorial-dots"></div>
+            <div class="tutorial-step-indicator" id="tutorial-step-indicator"></div>
+            <h4 class="tutorial-title" id="tutorial-title"></h4>
+            <p class="tutorial-text" id="tutorial-text"></p>
+            <div class="tutorial-buttons">
+                <button class="btn tutorial-btn-skip" id="tutorial-skip" type="button">Skip Tutorial</button>
+                <button class="btn tutorial-btn-next" id="tutorial-next" type="button">Next</button>
+            </div>
+        </div>
+        <div class="tutorial-progress">
+            <div class="tutorial-progress-bar" id="tutorial-progress-bar"></div>
+        </div>
+    </div>
+</div>
+
+{% if first_login %}
+<script>const FIRST_LOGIN = true;</script>
+{% else %}
+<script>const FIRST_LOGIN = false;</script>
+{% endif %}
+<script>const TUTORIAL_USER = {{ username | tojson }};</script>
+<script src="{{ url_for('static', filename='tutorial.js') }}"></script>
 {% endblock content %}

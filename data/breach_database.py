@@ -12,6 +12,18 @@ their severity, status, and the 72-hour reporting deadline.
 """
 
 
+def _row_to_dict(cur, row):
+    """Convert a single database row to a dict using cursor column names."""
+    columns = [desc[0] for desc in cur.description]
+    return dict(zip(columns, row))
+
+
+def _rows_to_dicts(cur, rows):
+    """Convert database rows to a list of dicts using cursor column names."""
+    columns = [desc[0] for desc in cur.description]
+    return [dict(zip(columns, row)) for row in rows]
+
+
 def insert_breach(title, description, severity, affected_count, data_types, reported_by):
     """Insert a new data breach record. Returns the breach_id or None on error."""
     try:
@@ -41,9 +53,7 @@ def get_all_breaches():
                 FROM data_breaches
                 ORDER BY discovered_at DESC;
             """)
-            rows = cur.fetchall()
-            columns = [desc[0] for desc in cur.description]
-            return [dict(zip(columns, row)) for row in rows]
+            return _rows_to_dicts(cur, cur.fetchall())
     except Exception as e:
         logger.error("Error getting breaches: %s", e)
         return []
@@ -64,8 +74,7 @@ def get_breach_by_id(breach_id):
             row = cur.fetchone()
             if not row:
                 return None
-            columns = [desc[0] for desc in cur.description]
-            return dict(zip(columns, row))
+            return _row_to_dict(cur, row)
     except Exception as e:
         logger.error("Error getting breach %s: %s", breach_id, e)
         return None

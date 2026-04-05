@@ -184,9 +184,9 @@ def log_logout(user_id, user_type='user'):
     )
 
 
-def log_data_access(user_id, target_table, target_id=None, details=None, client_id=None):
+def _log_data_event(action, target_table=None, target_id=None, details=None, client_id=None):
     """
-    Logs data access event.
+    Shared helper for logging data events (view, create, update, delete, export).
     """
     actor_id, actor_type = get_actor_info()
     if client_id is None:
@@ -194,7 +194,7 @@ def log_data_access(user_id, target_table, target_id=None, details=None, client_
     insert_audit_log(
         actor_id=actor_id,
         actor_type=actor_type,
-        action='view',
+        action=action,
         target_table=target_table,
         target_id=target_id,
         ip_address=get_client_ip(),
@@ -202,87 +202,26 @@ def log_data_access(user_id, target_table, target_id=None, details=None, client_
         details=details,
         client_id=client_id
     )
+
+
+def log_data_access(user_id, target_table, target_id=None, details=None, client_id=None):
+    _log_data_event('view', target_table, target_id, details, client_id)
 
 
 def log_data_create(target_table, target_id, details=None, client_id=None):
-    """
-    Logs data creation event.
-    """
-    actor_id, actor_type = get_actor_info()
-    if client_id is None:
-        client_id = get_audit_client_id(actor_type)
-    insert_audit_log(
-        actor_id=actor_id,
-        actor_type=actor_type,
-        action='create',
-        target_table=target_table,
-        target_id=target_id,
-        ip_address=get_client_ip(),
-        user_agent=request.headers.get('User-Agent'),
-        details=details,
-        client_id=client_id
-    )
+    _log_data_event('create', target_table, target_id, details, client_id)
 
 
 def log_data_update(target_table, target_id, details=None, client_id=None):
-    """
-    Logs data update event.
-    """
-    actor_id, actor_type = get_actor_info()
-    if client_id is None:
-        client_id = get_audit_client_id(actor_type)
-    insert_audit_log(
-        actor_id=actor_id,
-        actor_type=actor_type,
-        action='update',
-        target_table=target_table,
-        target_id=target_id,
-        ip_address=get_client_ip(),
-        user_agent=request.headers.get('User-Agent'),
-        details=details,
-        client_id=client_id
-    )
+    _log_data_event('update', target_table, target_id, details, client_id)
 
 
 def log_data_delete(target_table, target_id, details=None, client_id=None):
-    """
-    Logs data deletion event.
-    """
-    actor_id, actor_type = get_actor_info()
-    if client_id is None:
-        client_id = get_audit_client_id(actor_type)
-    insert_audit_log(
-        actor_id=actor_id,
-        actor_type=actor_type,
-        action='delete',
-        target_table=target_table,
-        target_id=target_id,
-        ip_address=get_client_ip(),
-        user_agent=request.headers.get('User-Agent'),
-        details=details,
-        client_id=client_id
-    )
+    _log_data_event('delete', target_table, target_id, details, client_id)
 
 
 def log_data_export(user_id, export_format='json', details=None, client_id=None):
-    """
-    Logs data export event.
-    """
-    actor_id, actor_type = get_actor_info()
-    if client_id is None:
-        client_id = get_audit_client_id(actor_type)
     export_details = {'format': export_format}
     if details:
         export_details.update(details)
-
-    insert_audit_log(
-        actor_id=actor_id,
-        actor_type=actor_type,
-        action='export',
-        target_table='user_data',
-        target_id=user_id,
-        ip_address=get_client_ip(),
-        user_agent=request.headers.get('User-Agent'),
-        details=export_details,
-        client_id=client_id
-    )
+    _log_data_event('export', 'user_data', user_id, export_details, client_id)

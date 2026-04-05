@@ -24,12 +24,21 @@
 
     <!-- Flash messages - aria-live for screen reader announcements -->
     {% block flash_messages %}
-    {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     <div class="container mt-3" role="status" aria-live="polite">
-        {% for message in messages %}
-        <div class="alert alert-modern alert-dismissible fade show" role="alert">
-            <i class="bi bi-info-circle" aria-hidden="true"></i>{{ message }}
+        {% for category, message in messages %}
+        <div class="alert alert-modern alert-{{ category }} alert-dismissible fade show" role="alert">
+            {% if category == 'success' %}
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            {% elif category == 'danger' %}
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            {% elif category == 'warning' %}
+            <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+            {% endif %}
+            {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
         </div>
         {% endfor %}

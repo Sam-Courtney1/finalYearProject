@@ -7,6 +7,12 @@ Handles retrieving, updating, and consent withdrawal for questionnaire submissio
 """
 
 
+def _rows_to_dicts(cur, rows):
+    """Convert database rows to a list of dicts using cursor column names."""
+    columns = [desc[0] for desc in cur.description]
+    return [dict(zip(columns, row)) for row in rows]
+
+
 def get_user_submissions(user_id):
     """
     Returns all questionnaire submissions for a user (excludes the
@@ -318,9 +324,7 @@ def get_user_dashboard_stats(user_id):
               AND s.deleted = FALSE
             ORDER BY s.created_at DESC;
         """, (user_id,))
-        rows = cur.fetchall()
-        columns = [desc[0] for desc in cur.description]
-        submissions = [dict(zip(columns, row)) for row in rows]
+        submissions = _rows_to_dicts(cur, cur.fetchall())
 
         # Aggregate stats
         total = len(submissions)

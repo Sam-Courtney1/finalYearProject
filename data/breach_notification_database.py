@@ -12,6 +12,18 @@ Tracks email notifications sent to users about data breaches.
 """
 
 
+def _row_to_dict(cur, row):
+    """Convert a single database row to a dict using cursor column names."""
+    columns = [desc[0] for desc in cur.description]
+    return dict(zip(columns, row))
+
+
+def _rows_to_dicts(cur, rows):
+    """Convert database rows to a list of dicts using cursor column names."""
+    columns = [desc[0] for desc in cur.description]
+    return [dict(zip(columns, row)) for row in rows]
+
+
 def insert_breach_notification(breach_id, user_id, email_address):
     """Insert a pending notification record. Returns notification_id or None."""
     try:
@@ -61,9 +73,7 @@ def get_notifications_for_breach(breach_id):
                 WHERE breach_id = %s
                 ORDER BY created_at DESC;
             """, (breach_id,))
-            rows = cur.fetchall()
-            columns = [desc[0] for desc in cur.description]
-            return [dict(zip(columns, row)) for row in rows]
+            return _rows_to_dicts(cur, cur.fetchall())
     except Exception as e:
         logger.error("Error getting notifications for breach %s: %s", breach_id, e)
         return []
@@ -83,8 +93,7 @@ def get_notification_summary(breach_id):
                 WHERE breach_id = %s;
             """, (breach_id,))
             row = cur.fetchone()
-            columns = [desc[0] for desc in cur.description]
-            return dict(zip(columns, row))
+            return _row_to_dict(cur, row)
     except Exception as e:
         logger.error("Error getting notification summary for breach %s: %s", breach_id, e)
         return {'total': 0, 'sent': 0, 'failed': 0, 'pending': 0}

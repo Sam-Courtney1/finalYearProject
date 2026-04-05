@@ -22,7 +22,7 @@ def get_inactive_users(days=365):
             cur.execute("""
                 SELECT id, username, last_login
                 FROM users
-                WHERE last_login < NOW() - INTERVAL '%s days'
+                WHERE last_login < NOW() - INTERVAL '1 day' * %s
                 ORDER BY last_login ASC;
             """, (days,))
             return cur.fetchall()
@@ -44,7 +44,7 @@ def get_expired_submissions(days=365):
                 FROM submissions s
                 JOIN users u ON s.user_id = u.id
                 LEFT JOIN clients c ON s.client_id = c.client_id
-                WHERE s.created_at < NOW() - INTERVAL '%s days'
+                WHERE s.created_at < NOW() - INTERVAL '1 day' * %s
                   AND (s.deleted = FALSE OR s.deleted IS NULL)
                 ORDER BY s.created_at ASC;
             """, (days,))
@@ -65,13 +65,13 @@ def get_retention_stats(days=365):
 
             cur.execute("""
                 SELECT COUNT(*) FROM users
-                WHERE last_login < NOW() - INTERVAL '%s days';
+                WHERE last_login < NOW() - INTERVAL '1 day' * %s;
             """, (days,))
             inactive_users = cur.fetchone()[0]
 
             cur.execute("""
                 SELECT COUNT(*) FROM submissions
-                WHERE created_at < NOW() - INTERVAL '%s days'
+                WHERE created_at < NOW() - INTERVAL '1 day' * %s
                   AND (deleted = FALSE OR deleted IS NULL);
             """, (days,))
             expired_submissions = cur.fetchone()[0]
