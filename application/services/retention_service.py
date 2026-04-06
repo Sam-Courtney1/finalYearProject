@@ -6,11 +6,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 """
-Data Retention Service
-GDPR Article 5(1)(e) - Storage Limitation
-
 Handles identification and cleanup of data that has exceeded the
-retention period. Supports dry-run mode for previewing what would
+retention period. Supports dry run mode for previewing what would
 be deleted before executing.
 """
 
@@ -84,9 +81,6 @@ def run_retention_cleanup(days=365, dry_run=True):
 
 def anonymise_old_audit_logs(retention_years=7):
     """
-    Anonymise audit log entries older than the retention period.
-    GDPR Article 5(1)(e) — audit logs should not identify individuals forever.
-
     Replaces actor_id with NULL and appends 'anonymised' to details for
     entries older than the specified number of years. This preserves the
     log structure for compliance analysis while removing personal identifiers.

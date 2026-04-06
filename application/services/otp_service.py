@@ -6,31 +6,19 @@ from data.db_connection import get_db
 
 logger = logging.getLogger(__name__)
 
-"""
-OTP Service - One-Time Password generation and verification.
-Used for both:
-  - Email 2FA codes (6-digit, 10-minute expiry, max 3 attempts)
-  - Password reset tokens (URL-safe random string, 1-hour expiry)
-
-Tokens are never stored in plain text — only their SHA-256 hash is kept.
-"""
 
 MAX_OTP_ATTEMPTS = 3
 
 
 def generate_otp() -> str:
-    """Generate a cryptographically-random 6-digit OTP code."""
+    """Generate a cryptographically random 6 digit OTP code."""
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
 def hash_token(token: str) -> str:
-    """Return the SHA-256 hex digest of a token string."""
+    """Return the SHA 256 hex digest of a token string."""
     return hashlib.sha256(token.encode()).hexdigest()
 
-
-# ---------------------------------------------------------------------------
-# 2FA OTP functions
-# ---------------------------------------------------------------------------
 
 def store_otp(user_id: int, otp_code: str) -> bool:
     """
@@ -117,12 +105,8 @@ def verify_otp(user_id: int, entered_code: str) -> tuple[bool, str]:
         return False, 'not_found'
 
 
-# ---------------------------------------------------------------------------
-# Password reset token functions
-# ---------------------------------------------------------------------------
-
 def generate_reset_token() -> str:
-    """Generate a cryptographically-random URL-safe token for password reset."""
+    """Generate a cryptographically random URL safe token for password reset."""
     return secrets.token_urlsafe(32)
 
 
@@ -155,7 +139,7 @@ def verify_reset_token(token: str) -> int | None:
     """
     Verify a password reset token.
     Returns the user_id if valid and not expired, otherwise None.
-    Does NOT mark the token as used — call invalidate_reset_token() after password change.
+    Does NOT mark the token as used, call invalidate_reset_token() after password change.
     """
     try:
         with get_db() as (conn, cur):

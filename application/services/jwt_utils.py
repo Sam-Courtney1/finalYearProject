@@ -15,8 +15,8 @@ if not JWT_SECRET or JWT_SECRET == "test":
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 2
 
-# In-memory revocation list — tokens added here are rejected by decode_token.
-# Entries auto-expire when the JWT itself expires, so the set stays bounded.
+# In memory revocation list, tokens added here are rejected by decode_token.
+# Entries auto expire when the JWT itself expires, so the set stays bounded.
 _revoked_jtis = set()
 
 
@@ -46,7 +46,7 @@ def decode_token(token):
 
 
 def revoke_token(token):
-    """Add a token's JTI to the revocation list so it is rejected on future requests."""
+    """Add a tokens JTI to the revocation list so it is rejected on future requests."""
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM],
                              options={"verify_exp": False})

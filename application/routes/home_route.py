@@ -2,10 +2,6 @@ from flask import Blueprint, render_template, session
 from application.services.decorators import require_user_login
 
 """
-home_bp is an object of Blueprint that stores its name (home_bp)
-The module where it is definined is inside of __name__
-And all routes that belong to it
-
 __name__ is used to hold the name of the module it was created in
 Eg in this file __name__ = application.routes.home_route
 """
@@ -14,7 +10,6 @@ home_bp = Blueprint('home_bp', __name__)
 
 # Displays the homepage to the user only if the user is logged in
 # If not then return the user to the login page to login
-
 
 @home_bp.route('/homepage')
 @require_user_login

@@ -1,9 +1,6 @@
 from data.db_connection import get_db
 
-# Inster a new client when they register
-# Return the newly made id
-
-
+# Insert a new client and return there ID to be set in the session
 def insert_client(username, password_hash):
     with get_db() as (conn, cur):
         cur.execute("""
@@ -17,11 +14,12 @@ def insert_client(username, password_hash):
         return client_id
 
 
-# Lookup any records in the client table under a certain username
-# Client id is used to set the id of the seesion upon login
-# Username is used to set the username of the seesion upon login
-# Password hash is used to compare to the user entered password
-
+"""
+Lookup any records in the client table under a certain username
+Client id is used to set the id of the seesion upon login
+Username is used to set the username of the seesion upon login
+Password hash is used to compare to the user entered password
+"""
 
 def find_client_by_username(username):
     with get_db() as (conn, cur):

@@ -4,18 +4,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-"""
-Breach Notification Service
-GDPR Articles 33-34
-
-Provides helper functions for breach management including
-the 72-hour reporting deadline calculation required by Article 33.
-"""
-
 
 def check_72h_deadline(breach):
     """
-    Returns hours remaining until the 72-hour GDPR reporting deadline.
+    Returns hours remaining until the 72 hour GDPR reporting deadline.
     Negative value means the deadline has passed.
     Returns None if breach has already been reported or resolved.
     """

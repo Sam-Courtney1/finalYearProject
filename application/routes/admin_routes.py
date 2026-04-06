@@ -17,7 +17,6 @@ from application.services.breach_service import check_72h_deadline, get_breach_s
 from application.services.breach_notification_service import notify_all_affected_users
 from data.breach_notification_database import get_notifications_for_breach, get_notification_summary
 from application.services.dsr_service import get_dsr_dashboard_data
-from data.dsr_database import get_dsr_by_id, update_dsr_status
 from application.services.compliance_service import get_compliance_overview
 import csv
 import io
@@ -293,7 +292,7 @@ def geolocate_ip(ip):
                 'message': 'Cannot geolocate private or reserved IP addresses'
             })
 
-        # Construct URL with validated IP — only allow HTTP to ip-api.com (SSRF-safe)
+        # Construct URL with validated IP, only allow HTTP to ip-api.com (SSRF-safe)
         api_url = f"http://ip-api.com/json/{ip}?fields=status,message,country,city,lat,lon,isp"
         parsed_url = urlparse(api_url)
         if parsed_url.scheme != 'http' or parsed_url.hostname != 'ip-api.com':
@@ -322,11 +321,7 @@ def geolocate_ip(ip):
             'success': False,
             'message': f'Geolocation service unavailable: {str(e)}'
         })
-
-
-# ---------------------------------------------------------------------------
-# Data Retention (GDPR Article 5(1)(e)) — Auditor only
-# ---------------------------------------------------------------------------
+    
 
 @admin_bp.route('/retention')
 @require_audit_access
@@ -334,7 +329,7 @@ def geolocate_ip(ip):
 def retention_dashboard():
     """
     Data retention dashboard showing inactive users and expired submissions.
-    Only accessible to auditors — clients should not manage other clients' data.
+    Only accessible to auditors clients should not manage other clients data.
     """
     denied = _require_auditor("Only auditors can access the data retention dashboard.")
     if denied:
@@ -378,7 +373,7 @@ def retention_preview():
 @require_audit_access
 @audit_log('delete', 'retention_cleanup')
 def retention_cleanup():
-    """Execute retention cleanup — deletes expired data and logs actions."""
+    """Execute retention cleanup, deletes expired data and logs actions."""
     denied = _require_auditor("Only auditors can run retention cleanup.")
     if denied:
         return denied
@@ -392,17 +387,13 @@ def retention_cleanup():
     return redirect(url_for('admin_bp.retention_dashboard', days=days))
 
 
-# ---------------------------------------------------------------------------
-# Breach Notification (GDPR Articles 33-34) — Auditor only
-# ---------------------------------------------------------------------------
-
 @admin_bp.route('/breaches')
 @require_audit_access
 @audit_log('view', 'data_breaches')
 def breach_dashboard():
     """
     Breach notification dashboard listing all recorded data breaches.
-    Shows 72-hour reporting deadline countdown per GDPR Article 33.
+    Shows 72 hour reporting deadline countdown.
     """
     denied = _require_auditor("Only auditors can access the breach register.")
     if denied:
@@ -452,7 +443,7 @@ def create_breach():
     )
 
     if breach_id:
-        flash(f"Breach #{breach_id} logged successfully. 72-hour reporting deadline is now active.", "success")
+        flash(f"Breach #{breach_id} logged successfully. 72 hour reporting deadline is now active.", "success")
     else:
         flash("Error logging breach. Please try again.", "danger")
 
@@ -543,16 +534,12 @@ def update_breach(breach_id):
     return redirect(url_for('admin_bp.breach_detail', breach_id=breach_id))
 
 
-# ---------------------------------------------------------------------------
-# Data Subject Requests (GDPR Articles 12-23) — Auditor only
-# ---------------------------------------------------------------------------
-
 @admin_bp.route('/dsr')
 @require_audit_access
 @audit_log('view', 'data_subject_requests')
 def dsr_dashboard():
     """
-    DSR dashboard showing all data subject requests with 30-day deadlines.
+    DSR dashboard showing all data subject requests with 30 day deadlines.
     Only accessible to auditors.
     """
     denied = _require_auditor("Only auditors can access the DSR dashboard.")
@@ -570,37 +557,6 @@ def dsr_dashboard():
         client_username=session.get('auditor_username')
     )
 
-
-@admin_bp.route('/dsr/<int:dsr_id>/update', methods=['POST'])
-@require_audit_access
-@audit_log('update', 'data_subject_requests')
-def update_dsr(dsr_id):
-    """Update the status of a data subject request."""
-    denied = _require_auditor("Only auditors can update DSRs.")
-    if denied:
-        return denied
-
-    status = request.form.get('status', '')
-    notes = request.form.get('notes', '').strip()
-
-    dsr = get_dsr_by_id(dsr_id)
-    if not dsr:
-        flash("DSR not found.", "danger")
-        return redirect(url_for('admin_bp.dsr_dashboard'))
-
-    success = update_dsr_status(dsr_id, status, notes if notes else None)
-
-    if success:
-        flash(f"DSR #{dsr_id} updated to '{status}'.", "success")
-    else:
-        flash("Error updating DSR.", "danger")
-
-    return redirect(url_for('admin_bp.dsr_dashboard'))
-
-
-# ---------------------------------------------------------------------------
-# GDPR Compliance Dashboard — Auditor only
-# ---------------------------------------------------------------------------
 
 @admin_bp.route('/compliance')
 @require_audit_access

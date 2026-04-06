@@ -3,9 +3,9 @@ import hashlib
 import os
 
 # This file returns information about a user based on there username
-# It is used for loggin into the ststem
+# It is used for loggin into the system
 #
-# This file contains all database operations concerning the end user
+# This file contains all database operations concerning the end user (data subject)
 
 
 def find_by_username(username):
@@ -60,13 +60,6 @@ def update_last_login(user_id):
         cur.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user_id,))
 
 
-# The function below is used when a user requests to see there data
-# An sql request is made to return this data and tables are joined
-# on submissions.submission_id. This ensures that all user data is
-# returned to the user and also ensures that only that users data is
-# shown and no one elses.
-
-
 def get_user_data(user_id):
     with get_db() as (conn, cur):
         # The key is used to decrypt from the database
@@ -117,10 +110,6 @@ def get_user_data(user_id):
         dynamic_data = cur.fetchall()
 
         return static_data, dynamic_data
-
-
-# This function takes the users id and make's a query to delete the user
-# All records related to that user id are automatically deleted
 
 
 def delete_user(user_id):

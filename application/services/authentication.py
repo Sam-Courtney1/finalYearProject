@@ -16,8 +16,7 @@ the user has entered, the user_id is returned and in another file is set as the 
 
 def validate_password(password):
     """
-    Validates password strength. Returns (is_valid, error_message).
-    Requirements: min 8 chars, max 128 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char.
+    Validates password strength.
     """
     if len(password) < 8:
         return False, "Password must be at least 8 characters."

@@ -4,28 +4,22 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-"""
-Breach Notification Database Operations
-GDPR Article 34
-
-Tracks email notifications sent to users about data breaches.
-"""
-
+# Tracks email notifications sent to users about data breaches.
 
 def _row_to_dict(cur, row):
-    """Convert a single database row to a dict using cursor column names."""
+    """Convert a single database row to a dict using cursor column names. Dictionaries are easier to work with then tuples"""
     columns = [desc[0] for desc in cur.description]
     return dict(zip(columns, row))
 
 
 def _rows_to_dicts(cur, rows):
-    """Convert database rows to a list of dicts using cursor column names."""
+    """Convert database rows to a list of dicts using cursor column names. Dictionaries are easier to work with then tuples"""
     columns = [desc[0] for desc in cur.description]
     return [dict(zip(columns, row)) for row in rows]
 
 
 def insert_breach_notification(breach_id, user_id, email_address):
-    """Insert a pending notification record. Returns notification_id or None."""
+    """Insert a pending notification record. Returns notification_id or None. This is before any email is sent"""
     try:
         with get_db() as (conn, cur):
             cur.execute("""

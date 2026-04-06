@@ -74,7 +74,7 @@ pages_bp = Blueprint('pages_bp', __name__)
 
 
 def _get_user_email(user_id):
-    """Decrypt and return the user's email address, or None if not found."""
+    """Decrypt and return the users email address, or None if not found."""
     key = os.getenv("APP_ENC_KEY")
     with get_db() as (conn, cur):
         cur.execute("""
@@ -126,7 +126,7 @@ def register():
         flash(msg, "danger")
         return redirect(url_for('auth_bp.register_page'))
 
-    # Validate age — must be 18+ to use the system (GDPR Article 8)
+    # Validate age, must be 18+ to use the system 
     try:
         age_int = int(age)
         if age_int < 18:
@@ -169,7 +169,7 @@ def register():
     session.permanent = True
     session['last_activity'] = time.time()
 
-    # Flag for first-time user tutorial
+    # Flag for first time user tutorial
     session['first_login'] = True
 
     return redirect(url_for('home_bp.homepage'))
@@ -184,11 +184,11 @@ def login():
     # of the linked account is stored in user_id
     user_id = authenticate_user(username, password)
     if user_id:
-        # Fetch the user's encrypted email for OTP delivery
+        # Fetch the users encrypted email for OTP delivery
         user_email = _get_user_email(user_id)
 
         if not user_email:
-            # No email on record — skip 2FA and log them straight in (legacy accounts)
+            # No email on record, skip 2FA and log them straight in (legacy accounts)
             session['user_id'] = user_id
             session['username'] = username
             session.permanent = True
@@ -197,7 +197,7 @@ def login():
             log_login_success(user_id, 'user')
             return redirect(url_for('home_bp.homepage'))
 
-        # Store pending 2FA state — audit_service.py:43 already reads this key
+        # Store pending 2FA state 
         session['pending_2fa_user'] = user_id
         session['pending_2fa_username'] = username
 
@@ -208,7 +208,7 @@ def login():
         sent, err = send_otp_email(user_email, otp_code)
 
         if not sent:
-            # Email delivery failed — do NOT skip 2FA as this would silently
+            # Email delivery failed, do NOT skip 2FA as this would silently
             # downgrade security. Clear the pending state and ask user to retry.
             session.pop('pending_2fa_user', None)
             session.pop('pending_2fa_username', None)
@@ -225,7 +225,7 @@ def login():
 
 @auth_bp.route('/logout')
 def logout():
-    # Log logout before clearing session (need user_id)
+    # Log logout before clearing session
     if 'user_id' in session:
         log_logout(session['user_id'], 'user')
     # This clears the session data including the user_id and username
@@ -233,10 +233,6 @@ def logout():
     session.clear()
     return redirect(url_for('auth_bp.login_page'))
 
-
-# ---------------------------------------------------------------------------
-# 2FA verification
-# ---------------------------------------------------------------------------
 
 @auth_bp.route('/verify-2fa', methods=['GET'])
 def verify_2fa_page():
@@ -315,10 +311,6 @@ def resend_2fa():
     return redirect(url_for('auth_bp.verify_2fa_page'))
 
 
-# ---------------------------------------------------------------------------
-# Password reset
-# ---------------------------------------------------------------------------
-
 @auth_bp.route('/forgot-password', methods=['GET'])
 def forgot_password_page():
     return render_template('forgot_password.html')
@@ -337,7 +329,7 @@ def forgot_password():
         if user_email:
             token = generate_reset_token()
             store_reset_token(user_id, token)
-            # Build reset URL — require APP_BASE_URL in production to prevent Host header injection
+            # Build reset URL, require APP_BASE_URL in production to prevent Host header injection
             base_url = os.environ.get('APP_BASE_URL')
             if not base_url:
                 if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):
@@ -440,9 +432,9 @@ def delete_user_data():
     return redirect(url_for('home_bp.homepage'))
 
 
-# The below routes handle per-client consent management.
+# The below routes handle per client consent management.
 # Users can view their consent status, withdraw consent (soft withdrawal
-# that hides data from clients but keeps it), and re-give consent.
+# that hides data from clients but keeps it), and re give consent.
 
 @pages_bp.route('/consent', methods=['GET'])
 @require_user_login
@@ -547,7 +539,7 @@ def user_dashboard():
 @audit_log('export', 'user_data')
 def export_user_data():
     """
-    Export all user data as a CSV file (GDPR Article 20 - Right to Data Portability).
+    Export all user data as a CSV file
     """
     user_id = session['user_id']
     static_data, dynamic_data = get_user_data(user_id)
@@ -563,7 +555,7 @@ def export_user_data():
 
     writer.writerow([])
 
-    # Per-organisation data section
+    # Per organisation data section
     if dynamic_data:
         writer.writerow(['--- Questionnaire Data ---'])
         writer.writerow(['Organisation', 'Field Label', 'Category', 'Value', 'Consent Status'])

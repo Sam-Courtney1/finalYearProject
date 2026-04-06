@@ -21,7 +21,7 @@ client_bp is a Blueprint that handles all client/owner-side routes.
 These routes are registered with a /client prefix in wsgi.py.
 
 Clients are the business owners who create questionnaires,
-separate from end users who fill them out.
+separate from end users (data subjects) who fill them out.
 """
 
 client_bp = Blueprint('client_bp', __name__)
@@ -156,7 +156,7 @@ def client_create_questionnaire():
 
 
 def _valid_questionnaire_name(name):
-    """Validate questionnaire name: non-empty, max 100 chars, no path traversal."""
+    """Validate questionnaire name non empty, max 100 chars, no path traversal."""
     if not name or len(name.strip()) == 0:
         return False
     if len(name) > 100:
@@ -185,7 +185,7 @@ def client_questionnaire_editor(questionnaire_name):
         field_type = request.form["field_type"]
         category = request.form["category"]
 
-        # Validate label: non-empty, max 100 chars, sanitize HTML
+        # Validate label non empty, max 100 chars, sanitize HTML
         if not label:
             flash("Field label cannot be empty.", "danger")
             return redirect(url_for("client_bp.client_questionnaire_editor", questionnaire_name=questionnaire_name))
@@ -250,7 +250,7 @@ def client_view_submissions(questionnaire_name):
     """
     View anonymised submission data for a specific questionnaire.
     Shows all fields except Hashed, with respondents anonymised as
-    'Respondent 1', 'Respondent 2', etc.
+    Respondent 1, Respondent 2, etc.
     Only shows data where consent is active and submission is not deleted.
     """
     if not _valid_questionnaire_name(questionnaire_name):
@@ -268,7 +268,7 @@ def client_view_submissions(questionnaire_name):
         client_id, questionnaire_name
     )
 
-    # Audit log: client is viewing submission data (GDPR Art. 30)
+    # Audit log: client is viewing submission data
     log_data_access(client_id, 'submissions', details={
         'action': 'client_view_submissions',
         'questionnaire_name': questionnaire_name,

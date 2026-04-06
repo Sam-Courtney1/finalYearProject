@@ -1,6 +1,6 @@
 from data.db_connection import get_db
 
-# This file holds functions to allow clients to create new fields in there questionnaries
+# This file holds functions to allow clients to create new fields in their questionnaries
 # The insert field takes the infomation from the client (client_id is stored in the session)
 # All other variables are passed in directly from the form
 

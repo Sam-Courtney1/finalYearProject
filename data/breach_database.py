@@ -3,23 +3,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-"""
-Breach Notification Database Operations
-GDPR Articles 33-34
-
-Manages the data_breaches table for tracking security incidents,
-their severity, status, and the 72-hour reporting deadline.
-"""
-
-
 def _row_to_dict(cur, row):
-    """Convert a single database row to a dict using cursor column names."""
+    """Convert a single database row to a dict using cursor column names. Dictionaries are easier to work with then tuples"""
     columns = [desc[0] for desc in cur.description]
     return dict(zip(columns, row))
 
 
 def _rows_to_dicts(cur, rows):
-    """Convert database rows to a list of dicts using cursor column names."""
+    """Convert database rows to a list of dicts using cursor column names. Dictionaries are easier to work with then tuples"""
     columns = [desc[0] for desc in cur.description]
     return [dict(zip(columns, row)) for row in rows]
 
@@ -100,7 +91,7 @@ def update_breach_status(breach_id, status, resolved_at=None, reported_at=None,
 
 
 def get_open_breaches_count():
-    """Returns the count of non-resolved breaches."""
+    """Returns the count of non resolved breaches."""
     try:
         with get_db() as (conn, cur):
             cur.execute("""

@@ -10,8 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 def _mask_email(email):
-    """Mask an email for storage: john.doe@example.com -> j***@example.com
-    Stores only enough to confirm the recipient without exposing the full address."""
+    """
+    Mask an email for storage
+    Stores only enough to confirm the recipient without exposing the full address.
+    """
     try:
         local, domain = email.rsplit('@', 1)
         masked_local = local[0] + '***' if len(local) > 1 else '***'
@@ -20,9 +22,6 @@ def _mask_email(email):
         return '***@***'
 
 """
-Breach Notification Service
-GDPR Article 34
-
 Sends email notifications to affected users when a data breach occurs.
 Uses Gmail SMTP via the existing _send_email helper in email_service.py.
 """
@@ -97,7 +96,6 @@ def notify_all_affected_users(breach_id, contact_email='dpo@organdonation.ie'):
 
     for user_id, email in user_emails:
         # Store masked email in the notification record (GDPR data minimisation)
-        # The full email is only used transiently for sending, never persisted in plaintext
         notif_id = insert_breach_notification(breach_id, user_id, _mask_email(email))
         if not notif_id:
             failed_count += 1

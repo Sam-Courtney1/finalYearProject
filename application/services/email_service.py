@@ -6,23 +6,10 @@ from email.mime.multipart import MIMEMultipart
 
 logger = logging.getLogger(__name__)
 
-"""
-Email Service - Gmail SMTP
-Handles all outbound transactional emails:
-  - 2FA OTP codes
-  - Password reset links
-
-Requires env vars:
-  SMTP_EMAIL     - Gmail address (e.g. organdonationfyp@gmail.com)
-  SMTP_PASSWORD  - Gmail App Password (16-char, from Google Account settings)
-
-Works with any recipient email — no sandbox restrictions.
-"""
-
 
 def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
     """
-    Send a 6-digit OTP code to the user's email address for 2FA login.
+    Send a 6 digit OTP code to the users email address for 2FA login.
     Returns (success, error_message).
     """
     subject = "Your Login Verification Code"
@@ -39,7 +26,7 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
 
 def send_password_reset_email(to_email: str, reset_url: str) -> tuple[bool, str]:
     """
-    Send a password reset link to the user's email address.
+    Send a password reset link to the users email address.
     Returns (success, error_message).
     """
     subject = "Reset Your Password"

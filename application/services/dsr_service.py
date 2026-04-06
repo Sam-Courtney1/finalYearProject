@@ -4,19 +4,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-"""
-Data Subject Request (DSR) Service
-GDPR Articles 12-23
-
-Provides helper functions for DSR management including
-the 30-day response deadline calculation required by Article 12(3).
-"""
-
 
 def log_dsr(user_id, username, request_type, source='web'):
     """
     Log a DSR when a user exercises a GDPR right.
-    Auto-completed since the system fulfils the request immediately.
+    Auto completed since the system fulfils the request immediately.
     Returns the dsr_id or None.
     """
     dsr_id = insert_dsr(user_id, username, request_type, source)
@@ -27,7 +19,7 @@ def log_dsr(user_id, username, request_type, source='web'):
 
 def check_30_day_deadline(dsr):
     """
-    Returns days remaining until the 30-day GDPR response deadline.
+    Returns days remaining until the 30 day GDPR response deadline.
     Negative value means the deadline has passed.
     Returns None if DSR is already completed.
     """

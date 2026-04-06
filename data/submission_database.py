@@ -8,15 +8,14 @@ Handles retrieving, updating, and consent withdrawal for questionnaire submissio
 
 
 def _rows_to_dicts(cur, rows):
-    """Convert database rows to a list of dicts using cursor column names."""
+    """Convert database rows to a list of dicts using cursor column names. Dictionaries are easier to work with then tuples"""
     columns = [desc[0] for desc in cur.description]
     return [dict(zip(columns, row)) for row in rows]
 
 
 def get_user_submissions(user_id):
     """
-    Returns all questionnaire submissions for a user (excludes the
-    NULL-client registration submission and deleted submissions).
+    Returns all questionnaire submissions for a user 
     Used by both the edit selection page and the consent management page.
     """
     with get_db() as (conn, cur):
@@ -72,10 +71,10 @@ def get_submission_answers(submission_id, user_id):
 
 def update_submission_answers(submission_id, user_id, updated_fields):
     """
-    Updates answers for a submission with appropriate re-encryption.
-    PII/Medical fields are re-encrypted with pgp_sym_encrypt.
+    Updates answers for a submission with appropriate re encryption.
+    PII/Medical fields are re encrypted with pgp_sym_encrypt.
     Hashed fields are skipped entirely.
-    Plain text fields are stored as-is.
+    Plain text fields are stored as is.
 
     Returns count of fields that were actually changed, or None if not owned.
     """
@@ -146,14 +145,10 @@ def update_submission_answers(submission_id, user_id, updated_fields):
 def get_submissions_for_questionnaire(client_id, questionnaire_name):
     """
     Returns anonymised submission data for a specific questionnaire.
-    Excludes Hashed fields, respects consent withdrawal and soft-deletion.
-    User identities are replaced with 'Respondent 1', 'Respondent 2', etc.
-
-    Returns:
-        tuple: (column_headers, submissions_data)
-            - column_headers: list of field labels in field_id order
-            - submissions_data: list of dicts with 'respondent_label' and 'answers'
+    Excludes Hashed fields, respects consent withdrawal and soft deletion.
+    User identities are replaced with Respondent 1, Respondent 2, etc.
     """
+
     with get_db() as (conn, cur):
         key = os.getenv("APP_ENC_KEY")
 
@@ -182,7 +177,7 @@ def get_submissions_for_questionnaire(client_id, questionnaire_name):
     if not rows:
         return [], []
 
-    # Build column headers from field labels (preserving field_id order)
+    # Build column headers from field labels 
     seen_fields = {}
     column_headers = []
     for row in rows:
@@ -192,7 +187,7 @@ def get_submissions_for_questionnaire(client_id, questionnaire_name):
             seen_fields[field_id] = field_label
             column_headers.append(field_label)
 
-    # Anonymise: assign sequential "Respondent N" labels per submission_id
+    # assign sequential Respondent N labels per submission_id
     submission_map = {}
     submission_order = []
     respondent_counter = 0
@@ -236,7 +231,7 @@ def withdraw_consent(submission_id, user_id):
 
 def reinstate_consent(submission_id, user_id):
     """
-    Re-gives consent for a previously withdrawn submission.
+    Re gives consent for a previously withdrawn submission.
     Clears the withdrawal flag and timestamp.
     Returns True on success, False if not found or not owned.
     """
@@ -256,14 +251,6 @@ def delete_single_submission(submission_id, user_id):
     """
     Deletes a single submission and all related data.
     Uses soft deletion for the submission record (audit trail) and hard deletion for answers/PII.
-
-    Parameters:
-        submission_id: int - The submission to delete
-        user_id: int - For ownership verification
-
-    Returns:
-        dict with {'success': bool, 'client_name': str, 'answers_deleted': int} on success
-        None if not found or access denied
     """
     with get_db() as (conn, cur):
         # Verify ownership and get client info
@@ -309,10 +296,11 @@ def delete_single_submission(submission_id, user_id):
 
 def get_user_dashboard_stats(user_id):
     """
-    Returns dashboard statistics for a user:
-    - total submissions count
-    - list of organisations with submission details and consent status
+    Returns dashboard statistics for a user
+    Total submissions count
+    List of organisations with submission details and consent status
     """
+    
     with get_db() as (conn, cur):
         cur.execute("""
             SELECT s.submission_id, c.username AS org_name, s.questionnaire_name,

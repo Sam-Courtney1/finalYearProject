@@ -18,7 +18,6 @@ questionnaire_bp = Blueprint('questionnaire_bp', __name__)
 Below are all the routes and actions that are assigned to questionnaire_bp
 These include displaying pages to users and allowing them to login and register
 
-
 The questionnaire_form accepts an arugment of client id to identify which companies
 form it is processing. If a post request is recieved then the form will send the data to
 the server to be processed and if it recieves a get request it will display the questionaire page
@@ -81,9 +80,6 @@ def questionnaire_form(client_id, questionnaire_name):
         client_name_row = cur.fetchone()
         client_name = client_name_row[0] if client_name_row else "Unknown"
 
-    # Redundant for now as I want core info to only appear once
-    # No longer appears in questionnaires as a must answer field
-    # Not removing yet as it will be used in the coming weeks
     static_fields = []
 
     return render_template(
@@ -94,12 +90,6 @@ def questionnaire_form(client_id, questionnaire_name):
         questionnaire_name=questionnaire_name,
         client_name=client_name
     )
-
-# Note: The old /questionnaire POST route is now redundant
-# Submissions are handled by the route above with client_id and questionnaire_name
-
-# The below function shows all available questionnaires grouped by client/organization.
-# Displays organization name with their available questionnaires.
 
 
 @questionnaire_bp.route('/questionnaire', methods=['GET'])
@@ -132,7 +122,7 @@ def select_questionnaire():
 
 """
 The below routes allow users to edit their previously submitted questionnaire answers.
-The user first selects which client's submission to edit, then sees a pre-populated
+The user first selects which client's submission to edit, then sees a pre populated
 form with their current answers (decrypted), and can save changes.
 """
 

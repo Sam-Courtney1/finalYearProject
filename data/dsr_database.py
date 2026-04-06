@@ -5,27 +5,28 @@ logger = logging.getLogger(__name__)
 
 """
 Data Subject Request (DSR) Database Operations
-GDPR Articles 12-23
 
-Tracks formal data subject requests (access, erasure, portability, rectification)
-with 30-day response deadlines as required by GDPR Article 12(3).
+Tracks formal data subject requests (access, erasure, portability, rectification).
 """
 
 
 def _row_to_dict(cur, row):
-    """Convert a single database row to a dict using cursor column names."""
+    """Convert a single database row to a dict using cursor column names. Dictionaries are easier to work with then tuples"""
     columns = [desc[0] for desc in cur.description]
     return dict(zip(columns, row))
 
 
 def _rows_to_dicts(cur, rows):
-    """Convert database rows to a list of dicts using cursor column names."""
+    """Convert database rows to a list of dicts using cursor column names. Dictionaries are easier to work with then tuples"""
     columns = [desc[0] for desc in cur.description]
     return [dict(zip(columns, row)) for row in rows]
 
 
 def insert_dsr(user_id, username, request_type, source='web'):
-    """Insert a new DSR record with a 30-day deadline. Returns dsr_id or None."""
+    """
+    Insert a new DSR record with a 30-day deadline. Returns dsr_id or None.
+    Completed time is set to now as in the UI, the operation occurs instantly.
+    """
     try:
         with get_db() as (conn, cur):
             cur.execute("""
@@ -38,23 +39,7 @@ def insert_dsr(user_id, username, request_type, source='web'):
     except Exception as e:
         logger.error("Error inserting DSR: %s", e)
         return None
-
-
-def insert_dsr_manual(user_id, username, request_type, notes=None):
-    """Insert a manually created DSR (e.g. received by email). Starts as pending."""
-    try:
-        with get_db() as (conn, cur):
-            cur.execute("""
-                INSERT INTO data_subject_requests
-                    (user_id, username, request_type, status, deadline, notes, source)
-                VALUES (%s, %s, %s, 'pending', NOW() + INTERVAL '30 days', %s, 'manual')
-                RETURNING dsr_id;
-            """, (user_id, username, request_type, notes))
-            return cur.fetchone()[0]
-    except Exception as e:
-        logger.error("Error inserting manual DSR: %s", e)
-        return None
-
+    
 
 def get_all_dsrs(status=None, limit=100, offset=0):
     """Returns all DSRs, optionally filtered by status."""
@@ -83,48 +68,6 @@ def get_all_dsrs(status=None, limit=100, offset=0):
         return []
 
 
-def get_dsr_by_id(dsr_id):
-    """Returns a single DSR as a dict, or None."""
-    try:
-        with get_db() as (conn, cur):
-            cur.execute("""
-                SELECT dsr_id, user_id, username, request_type, status,
-                       created_at, completed_at, deadline, notes, source
-                FROM data_subject_requests
-                WHERE dsr_id = %s;
-            """, (dsr_id,))
-            row = cur.fetchone()
-            if not row:
-                return None
-            return _row_to_dict(cur, row)
-    except Exception as e:
-        logger.error("Error getting DSR %s: %s", dsr_id, e)
-        return None
-
-
-def update_dsr_status(dsr_id, status, notes=None):
-    """Update DSR status. Sets completed_at when status is 'completed'."""
-    try:
-        with get_db() as (conn, cur):
-            if status == 'completed':
-                cur.execute("""
-                    UPDATE data_subject_requests
-                    SET status = %s, completed_at = NOW(),
-                        notes = COALESCE(%s, notes)
-                    WHERE dsr_id = %s;
-                """, (status, notes, dsr_id))
-            else:
-                cur.execute("""
-                    UPDATE data_subject_requests
-                    SET status = %s, notes = COALESCE(%s, notes)
-                    WHERE dsr_id = %s;
-                """, (status, notes, dsr_id))
-            return True
-    except Exception as e:
-        logger.error("Error updating DSR %s: %s", dsr_id, e)
-        return False
-
-
 def get_dsr_summary():
     """Returns summary counts for the compliance dashboard."""
     try:
@@ -151,7 +94,7 @@ def get_dsr_summary():
 
 
 def get_dsrs_for_user(user_id):
-    """Returns all DSRs for a specific user (for user dashboard)."""
+    """Returns all DSRs for a specific user, for user dashboard."""
     try:
         with get_db() as (conn, cur):
             cur.execute("""

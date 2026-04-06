@@ -6,18 +6,16 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-# This file connects to the database using psycopg2
-# The variables are stored in a .env file rather then being hardcoded
-# This ensures they are not pushed to GitHub and leaked
-# They are also stored in AWS under secrets manager
-# In this configuration the database can be connected to securly
-# without leaking any sensitive information
-
+# Global variable which will contain pool connections 
+# (Pre opened database connections)
 _pool = None
 
 
 def _get_pool():
-    """Lazily initialise a threaded connection pool (1–10 connections)."""
+    """Create connections only if there is none already open
+       This will always run on upon the first call
+       It reads database information from the .env file to make the connections
+    """   
     global _pool
     if _pool is None:
         try:
@@ -36,6 +34,7 @@ def _get_pool():
 
 
 def get_db_connection():
+    """Used to grab one of the open connections from the pool"""
     try:
         return _get_pool().getconn()
     except Exception as e:
@@ -45,8 +44,11 @@ def get_db_connection():
 
 @contextmanager
 def get_db():
-    """Context manager that yields (conn, cur).
-    Commits on success, rolls back on exception, returns conn to pool."""
+    """
+    Context manager that opens a connection
+    Commits on success, rolls back on exception, returns conn to pool
+    """
+
     pool = _get_pool()
     conn = pool.getconn()
     if conn is None:

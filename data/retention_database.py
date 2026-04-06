@@ -4,9 +4,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 """
-Data Retention Database Operations
-GDPR Article 5(1)(e) - Storage Limitation
-
 Provides queries for identifying inactive users and expired submissions
 so that data is not kept longer than necessary.
 """
@@ -14,7 +11,7 @@ so that data is not kept longer than necessary.
 
 def get_inactive_users(days=365):
     """
-    Returns users who haven't logged in for the specified number of days.
+    Returns users who havent logged in for the specified number of days.
     Used by the retention dashboard to identify accounts for cleanup.
     """
     try:

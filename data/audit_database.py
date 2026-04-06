@@ -92,13 +92,13 @@ def get_last_hash():
 def compute_hash(timestamp, actor_id, actor_type, action, target_table,
                  target_id, ip_address, details, previous_hash):
     """
-    Computes SHA-256 hash of log entry data for tamper evidence.
+    Computes SHA 256 hash of log entry data for tamper evidence.
     Uses sort_keys=True for consistent JSON ordering.
     """
     # Normalize ip_address to string for consistent hashing as postgres can store as INET data type
     ip_str = str(ip_address) if ip_address else None
     # Use sort_keys to ensure consistent ordering regardless of dict key order
-    # Sorts alphabetically as there is no guarenteed order
+    # Sorts alphabetically as there is no guaranteed order
     # This is important as the output for the same data is now forced to be identical
     # IE {"b":2, "a":1}, {"a":1, "b":2}. With sort_keys=True A will always be first
     details_str = json.dumps(details, sort_keys=True) if details else 'null'
@@ -107,7 +107,7 @@ def compute_hash(timestamp, actor_id, actor_type, action, target_table,
         f"{timestamp}|{actor_id}|{actor_type}|{action}|{target_table}|"
         f"{target_id}|{ip_str}|{details_str}|{previous_hash}"
     )
-    # The data is then converted into bytes and sha256 runs on those bytes
+    # The data is then converted into bytes and SHA 256 runs on those bytes
     # .hexdigest() returns the result as a 64 character hex string
     return hashlib.sha256(data.encode()).hexdigest()
 
@@ -117,9 +117,10 @@ def insert_audit_log(actor_id, actor_type, action, target_table=None,
                      details=None, client_id=None):
     """
     Inserts a new audit log entry with hash chain linking.
-    client_id tags which client this log relates to (for per-client filtering).
+    client_id tags which client this log relates to (for per client filtering).
     It is NOT included in the hash computation - it is metadata only.
     """
+
     try:
         # Get previous hash for chain linking
         previous_hash = get_last_hash()
@@ -151,7 +152,7 @@ def insert_audit_log(actor_id, actor_type, action, target_table=None,
 
 
 def _rows_to_dicts(cur):
-    """Convert cursor results to a list of dicts using column names."""
+    """Convert cursor results to a list of dicts using column names. Dictionaries are easier to work with then tuples"""
     columns = [desc[0] for desc in cur.description]
     return [dict(zip(columns, row)) for row in cur.fetchall()]
 
@@ -177,7 +178,7 @@ def _build_audit_filter(client_id=None, actor_id=None, actor_type=None,
     return "".join(clauses), params
 
 
-# Use the value's the user has passed or set to NONE
+# Use the values the user has passed or set to NONE
 def get_audit_logs(limit=100, offset=0, actor_id=None, actor_type=None,
                    action=None, start_date=None, end_date=None, client_id=None):
     """
@@ -262,7 +263,7 @@ def verify_audit_chain():
 
             if computed_hash != current_hash:
                 logger.warning(
-                    "Tamper detected at log_id %s: stored hash doesn't match computed hash",
+                    "Tamper detected at log_id %s: stored hash doesnt match computed hash",
                     log_id
                 )
                 return False

@@ -104,7 +104,7 @@ def api_register():
     if not EMAIL_RE.match(email):
         return jsonify({"error": "Please enter a valid email address"}), 400
 
-    # Validate age — must be 18+ to use the system (GDPR Article 8)
+    # Validate age must be 18+ to use the system 
     try:
         age_int = int(age)
         if age_int < 18:
@@ -185,7 +185,7 @@ def api_logout():
     """Logs the logout event and revokes the JWT so it cannot be reused"""
     user_id = session['user_id']
     log_logout(user_id, 'user')
-    # Revoke the token server-side so a stolen token cannot be reused after logout
+    # Revoke the token server side so a stolen token cannot be reused after logout
     auth_header = request.headers.get('Authorization', '')
     if auth_header.startswith('Bearer '):
         revoke_token(auth_header.split(' ', 1)[1])
@@ -198,7 +198,7 @@ def api_logout():
 @token_required
 @audit_log('view', 'user_data')
 def api_user_data():
-    """Returns all data stored about the user as JSON (Right to Access, GDPR Article 15)"""
+    """Returns all data stored about the user as JSON (Right to Access)"""
     user_id = session['user_id']
     log_dsr(user_id, session.get('username'), 'access', source='mobile_api')
     static_data, dynamic_data = get_user_data(user_id)
@@ -263,7 +263,6 @@ def api_delete_data():
 def api_list_clients():
     """
     Returns list of all organizations with their questionnaires.
-    Format: [{"client_id": 1, "name": "HSE", "questionnaires": ["Cardio Health", "Diabetes Study"]}, ...]
     """
     with get_db() as (conn, cur):
         # Get all distinct questionnaires with client info
@@ -296,7 +295,7 @@ def api_list_clients():
 @audit_log('view', 'questionnaire_fields', get_client_id=lambda **kw: kw.get('client_id'))
 def api_get_questionnaire(client_id, questionnaire_name):
     """
-    Returns the questionnaire fields for a specific client's specific questionnaire.
+    Returns the questionnaire fields for a specific clients specific questionnaire.
     Mobile app uses this to build the form.
     """
     if not questionnaire_name or len(questionnaire_name) > 100:
@@ -329,8 +328,7 @@ def api_get_questionnaire(client_id, questionnaire_name):
 @token_required
 def api_submit_questionnaire(client_id, questionnaire_name):
     """
-    Submits questionnaire answers for a specific client's specific questionnaire.
-    Request body: {"consent": true, "fields": {"field_id": "value", ...}}
+    Submits questionnaire answers for a specific clients specific questionnaire.
     """
     if not questionnaire_name or len(questionnaire_name) > 100:
         return jsonify({"error": "Invalid questionnaire name"}), 400
@@ -370,7 +368,7 @@ def api_submit_questionnaire(client_id, questionnaire_name):
 @token_required
 @audit_log('view', 'submissions')
 def api_list_submissions():
-    """Returns list of user's questionnaire submissions with client info and questionnaire names"""
+    """Returns list of users questionnaire submissions with client info and questionnaire names"""
     user_id = session['user_id']
     submissions = get_user_submissions(user_id)
 
@@ -405,7 +403,6 @@ def api_get_submission_answers(submission_id):
 def api_update_submission_answers(submission_id):
     """
     Updates answers for a submission.
-    Request body: {"fields": {"<field_id>": "<new_value>", ...}}
     """
     data = request.get_json()
     if not data or 'fields' not in data:
@@ -435,7 +432,7 @@ def api_update_submission_answers(submission_id):
 @token_required
 @audit_log('view', 'consent_status')
 def api_list_consent_status():
-    """Returns consent status for all of user's submissions with questionnaire names"""
+    """Returns consent status for all of users submissions with questionnaire names"""
     user_id = session['user_id']
     submissions = get_user_submissions(user_id)
 
@@ -519,7 +516,7 @@ def api_delete_submission(submission_id):
 @token_required
 @audit_log('view', 'data_subject_requests')
 def api_user_dsr_history():
-    """Returns the user's own DSR history (for transparency)"""
+    """Returns the users own DSR history (for transparency)"""
     user_id = session['user_id']
     dsrs = get_dsrs_for_user(user_id)
 
