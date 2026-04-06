@@ -119,8 +119,8 @@
                         </span>
                     </td>
                     <td><small>{{ dsr.source }}</small></td>
-                    <td><small>{{ dsr.created_at.strftime('%Y-%m-%d %H:%M') if dsr.created_at else 'N/A' }}</small></td>
-                    <td><small>{{ dsr.deadline.strftime('%Y-%m-%d %H:%M') if dsr.deadline else 'N/A' }}</small></td>
+                    <td><small>{% if dsr.created_at %}<time datetime="{{ dsr.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ dsr.created_at.strftime('%Y-%m-%d %H:%M') }}</time>{% else %}N/A{% endif %}</small></td>
+                    <td><small>{% if dsr.deadline %}<time datetime="{{ dsr.deadline.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ dsr.deadline.strftime('%Y-%m-%d %H:%M') }}</time>{% else %}N/A{% endif %}</small></td>
                     <td>
                         {% if dsr.status == 'completed' %}
                             <span class="badge bg-success">Done</span>
@@ -157,7 +157,7 @@
                         {% else %}
                         <small class="text-muted">
                             {% if dsr.completed_at %}
-                                {{ dsr.completed_at.strftime('%Y-%m-%d') }}
+                                <time datetime="{{ dsr.completed_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}" data-format="date">{{ dsr.completed_at.strftime('%Y-%m-%d') }}</time>
                             {% endif %}
                         </small>
                         {% endif %}

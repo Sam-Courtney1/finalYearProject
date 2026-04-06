@@ -250,7 +250,7 @@
                 <tr>
                     <td>{{ log.log_id }}</td>
                     <td>
-                        <small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else 'N/A' }}</small>
+                        <small>{% if log.timestamp %}<time datetime="{{ log.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</time>{% else %}N/A{% endif %}</small>
                     </td>
                     <td>
                         <span class="badge bg-secondary">{{ log.actor_type }}</span>
