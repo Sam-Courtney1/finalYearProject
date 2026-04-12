@@ -62,7 +62,7 @@ mobile_app/                      # React Native (Expo) mobile client
     screens/                     # 10 screens (Login, Home, Questionnaire, etc.)
     components/                  # Reusable components (MenuCard, LoadingScreen)
     theme/theme.js               # Design tokens
-tests/                           # 78 pytest tests across 9 test files
+tests/                           # 102 pytest tests across 10 test files
 ```
 
 ## Prerequisites

@@ -73,7 +73,7 @@ def verify_otp(user_id: int, entered_code: str) -> tuple[bool, str]:
             token_id, stored_hash, expires_at, _used, attempts = row
             mark_used = False
 
-            # Already exhausted all attempts — block immediately
+            # Already exhausted all attempts, block immediately
             if attempts >= MAX_OTP_ATTEMPTS:
                 mark_used = True
                 result = (False, 'max_attempts')

@@ -133,7 +133,7 @@ def log_login_failed(username, user_type='user'):
         user_agent=request.headers.get('User-Agent'),
         details={'attempted_username': username},
         client_id=client_id
-    )
+    ) 
 
 
 def log_logout(user_id, user_type='user'):

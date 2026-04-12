@@ -208,11 +208,11 @@
     var isVisible = checkRect.top >= 0 && checkRect.bottom <= window.innerHeight;
 
     if (!isVisible) {
-      // Needs scrolling — scroll then wait for it to finish
+      // Needs scrolling, scroll then wait for it to finish
       target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setTimeout(function () { positionOnTarget(target, step); }, 600);
     } else {
-      // Already visible — position immediately, no scroll needed
+      // Already visible, position immediately, no scroll needed
       positionOnTarget(target, step);
     }
   }

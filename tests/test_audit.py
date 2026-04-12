@@ -19,12 +19,12 @@ class TestHashChainIntegrity:
 
     def test_client_id_excluded_from_hash(self):
         """
-        client_id is metadata for filtering — it must NOT affect the hash.
+        client_id is metadata for filtering it must NOT affect the hash.
         Two logs identical except for client_id should produce the same hash.
         """
         h1 = compute_hash('2025-01-01', 1, 'client', 'view', 'audit_logs', None, '1.2.3.4', None, 'GENESIS')
         h2 = compute_hash('2025-01-01', 1, 'client', 'view', 'audit_logs', None, '1.2.3.4', None, 'GENESIS')
-        # compute_hash does not take client_id at all — it is excluded by design
+        # compute_hash does not take client_id at all it is excluded by design
         assert h1 == h2
 
     def test_chain_links_via_previous_hash(self):

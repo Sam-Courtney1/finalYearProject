@@ -54,7 +54,12 @@ def questionnaire_form(client_id, questionnaire_name):
             flash(consent_err, "danger")
             return redirect(url_for('questionnaire_bp.questionnaire_form',
                                     client_id=client_id, questionnaire_name=questionnaire_name))
-        handle_questionnaire_submission(user_id, client_id, questionnaire_name, request.form)
+        try:
+            handle_questionnaire_submission(user_id, client_id, questionnaire_name, request.form)
+        except ValueError as e:
+            flash(str(e), "danger")
+            return redirect(url_for('questionnaire_bp.questionnaire_form',
+                                    client_id=client_id, questionnaire_name=questionnaire_name))
         # Log questionnaire submission
         log_data_create('questionnaire_submission', user_id, {
             'client_id': client_id,

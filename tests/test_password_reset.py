@@ -7,10 +7,10 @@ class TestForgotPassword:
         assert resp.status_code == 200
 
     def test_forgot_password_always_shows_same_message(self, client):
-        """Prevents username enumeration — same flash whether user exists or not."""
+        """Prevents username enumeration, same flash whether user exists or not."""
         with patch('application.routes.pages_and_actions.find_by_username', return_value=None):
             resp = client.post('/forgot-password', data={'username': 'nonexistent'}, follow_redirects=True)
-            assert b'If that username exists' in resp.data
+            assert b'If that account exists' in resp.data
 
     def test_forgot_password_with_valid_user_sends_email(self, client):
         mock_user = (1, 'hashed_pw')

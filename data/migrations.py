@@ -7,7 +7,7 @@ It is being kept for use in my report
 
 
 def run_migrations():
-    """No-op stub — migrations are disabled. See docstring above."""
+    """No-op stub, migrations are disabled. See docstring above."""
     pass
 
 
@@ -544,7 +544,7 @@ def run_migrations():
 
 # def remove_redundant_tables_and_columns():
 #     """
-#     Remove the medical_data table (unused — medical fields are stored
+#     Remove the medical_data table (unused, medical fields are stored
 #     encrypted in the answers table based on field category).
 #     Remove the consent column from submissions (always TRUE on insert,
 #     consent_withdrawn is what the system actually checks).
@@ -556,7 +556,7 @@ def run_migrations():
 #     try:
 #         cur = conn.cursor()
 
-#         # Drop medical_data table — not used anywhere in the codebase.
+#         # Drop medical_data table, not used anywhere in the codebase.
 #         # Medical fields are handled via the answers table with
 #         # pgp_sym_encrypt when category = 'Medical'.
 #         cur.execute("""

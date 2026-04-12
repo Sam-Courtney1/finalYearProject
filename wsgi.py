@@ -36,13 +36,13 @@ def create_app():
                 template_folder=os.path.join('presentation', 'templates'),
                 static_folder=os.path.join('presentation', 'static')
                 )
-    # Flask session secret — separate from the database encryption key (APP_ENC_KEY)
+    # Flask session secret, separate from the database encryption key (APP_ENC_KEY)
     # so that a leaked session key does not compromise encrypted PII/Medical data.
     flask_secret = os.getenv("FLASK_SECRET_KEY")
     if not flask_secret or flask_secret == "test":
         if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):
             raise RuntimeError("FLASK_SECRET_KEY must be set in production. Do not use the default.")
-        warnings.warn("FLASK_SECRET_KEY not set — using insecure default. Set it in .env for development.")
+        warnings.warn("FLASK_SECRET_KEY not set, using insecure default. Set it in .env for development.")
         flask_secret = "insecure-dev-session-key-do-not-use-in-production"
     app.secret_key = flask_secret
 
@@ -51,7 +51,7 @@ def create_app():
     if not db_enc_key or db_enc_key == "test":
         if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):
             raise RuntimeError("APP_ENC_KEY must be set in production. Do not use the default.")
-        warnings.warn("APP_ENC_KEY not set — using insecure default. Set it in .env for development.")
+        warnings.warn("APP_ENC_KEY not set, using insecure default. Set it in .env for development.")
 
     # Sessions marked permanent will expire after this duration of inactivity
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
@@ -62,7 +62,7 @@ def create_app():
     # Prevent cross-site request cookie sending
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-    # CSRF protection for all POST forms — prevents cross-site request forgery.
+    # CSRF protection for all POST forms prevents cross-site request forgery.
     # Templates must include {{ csrf_token() }} in every POST form.
     csrf = CSRFProtect(app)
 
@@ -73,7 +73,7 @@ def create_app():
         flash("Your session has expired. Please log in again.", "warning")
         return redirect(url_for('auth_bp.login_page'))
 
-    # Custom error pages — prevent exposing stack traces or raw error screens
+    # Custom error pages, prevent exposing stack traces or raw error screens
     @app.errorhandler(404)
     def not_found(error):
         return render_template('error.html', error_code=404,
@@ -84,7 +84,7 @@ def create_app():
         return render_template('error.html', error_code=500,
                                message="An internal error occurred. Please try again later."), 500
 
-    # Rate limiting — prevents brute force attacks on login/register endpoints.
+    # Rate limiting, prevents brute force attacks on login/register endpoints.
     # Per-route limits are applied via @limiter.limit() in the route files.
     from application.extensions import limiter
     limiter.init_app(app)
@@ -115,7 +115,7 @@ def create_app():
     # API routes use JWT authentication, not session cookies, so CSRF is not needed
     csrf.exempt(api_bp)
 
-    # Security headers — defence-in-depth against XSS, clickjacking, MIME sniffing
+    # Security headers, defence-in-depth against XSS, clickjacking, MIME sniffing
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -132,7 +132,7 @@ def create_app():
         )
         return response
 
-    # Health check endpoint for the ELB — exempt from rate limiting and CSRF
+    # Health check endpoint for the ELB, exempt from rate limiting and CSRF
     # so that repeated health check requests don't get 429'd.
     @app.route('/health')
     @limiter.exempt
@@ -147,7 +147,7 @@ def create_app():
         from flask import jsonify
         return jsonify({'ok': True})
 
-    # Inactivity session timeout — checked on every request for logged-in users.
+    # Inactivity session timeout, checked on every request for logged-in users.
     # The JavaScript timer in base_user.html warns at 9 min and redirects at 10 min,
     # but this server-side check is the authoritative enforcement.
     SESSION_TIMEOUT_SECONDS = 600  # 10 minutes

@@ -350,7 +350,10 @@ def api_submit_questionnaire(client_id, questionnaire_name):
         form_dict[f"field_{field_id}"] = value
     form_dict['consent'] = 'on'
 
-    handle_questionnaire_submission(user_id, client_id, questionnaire_name, form_dict)
+    try:
+        handle_questionnaire_submission(user_id, client_id, questionnaire_name, form_dict)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     log_data_create('questionnaire_submission', user_id, {
         'client_id': client_id,

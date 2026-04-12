@@ -16,6 +16,22 @@ Submissoin_id and age are put into the demographic_data table as plain text
 def handle_questionnaire_submission(user_id, client_id, questionnaire_name, form_data):
     """ Handles questionnaire submission with questionnaire_name parameter. """
     with get_db() as (conn, cur):
+        # Enforce is_required: check all required fields are present and non-empty
+        cur.execute("""
+                    SELECT field_id, field_label FROM questionnaire_fields
+                    WHERE client_id = %s AND questionnaire_name = %s AND is_required = TRUE;
+                    """, (client_id, questionnaire_name))
+        required_fields = cur.fetchall()
+
+        missing = []
+        for field_id, field_label in required_fields:
+            form_key = f"field_{field_id}"
+            if form_key not in form_data or not form_data[form_key].strip():
+                missing.append(field_label)
+
+        if missing:
+            raise ValueError(f"Required fields missing: {', '.join(missing)}")
+
         cur.execute("""
                     INSERT INTO submissions (user_id, client_id, questionnaire_name)
                     VALUES (%s, %s, %s)

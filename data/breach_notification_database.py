@@ -101,7 +101,7 @@ def get_all_user_emails():
     try:
         key = os.getenv("APP_ENC_KEY")
         if not key:
-            logger.error("APP_ENC_KEY not set — cannot decrypt emails")
+            logger.error("APP_ENC_KEY not set, cannot decrypt emails")
             return []
 
         with get_db() as (conn, cur):
