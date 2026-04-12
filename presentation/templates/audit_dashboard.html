@@ -407,19 +407,13 @@
                     // Add marker with approximate-area circle
                     currentMarker = L.marker([data.lat, data.lon]).addTo(map);
                     currentCircle = L.circle([data.lat, data.lon], {
-                        radius: 7000,
+                        radius: 4000,
                         color: '#7c3aed',
                         fillColor: '#7c3aed',
                         fillOpacity: 0.1,
                         weight: 1,
                         dashArray: '5,5'
                     }).addTo(map);
-
-                    currentMarker.bindPopup(
-                        '<strong>IP:</strong> ' + data.ip + '<br>' +
-                        '<strong>Approx. Location:</strong> ' + data.city + ', ' + data.country + '<br>' +
-                        '<strong>ISP:</strong> ' + data.isp
-                    ).openPopup();
 
                     map.flyTo([data.lat, data.lon], 10, { duration: 1.5 });
 

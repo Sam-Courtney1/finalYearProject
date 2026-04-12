@@ -127,7 +127,7 @@ def create_app():
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net unpkg.com cdnjs.cloudflare.com; "
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; "
             "font-src 'self' fonts.gstatic.com cdn.jsdelivr.net; "
-            "img-src 'self' data: tile.openstreetmap.org *.tile.openstreetmap.org; "
+            "img-src 'self' data: tile.openstreetmap.org *.tile.openstreetmap.org cdnjs.cloudflare.com; "
             "connect-src 'self' ip-api.com"
         )
         return response
