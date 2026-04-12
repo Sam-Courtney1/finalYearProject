@@ -321,7 +321,7 @@ def geolocate_ip(ip):
             'success': False,
             'message': f'Geolocation service unavailable: {str(e)}'
         })
-    
+
 
 @admin_bp.route('/retention')
 @require_audit_access

@@ -8,14 +8,14 @@ Handles retrieving, updating, and consent withdrawal for questionnaire submissio
 
 
 def _rows_to_dicts(cur, rows):
-    """Convert database rows to a list of dicts using cursor column names. Dictionaries are easier to work with then tuples"""
+    """Convert database rows to a list of dicts using cursor column names."""
     columns = [desc[0] for desc in cur.description]
     return [dict(zip(columns, row)) for row in rows]
 
 
 def get_user_submissions(user_id):
     """
-    Returns all questionnaire submissions for a user 
+    Returns all questionnaire submissions for a user
     Used by both the edit selection page and the consent management page.
     """
     with get_db() as (conn, cur):
@@ -177,7 +177,7 @@ def get_submissions_for_questionnaire(client_id, questionnaire_name):
     if not rows:
         return [], []
 
-    # Build column headers from field labels 
+    # Build column headers from field labels
     seen_fields = {}
     column_headers = []
     for row in rows:
@@ -300,7 +300,7 @@ def get_user_dashboard_stats(user_id):
     Total submissions count
     List of organisations with submission details and consent status
     """
-    
+
     with get_db() as (conn, cur):
         cur.execute("""
             SELECT s.submission_id, c.username AS org_name, s.questionnaire_name,

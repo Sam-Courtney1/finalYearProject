@@ -11,13 +11,13 @@ Tracks formal data subject requests (access, erasure, portability, rectification
 
 
 def _row_to_dict(cur, row):
-    """Convert a single database row to a dict using cursor column names. Dictionaries are easier to work with then tuples"""
+    """Convert a database row to a dict using cursor column names."""
     columns = [desc[0] for desc in cur.description]
     return dict(zip(columns, row))
 
 
 def _rows_to_dicts(cur, rows):
-    """Convert database rows to a list of dicts using cursor column names. Dictionaries are easier to work with then tuples"""
+    """Convert database rows to a list of dicts using cursor column names."""
     columns = [desc[0] for desc in cur.description]
     return [dict(zip(columns, row)) for row in rows]
 
@@ -39,7 +39,7 @@ def insert_dsr(user_id, username, request_type, source='web'):
     except Exception as e:
         logger.error("Error inserting DSR: %s", e)
         return None
-    
+
 
 def get_all_dsrs(status=None, limit=100, offset=0):
     """Returns all DSRs, optionally filtered by status."""

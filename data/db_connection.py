@@ -6,7 +6,7 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-# Global variable which will contain pool connections 
+# Global variable which will contain pool connections
 # (Pre opened database connections)
 _pool = None
 
@@ -15,7 +15,7 @@ def _get_pool():
     """Create connections only if there is none already open
        This will always run on upon the first call
        It reads database information from the .env file to make the connections
-    """   
+    """
     global _pool
     if _pool is None:
         try:

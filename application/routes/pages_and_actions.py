@@ -126,7 +126,7 @@ def register():
         flash(msg, "danger")
         return redirect(url_for('auth_bp.register_page'))
 
-    # Validate age, must be 18+ to use the system 
+    # Validate age, must be 18+ to use the system
     try:
         age_int = int(age)
         if age_int < 18:
@@ -197,7 +197,7 @@ def login():
             log_login_success(user_id, 'user')
             return redirect(url_for('home_bp.homepage'))
 
-        # Store pending 2FA state 
+        # Store pending 2FA state
         session['pending_2fa_user'] = user_id
         session['pending_2fa_username'] = username
 

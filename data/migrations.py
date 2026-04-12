@@ -1,6 +1,6 @@
 """
-This file is no longer needed. It opens up to many connections and as i have set the max to 10 it will cause errors and the
-pool of connections will be fully used.
+This file is no longer needed. It opens up to many connections and as i have set the max to 10 it will cause
+errors and the pool of connections will be fully used.
 
 It is being kept for use in my report
 """

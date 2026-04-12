@@ -21,6 +21,7 @@ def _mask_email(email):
     except (ValueError, IndexError):
         return '***@***'
 
+
 """
 Sends email notifications to affected users when a data breach occurs.
 Uses Gmail SMTP via the existing _send_email helper in email_service.py.

@@ -2,9 +2,6 @@ from flask import Blueprint, request, jsonify, session
 from functools import wraps
 import re
 from application.extensions import limiter
-
-EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
-USERNAME_RE = re.compile(r'^[a-zA-Z0-9_.\-]+$')
 from application.services.jwt_utils import create_token, decode_token, revoke_token
 from application.services.authentication import register_user, authenticate_user, validate_password
 from data.user_database import (
@@ -24,6 +21,9 @@ from data.submission_database import (
 from application.services.dsr_service import log_dsr
 from application.services.consent_service import validate_consent
 from data.dsr_database import get_dsrs_for_user
+
+EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+USERNAME_RE = re.compile(r'^[a-zA-Z0-9_.\-]+$')
 
 """
 API routes for the mobile app
@@ -104,7 +104,7 @@ def api_register():
     if not EMAIL_RE.match(email):
         return jsonify({"error": "Please enter a valid email address"}), 400
 
-    # Validate age must be 18+ to use the system 
+    # Validate age must be 18+ to use the system
     try:
         age_int = int(age)
         if age_int < 18:

@@ -3,14 +3,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def _row_to_dict(cur, row):
-    """Convert a single database row to a dict using cursor column names. Dictionaries are easier to work with then tuples"""
+    """Convert a database row to a dict using cursor column names."""
     columns = [desc[0] for desc in cur.description]
     return dict(zip(columns, row))
 
 
 def _rows_to_dicts(cur, rows):
-    """Convert database rows to a list of dicts using cursor column names. Dictionaries are easier to work with then tuples"""
+    """Convert database rows to a list of dicts using cursor column names."""
     columns = [desc[0] for desc in cur.description]
     return [dict(zip(columns, row)) for row in rows]
 
