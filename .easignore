@@ -1,0 +1,32 @@
+# EAS Build: only upload mobile_app/ contents
+# Ignore everything else in the repo
+
+# Python / Flask backend
+__pycache__/
+*.pyc
+*.pyo
+.env
+.coverage
+.pytest_cache/
+application/
+data/
+presentation/
+tests/
+wsgi.py
+requirements.txt
+
+# Git / CI
+.git/
+.github/
+
+# Elastic Beanstalk
+.elasticbeanstalk/
+.ebextensions/
+
+# Docs / misc
+*.md
+report_idea.md
+
+# Node modules (EAS runs its own npm install)
+node_modules/
+

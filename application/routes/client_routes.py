@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from markupsafe import escape
 from urllib.parse import urlparse
 from werkzeug.security import generate_password_hash, check_password_hash
 from application.services.decorators import require_client_login
@@ -20,7 +21,7 @@ client_bp is a Blueprint that handles all client/owner-side routes.
 These routes are registered with a /client prefix in wsgi.py.
 
 Clients are the business owners who create questionnaires,
-separate from end users who fill them out.
+separate from end users (data subjects) who fill them out.
 """
 
 client_bp = Blueprint('client_bp', __name__)
@@ -51,7 +52,7 @@ def client_login():
         else:
             # Log failed client login attempt
             log_login_failed(username, 'client')
-            flash("Invalid username or password.")
+            flash("Invalid username or password.", "danger")
             return render_template("client_landing.html")
     else:
         return render_template("client_landing.html")
@@ -71,12 +72,12 @@ def client_register():
 
         valid, msg = validate_password(password)
         if not valid:
-            flash(msg)
+            flash(msg, "danger")
             return render_template("client_register.html")
 
         duplicate = find_client_by_username(username)
         if duplicate:
-            flash("Username already exists. Please choose another.")
+            flash("Username already exists. Please choose another.", "danger")
             return render_template("client_register.html")
 
         password_hash = generate_password_hash(password)
@@ -136,8 +137,8 @@ def client_create_questionnaire():
         questionnaire_name = request.form["questionnaire_name"].strip()
         client_id = session["client_id"]
 
-        if not questionnaire_name:
-            flash("Questionnaire name cannot be empty.", "danger")
+        if not questionnaire_name or not _valid_questionnaire_name(questionnaire_name):
+            flash("Questionnaire name must be 1-100 characters with no special path characters.", "danger")
             return render_template("client_create_questionnaire.html")
 
         # Check if name already exists for this client
@@ -154,6 +155,17 @@ def client_create_questionnaire():
     return render_template("client_create_questionnaire.html")
 
 
+def _valid_questionnaire_name(name):
+    """Validate questionnaire name non empty, max 100 chars, no path traversal."""
+    if not name or len(name.strip()) == 0:
+        return False
+    if len(name) > 100:
+        return False
+    if '/' in name or '\\' in name or '..' in name:
+        return False
+    return True
+
+
 @client_bp.route("/questionnaire/<questionnaire_name>", methods=["GET", "POST"])
 @require_client_login
 def client_questionnaire_editor(questionnaire_name):
@@ -162,12 +174,27 @@ def client_questionnaire_editor(questionnaire_name):
     GET: Display the questionnaire editor with existing fields
     POST: Add a new field to the questionnaire
     """
+    if not _valid_questionnaire_name(questionnaire_name):
+        flash("Invalid questionnaire name.", "danger")
+        return redirect(url_for("client_bp.client_questionnaire_list"))
+
     client_id = session["client_id"]
 
     if request.method == "POST":
-        label = request.form["label"]
+        label = request.form["label"].strip()
         field_type = request.form["field_type"]
         category = request.form["category"]
+
+        # Validate label non empty, max 100 chars, sanitize HTML
+        if not label:
+            flash("Field label cannot be empty.", "danger")
+            return redirect(url_for("client_bp.client_questionnaire_editor", questionnaire_name=questionnaire_name))
+
+        if len(label) > 100:
+            flash("Field label must be 100 characters or fewer.", "danger")
+            return redirect(url_for("client_bp.client_questionnaire_editor", questionnaire_name=questionnaire_name))
+
+        label = str(escape(label))
 
         # Whitelist allowed values to prevent injection of unexpected types
         allowed_field_types = {'text', 'number'}
@@ -223,21 +250,25 @@ def client_view_submissions(questionnaire_name):
     """
     View anonymised submission data for a specific questionnaire.
     Shows all fields except Hashed, with respondents anonymised as
-    'Respondent 1', 'Respondent 2', etc.
+    Respondent 1, Respondent 2, etc.
     Only shows data where consent is active and submission is not deleted.
     """
+    if not _valid_questionnaire_name(questionnaire_name):
+        flash("Invalid questionnaire name.", "danger")
+        return redirect(url_for("client_bp.client_questionnaire_list"))
+
     client_id = session["client_id"]
 
     # Verify the questionnaire belongs to this client
     if not questionnaire_name_exists(client_id, questionnaire_name):
-        flash("Questionnaire not found.")
+        flash("Questionnaire not found.", "danger")
         return redirect(url_for("client_bp.client_questionnaire_list"))
 
     column_headers, submissions_data = get_submissions_for_questionnaire(
         client_id, questionnaire_name
     )
 
-    # Audit log: client is viewing submission data (GDPR Art. 30)
+    # Audit log: client is viewing submission data
     log_data_access(client_id, 'submissions', details={
         'action': 'client_view_submissions',
         'questionnaire_name': questionnaire_name,

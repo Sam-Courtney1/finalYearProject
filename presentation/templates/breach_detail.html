@@ -68,15 +68,15 @@
                     </tr>
                     <tr>
                         <td class="text-muted">Discovered At</td>
-                        <td>{{ breach.discovered_at.strftime('%Y-%m-%d %H:%M:%S') if breach.discovered_at else 'N/A' }}</td>
+                        <td>{% if breach.discovered_at %}<time datetime="{{ breach.discovered_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ breach.discovered_at.strftime('%Y-%m-%d %H:%M:%S') }}</time>{% else %}N/A{% endif %}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">Reported At</td>
-                        <td>{{ breach.reported_at.strftime('%Y-%m-%d %H:%M:%S') if breach.reported_at else 'Not yet reported' }}</td>
+                        <td>{% if breach.reported_at %}<time datetime="{{ breach.reported_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ breach.reported_at.strftime('%Y-%m-%d %H:%M:%S') }}</time>{% else %}Not yet reported{% endif %}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">Resolved At</td>
-                        <td>{{ breach.resolved_at.strftime('%Y-%m-%d %H:%M:%S') if breach.resolved_at else 'Not yet resolved' }}</td>
+                        <td>{% if breach.resolved_at %}<time datetime="{{ breach.resolved_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ breach.resolved_at.strftime('%Y-%m-%d %H:%M:%S') }}</time>{% else %}Not yet resolved{% endif %}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">Affected Users</td>
@@ -101,7 +101,7 @@
                         <span class="badge bg-danger rounded-circle p-2"><i class="bi bi-exclamation"></i></span>
                         <div>
                             <strong>Discovered</strong><br>
-                            <small class="text-muted">{{ breach.discovered_at.strftime('%Y-%m-%d %H:%M') if breach.discovered_at else 'N/A' }}</small>
+                            <small class="text-muted">{% if breach.discovered_at %}<time datetime="{{ breach.discovered_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ breach.discovered_at.strftime('%Y-%m-%d %H:%M') }}</time>{% else %}N/A{% endif %}</small>
                         </div>
                     </div>
                     {% if breach.status in ('investigating', 'reported', 'resolved') %}
@@ -117,7 +117,7 @@
                         <span class="badge bg-primary rounded-circle p-2"><i class="bi bi-send"></i></span>
                         <div>
                             <strong>Reported to Authority</strong><br>
-                            <small class="text-muted">{{ breach.reported_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            <small class="text-muted"><time datetime="{{ breach.reported_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ breach.reported_at.strftime('%Y-%m-%d %H:%M') }}</time></small>
                         </div>
                     </div>
                     {% endif %}
@@ -126,7 +126,7 @@
                         <span class="badge bg-success rounded-circle p-2"><i class="bi bi-check-lg"></i></span>
                         <div>
                             <strong>Resolved</strong><br>
-                            <small class="text-muted">{{ breach.resolved_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            <small class="text-muted"><time datetime="{{ breach.resolved_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ breach.resolved_at.strftime('%Y-%m-%d %H:%M') }}</time></small>
                         </div>
                     </div>
                     {% endif %}
@@ -221,7 +221,7 @@
                         <span class="badge bg-secondary">Pending</span>
                         {% endif %}
                     </td>
-                    <td><small>{{ notif.sent_at.strftime('%Y-%m-%d %H:%M') if notif.sent_at else '-' }}</small></td>
+                    <td><small>{% if notif.sent_at %}<time datetime="{{ notif.sent_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ notif.sent_at.strftime('%Y-%m-%d %H:%M') }}</time>{% else %}-{% endif %}</small></td>
                     <td><small class="text-danger">{{ notif.error_message or '' }}</small></td>
                 </tr>
                 {% endfor %}

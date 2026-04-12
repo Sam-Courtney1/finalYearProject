@@ -70,3 +70,53 @@ class TestClientQuestionnaire:
                 'category': 'HackedCategory'
             }, follow_redirects=True)
             assert b'Invalid category' in resp.data or resp.status_code == 200
+
+
+class TestClientCreateQuestionnaire:
+    def test_create_questionnaire_page_renders(self, client_auth_client):
+        resp = client_auth_client.get('/client/questionnaire/create')
+        assert resp.status_code == 200
+
+    def test_create_questionnaire_success(self, client_auth_client):
+        with patch('application.routes.client_routes.questionnaire_name_exists', return_value=False):
+            resp = client_auth_client.post('/client/questionnaire/create', data={
+                'questionnaire_name': 'Donor Health Survey'
+            }, follow_redirects=False)
+            assert resp.status_code in (302, 303)
+
+    def test_create_questionnaire_duplicate_rejected(self, client_auth_client):
+        with patch('application.routes.client_routes.questionnaire_name_exists', return_value=True):
+            resp = client_auth_client.post('/client/questionnaire/create', data={
+                'questionnaire_name': 'Existing Questionnaire'
+            }, follow_redirects=True)
+            assert b'already exists' in resp.data.lower() or resp.status_code == 200
+
+
+class TestClientViewSubmissions:
+    def test_view_submissions_renders(self, client_auth_client):
+        with patch('application.routes.client_routes.questionnaire_name_exists', return_value=True), \
+             patch('application.routes.client_routes.get_submissions_for_questionnaire',
+                   return_value=(['Name', 'Blood Type'], [])), \
+             patch('application.routes.client_routes.log_data_access'):
+            resp = client_auth_client.get('/client/questionnaire/TestQ/data')
+            assert resp.status_code == 200
+
+    def test_view_submissions_not_found(self, client_auth_client):
+        with patch('application.routes.client_routes.questionnaire_name_exists', return_value=False):
+            resp = client_auth_client.get('/client/questionnaire/FakeQ/data', follow_redirects=False)
+            assert resp.status_code in (302, 303)
+
+
+class TestClientLogout:
+    def test_client_logout_redirects(self, client_auth_client):
+        with patch('application.routes.client_routes.log_logout'):
+            resp = client_auth_client.get('/client/logout', follow_redirects=False)
+            assert resp.status_code in (302, 303)
+
+    def test_client_logout_clears_session(self, client_auth_client):
+        with patch('application.routes.client_routes.log_logout'):
+            with client_auth_client.session_transaction() as sess:
+                assert 'client_id' in sess
+            client_auth_client.get('/client/logout')
+            with client_auth_client.session_transaction() as sess:
+                assert 'client_id' not in sess

@@ -24,12 +24,21 @@
 
     <!-- Flash messages - aria-live for screen reader announcements -->
     {% block flash_messages %}
-    {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     <div class="container mt-3" role="status" aria-live="polite">
-        {% for message in messages %}
-        <div class="alert alert-modern alert-dismissible fade show" role="alert">
-            <i class="bi bi-info-circle" aria-hidden="true"></i>{{ message }}
+        {% for category, message in messages %}
+        <div class="alert alert-modern alert-{{ category }} alert-dismissible fade show" role="alert">
+            {% if category == 'success' %}
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            {% elif category == 'danger' %}
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            {% elif category == 'warning' %}
+            <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+            {% endif %}
+            {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
         </div>
         {% endfor %}
@@ -125,6 +134,22 @@
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // Convert UTC timestamps to the user's local timezone
+    document.querySelectorAll('time[datetime]').forEach(function(el) {
+        var dt = new Date(el.getAttribute('datetime'));
+        if (isNaN(dt)) return;
+        var fmt = el.dataset.format || 'datetime';
+        if (fmt === 'date') {
+            el.textContent = dt.toLocaleDateString();
+        } else {
+            el.textContent = dt.toLocaleString(undefined, {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+    });
+    </script>
     {% block extra_scripts %}{% endblock extra_scripts %}
 </body>
 </html>

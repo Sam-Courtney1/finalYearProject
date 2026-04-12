@@ -117,7 +117,7 @@
                 <tr>
                     <td>{{ user[0] }}</td>
                     <td>{{ user[1] }}</td>
-                    <td><small>{{ user[2].strftime('%Y-%m-%d %H:%M') if user[2] else 'Never' }}</small></td>
+                    <td><small>{% if user[2] %}<time datetime="{{ user[2].strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ user[2].strftime('%Y-%m-%d %H:%M') }}</time>{% else %}Never{% endif %}</small></td>
                     <td>
                         {% if user[2] %}
                         <span class="badge bg-warning text-dark">
@@ -158,7 +158,7 @@
                     <td>{{ sub[0] }}</td>
                     <td>{{ sub[1] }}</td>
                     <td>{{ sub[2] }}</td>
-                    <td><small>{{ sub[3].strftime('%Y-%m-%d %H:%M') if sub[3] else 'N/A' }}</small></td>
+                    <td><small>{% if sub[3] %}<time datetime="{{ sub[3].strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ sub[3].strftime('%Y-%m-%d %H:%M') }}</time>{% else %}N/A{% endif %}</small></td>
                     <td>{{ sub[4] or 'N/A' }}</td>
                 </tr>
                 {% else %}

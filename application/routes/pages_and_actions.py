@@ -27,9 +27,31 @@ from application.extensions import limiter
 import os
 import csv
 import io
+import re
 import time
 from datetime import datetime, timezone
 from urllib.parse import urlparse
+
+EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+USERNAME_RE = re.compile(r'^[a-zA-Z0-9_.\-]+$')
+
+
+def _valid_email(email):
+    """Return True if email matches a basic format check."""
+    return bool(EMAIL_RE.match(email))
+
+
+def _valid_username(username):
+    """Return (is_valid, error_message). Checks length and allowed characters."""
+    if not username or len(username.strip()) == 0:
+        return False, "Username is required."
+    if len(username) < 3:
+        return False, "Username must be at least 3 characters."
+    if len(username) > 50:
+        return False, "Username must be 50 characters or fewer."
+    if not USERNAME_RE.match(username):
+        return False, "Username may only contain letters, numbers, underscores, hyphens, and dots."
+    return True, ""
 
 
 def _safe_referrer_redirect(fallback):
@@ -38,7 +60,7 @@ def _safe_referrer_redirect(fallback):
     if ref:
         ref_parsed = urlparse(ref)
         host_parsed = urlparse(request.host_url)
-        if ref_parsed.netloc == host_parsed.netloc:
+        if ref_parsed.netloc == host_parsed.netloc and ref_parsed.scheme == host_parsed.scheme:
             return redirect(ref)
     return redirect(fallback)
 
@@ -49,6 +71,17 @@ def _safe_referrer_redirect(fallback):
 
 auth_bp = Blueprint('auth_bp', __name__)
 pages_bp = Blueprint('pages_bp', __name__)
+
+
+def _get_user_email(user_id):
+    """Decrypt and return the users email address, or None if not found."""
+    key = os.getenv("APP_ENC_KEY")
+    with get_db() as (conn, cur):
+        cur.execute("""
+            SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
+        """, (key, user_id))
+        row = cur.fetchone()
+    return row[0] if row else None
 
 # Below are all the routes and actions that are assigned to auth_bp
 # These include displaying pages to users and allowing them to login and register
@@ -67,40 +100,50 @@ def register_page():
 @auth_bp.route('/register_user', methods=['POST'])
 @limiter.limit("3 per minute")
 def register():
-    username = request.form['username']
+    username = request.form['username'].strip()
     password = request.form['password']
     age = request.form['age']
     address = request.form['address']
     email = request.form.get('email', '').strip()
 
+    # Validate username format and length
+    uname_ok, uname_err = _valid_username(username)
+    if not uname_ok:
+        flash(uname_err, "danger")
+        return redirect(url_for('auth_bp.register_page'))
+
     if not email:
-        flash("Email address is required for account verification.")
+        flash("Email address is required.", "danger")
+        return redirect(url_for('auth_bp.register_page'))
+
+    if not _valid_email(email):
+        flash("Please enter a valid email address.", "danger")
         return redirect(url_for('auth_bp.register_page'))
 
     # Validate password strength
     valid, msg = validate_password(password)
     if not valid:
-        flash(msg)
+        flash(msg, "danger")
         return redirect(url_for('auth_bp.register_page'))
 
-    # Validate age — must be 18+ to use the system (GDPR Article 8)
+    # Validate age, must be 18+ to use the system
     try:
         age_int = int(age)
         if age_int < 18:
-            flash("You must be at least 18 years old to use this system.")
+            flash("You must be at least 18 years old to use this system.", "danger")
             return redirect(url_for('auth_bp.register_page'))
         if age_int > 120:
-            flash("Please enter a valid age.")
+            flash("Please enter a valid age.", "danger")
             return redirect(url_for('auth_bp.register_page'))
         age = age_int
     except (ValueError, TypeError):
-        flash("Please enter a valid age.")
+        flash("Please enter a valid age.", "danger")
         return redirect(url_for('auth_bp.register_page'))
 
     # Check to see if username already exists
     existing_user = find_by_username(username)
     if existing_user:
-        flash("Username already exists. Please choose another.")
+        flash("Username already exists. Please choose another.", "danger")
         return redirect(url_for('auth_bp.register_page'))
 
     # The register_user function inserts a user into the database
@@ -126,6 +169,9 @@ def register():
     session.permanent = True
     session['last_activity'] = time.time()
 
+    # Flag for first time user tutorial
+    session['first_login'] = True
+
     return redirect(url_for('home_bp.homepage'))
 
 
@@ -138,16 +184,11 @@ def login():
     # of the linked account is stored in user_id
     user_id = authenticate_user(username, password)
     if user_id:
-        # Fetch the user's encrypted email for OTP delivery
-        key = os.getenv("APP_ENC_KEY")
-        with get_db() as (conn, cur):
-            cur.execute("""
-                SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
-            """, (key, user_id))
-            row = cur.fetchone()
+        # Fetch the users encrypted email for OTP delivery
+        user_email = _get_user_email(user_id)
 
-        if not row or not row[0]:
-            # No email on record — skip 2FA and log them straight in (legacy accounts)
+        if not user_email:
+            # No email on record, skip 2FA and log them straight in (legacy accounts)
             session['user_id'] = user_id
             session['username'] = username
             session.permanent = True
@@ -156,9 +197,7 @@ def login():
             log_login_success(user_id, 'user')
             return redirect(url_for('home_bp.homepage'))
 
-        user_email = row[0]
-
-        # Store pending 2FA state — audit_service.py:43 already reads this key
+        # Store pending 2FA state
         session['pending_2fa_user'] = user_id
         session['pending_2fa_username'] = username
 
@@ -169,24 +208,24 @@ def login():
         sent, err = send_otp_email(user_email, otp_code)
 
         if not sent:
-            # Email delivery failed — do NOT skip 2FA as this would silently
+            # Email delivery failed, do NOT skip 2FA as this would silently
             # downgrade security. Clear the pending state and ask user to retry.
             session.pop('pending_2fa_user', None)
             session.pop('pending_2fa_username', None)
-            flash("Could not send verification code. Please try again later.")
+            flash("Could not send verification code. Please try again later.", "danger")
             return redirect(url_for('auth_bp.login_page'))
 
         return redirect(url_for('auth_bp.verify_2fa_page'))
     else:
         # Log failed login attempt for security monitoring
         log_login_failed(username, 'user')
-        flash("Username or password is incorrect. Please register an account or login with valid credentials")
+        flash("Invalid username or password.", "danger")
         return redirect(url_for('auth_bp.login_page'))
 
 
 @auth_bp.route('/logout')
 def logout():
-    # Log logout before clearing session (need user_id)
+    # Log logout before clearing session
     if 'user_id' in session:
         log_logout(session['user_id'], 'user')
     # This clears the session data including the user_id and username
@@ -194,10 +233,6 @@ def logout():
     session.clear()
     return redirect(url_for('auth_bp.login_page'))
 
-
-# ---------------------------------------------------------------------------
-# 2FA verification
-# ---------------------------------------------------------------------------
 
 @auth_bp.route('/verify-2fa', methods=['GET'])
 def verify_2fa_page():
@@ -237,53 +272,44 @@ def verify_2fa():
         session.pop('pending_2fa_user', None)
         session.pop('pending_2fa_username', None)
         log_login_failed(username, 'user')
-        flash("Too many incorrect attempts. Please log in again.")
+        flash("Too many incorrect attempts. Please log in again.", "danger")
         return redirect(url_for('auth_bp.login_page'))
 
     if reason == 'expired':
         session.pop('pending_2fa_user', None)
         session.pop('pending_2fa_username', None)
-        flash("Verification code has expired. Please log in again.")
+        flash("Verification code has expired. Please log in again.", "warning")
         return redirect(url_for('auth_bp.login_page'))
 
-    flash("Incorrect code. Please try again.")
+    flash("Incorrect code. Please try again.", "danger")
     return redirect(url_for('auth_bp.verify_2fa_page'))
 
 
 @auth_bp.route('/resend-2fa', methods=['POST'])
+@limiter.limit("3 per minute")
 def resend_2fa():
     if 'pending_2fa_user' not in session:
         return redirect(url_for('auth_bp.login_page'))
 
     user_id = session['pending_2fa_user']
+    user_email = _get_user_email(user_id)
 
-    key = os.getenv("APP_ENC_KEY")
-    with get_db() as (conn, cur):
-        cur.execute("""
-            SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
-        """, (key, user_id))
-        row = cur.fetchone()
-
-    if row and row[0]:
+    if user_email:
         otp_code = generate_otp()
         if not store_otp(user_id, otp_code):
-            flash("Could not generate verification code. Please try again.")
+            flash("Could not generate verification code. Please try again.", "danger")
             return redirect(url_for('auth_bp.verify_2fa_page'))
         session['otp_created_at'] = time.time()
-        success, error = send_otp_email(row[0], otp_code)
+        success, error = send_otp_email(user_email, otp_code)
         if success:
-            flash("A new verification code has been sent to your email.")
+            flash("A new verification code has been sent to your email.", "success")
         else:
-            flash("Could not send verification code. Please try again.")
+            flash("Could not send verification code. Please try again.", "danger")
     else:
-        flash("Could not resend code. Please log in again.")
+        flash("Could not resend code. Please log in again.", "danger")
 
     return redirect(url_for('auth_bp.verify_2fa_page'))
 
-
-# ---------------------------------------------------------------------------
-# Password reset
-# ---------------------------------------------------------------------------
 
 @auth_bp.route('/forgot-password', methods=['GET'])
 def forgot_password_page():
@@ -298,24 +324,24 @@ def forgot_password():
 
     if user:
         user_id = user[0]
-        key = os.getenv("APP_ENC_KEY")
-        with get_db() as (conn, cur):
-            cur.execute("""
-                SELECT pgp_sym_decrypt(email_enc::bytea, %s) FROM users WHERE id = %s;
-            """, (key, user_id))
-            row = cur.fetchone()
+        user_email = _get_user_email(user_id)
 
-        if row and row[0]:
+        if user_email:
             token = generate_reset_token()
             store_reset_token(user_id, token)
-            # Build reset URL using SERVER_NAME or request.host to avoid Host header injection
-            base_url = os.environ.get('APP_BASE_URL', request.host_url.rstrip('/'))
+            # Build reset URL, require APP_BASE_URL in production to prevent Host header injection
+            base_url = os.environ.get('APP_BASE_URL')
+            if not base_url:
+                if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):
+                    flash("Password reset is temporarily unavailable. Please contact support.", "danger")
+                    return redirect(url_for('auth_bp.forgot_password_page'))
+                base_url = request.host_url.rstrip('/')
             reset_path = url_for('auth_bp.reset_password_page', token=token)
             reset_url = base_url + reset_path
-            send_password_reset_email(row[0], reset_url)
+            send_password_reset_email(user_email, reset_url)
 
     # Always show the same message to prevent username enumeration
-    flash("If that username exists, a password reset link has been sent to the registered email address.")
+    flash("If that account exists, a password reset link has been sent.", "info")
     return redirect(url_for('auth_bp.forgot_password_page'))
 
 
@@ -323,7 +349,7 @@ def forgot_password():
 def reset_password_page(token):
     user_id = verify_reset_token(token)
     if user_id is None:
-        flash("This password reset link is invalid or has expired.")
+        flash("This password reset link is invalid or has expired.", "danger")
         return redirect(url_for('auth_bp.login_page'))
     return render_template('reset_password.html', token=token)
 
@@ -332,7 +358,7 @@ def reset_password_page(token):
 def reset_password(token):
     user_id = verify_reset_token(token)
     if user_id is None:
-        flash("This password reset link is invalid or has expired.")
+        flash("This password reset link is invalid or has expired.", "danger")
         return redirect(url_for('auth_bp.login_page'))
 
     new_password = request.form.get('password', '')
@@ -340,11 +366,11 @@ def reset_password(token):
 
     valid, msg = validate_password(new_password)
     if not valid:
-        flash(msg)
+        flash(msg, "danger")
         return redirect(url_for('auth_bp.reset_password_page', token=token))
 
     if new_password != confirm:
-        flash("Passwords do not match.")
+        flash("Passwords do not match.", "danger")
         return redirect(url_for('auth_bp.reset_password_page', token=token))
 
     with get_db() as (conn, cur):
@@ -354,7 +380,7 @@ def reset_password(token):
 
     invalidate_reset_token(token)
 
-    flash("Password updated successfully. Please log in with your new password.")
+    flash("Password updated. Please log in with your new password.", "success")
     return redirect(url_for('auth_bp.login_page'))
 
 
@@ -382,7 +408,7 @@ def right_to_forget():
     # Verify the user's password before allowing account deletion
     user = find_by_id(user_id)
     if not user or not check_password_hash(user[1], password):
-        flash('Incorrect password. Account deletion cancelled.')
+        flash('Incorrect password. Account deletion cancelled.', 'danger')
         return redirect(url_for('home_bp.homepage'))
 
     # Log DSR and deletion before actually deleting (for audit trail)
@@ -390,7 +416,7 @@ def right_to_forget():
     log_data_delete('users', user_id, {'action': 'right_to_forget', 'complete_deletion': True})
     delete_user(user_id)
     session.clear()
-    flash('Your account has been deleted.', 'account_deleted')
+    flash('Your account has been deleted.', 'info')
     return redirect(url_for('auth_bp.login_page'))
 
 
@@ -406,9 +432,9 @@ def delete_user_data():
     return redirect(url_for('home_bp.homepage'))
 
 
-# The below routes handle per-client consent management.
+# The below routes handle per client consent management.
 # Users can view their consent status, withdraw consent (soft withdrawal
-# that hides data from clients but keeps it), and re-give consent.
+# that hides data from clients but keeps it), and re give consent.
 
 @pages_bp.route('/consent', methods=['GET'])
 @require_user_login
@@ -431,9 +457,9 @@ def withdraw_consent_route(submission_id):
             'action': 'consent_withdrawn',
             'user_id': user_id
         })
-        flash("Consent withdrawn. The organisation can no longer access your data.")
+        flash("Consent withdrawn successfully. You can reinstate it at any time.", "warning")
     else:
-        flash("Could not withdraw consent. Submission not found.")
+        flash("Unable to withdraw consent. Submission not found.", "danger")
 
     return redirect(url_for('pages_bp.consent_management'))
 
@@ -451,9 +477,9 @@ def reinstate_consent_route(submission_id):
             'action': 'consent_reinstated',
             'user_id': user_id
         })
-        flash("Consent re-given. The organisation can now access your data again.")
+        flash("Consent reinstated. The organisation can access your data again.", "success")
     else:
-        flash("Could not reinstate consent. Submission not found.")
+        flash("Unable to reinstate consent. Submission not found.", "danger")
 
     return redirect(url_for('pages_bp.consent_management'))
 
@@ -478,9 +504,9 @@ def delete_submission_route(submission_id):
             'answers_deleted': result['answers_deleted'],
             'deletion_type': 'user_initiated'
         })
-        flash(f"Submission for '{result['client_name']}' has been permanently deleted.")
+        flash(f"Submission for '{result['client_name']}' has been permanently deleted.", "success")
     else:
-        flash("Could not delete submission. Submission not found or access denied.")
+        flash("Unable to delete submission. Please try again.", "danger")
 
     # Redirect back to the referring page (consent management or edit page)
     return _safe_referrer_redirect(url_for('pages_bp.consent_management'))
@@ -513,7 +539,7 @@ def user_dashboard():
 @audit_log('export', 'user_data')
 def export_user_data():
     """
-    Export all user data as a CSV file (GDPR Article 20 - Right to Data Portability).
+    Export all user data as a CSV file
     """
     user_id = session['user_id']
     static_data, dynamic_data = get_user_data(user_id)
@@ -529,7 +555,7 @@ def export_user_data():
 
     writer.writerow([])
 
-    # Per-organisation data section
+    # Per organisation data section
     if dynamic_data:
         writer.writerow(['--- Questionnaire Data ---'])
         writer.writerow(['Organisation', 'Field Label', 'Category', 'Value', 'Consent Status'])

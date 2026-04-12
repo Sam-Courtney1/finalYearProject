@@ -25,7 +25,7 @@ def require_user_login(f):
 def require_client_login(f):
     """
     Decorator that redirects to client login if no client session exists.
-    Apply to any route that requires a logged-in client/organisation.
+    Apply to any route that requires a logged in client/organisation.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -39,7 +39,7 @@ def require_client_login(f):
 def require_audit_access(f):
     """
     Decorator that allows access if either a client or auditor is logged in.
-    Used for the audit dashboard which both roles can access (with different views).
+    Used for the audit dashboard which both roles can access.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):

@@ -1,10 +1,11 @@
 from data.db_connection import get_db
+import hashlib
 import os
 
 # This file returns information about a user based on there username
-# It is used for loggin into the ststem
+# It is used for loggin into the system
 #
-# This file contains all database operations concerning the end user
+# This file contains all database operations concerning the end user (data subject)
 
 
 def find_by_username(username):
@@ -37,8 +38,8 @@ def create_user_profile(user_id, username, email, address, age):
         """, (email, key, user_id))
 
         cur.execute("""
-            INSERT INTO submissions (user_id, client_id, consent)
-            VALUES (%s, NULL, FALSE) RETURNING submission_id;
+            INSERT INTO submissions (user_id, client_id)
+            VALUES (%s, NULL) RETURNING submission_id;
         """, (user_id,))
         submission_id = cur.fetchone()[0]
 
@@ -57,13 +58,6 @@ def update_last_login(user_id):
     """Update the last_login timestamp for data retention tracking."""
     with get_db() as (conn, cur):
         cur.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user_id,))
-
-
-# The function below is used when a user requests to see there data
-# An sql request is made to return this data and tables are joined
-# on submissions.submission_id. This ensures that all user data is
-# returned to the user and also ensures that only that users data is
-# shown and no one elses.
 
 
 def get_user_data(user_id):
@@ -118,15 +112,22 @@ def get_user_data(user_id):
         return static_data, dynamic_data
 
 
-# This function takes the users id and make's a query to delete the user
-# All records related to that user id are automatically deleted
-
-
 def delete_user(user_id):
     with get_db() as (conn, cur):
+        # Anonymize audit logs before deleting the user (GDPR Art. 17 + audit integrity).
+        # Replace actor_id with NULL and store a SHA-256 hash prefix in details
+        # so logs can still be correlated without identifying the user.
+        hash_prefix = hashlib.sha256(str(user_id).encode()).hexdigest()[:12]
         cur.execute("""
-                    delete from users where id = %s
-                    """, (user_id,))
+            UPDATE audit_logs
+            SET details = jsonb_set(
+                COALESCE(details, '{}'::jsonb),
+                '{anonymised_actor}', to_jsonb(%s::text)
+            ),
+            actor_id = NULL
+            WHERE actor_id = %s AND actor_type = 'user';
+        """, (f"deleted_{hash_prefix}", user_id))
+        cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
 
 
 def get_user_data_for_client(client_id):

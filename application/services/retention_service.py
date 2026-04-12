@@ -6,11 +6,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 """
-Data Retention Service
-GDPR Article 5(1)(e) - Storage Limitation
-
 Handles identification and cleanup of data that has exceeded the
-retention period. Supports dry-run mode for previewing what would
+retention period. Supports dry run mode for previewing what would
 be deleted before executing.
 """
 
@@ -80,3 +77,28 @@ def run_retention_cleanup(days=365, dry_run=True):
             logger.error("Error cleaning up inactive user %s: %s", user_id, e)
 
     return result
+
+
+def anonymise_old_audit_logs(retention_years=7):
+    """
+    Replaces actor_id with NULL and appends 'anonymised' to details for
+    entries older than the specified number of years. This preserves the
+    log structure for compliance analysis while removing personal identifiers.
+
+    Returns the number of rows anonymised.
+    """
+    try:
+        with get_db() as (conn, cur):
+            cur.execute("""
+                UPDATE audit_logs
+                SET actor_id = NULL,
+                    details = COALESCE(details, '{}'::jsonb) || '{"anonymised": true}'::jsonb
+                WHERE timestamp < NOW() - INTERVAL '1 year' * %s
+                  AND actor_id IS NOT NULL;
+            """, (retention_years,))
+            count = cur.rowcount
+        logger.info("Anonymised %d audit log entries older than %d years", count, retention_years)
+        return count
+    except Exception as e:
+        logger.error("Error anonymising old audit logs: %s", e)
+        return 0

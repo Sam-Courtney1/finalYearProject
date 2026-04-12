@@ -4,6 +4,7 @@
     "slug": "gdpr-compliance",
     "version": "1.0.0",
     "orientation": "portrait",
+    "userInterfaceStyle": "light",
     "platforms": [
       "ios",
       "android"
@@ -14,13 +15,26 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.Sam_Courtney_GDPR_FYP"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-splash-screen",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": false
+          }
+        }
+      ]
     ],
     "extra": {
-      "apiBaseUrl": "http://192.168.0.249:5000/api"
+      "websiteUrl": "https://03-test.eba-imv8cadf.eu-west-1.elasticbeanstalk.com",
+      "eas": {
+        "projectId": "1e837aa2-a7ee-481d-b9b2-00fc852c404b"
+      }
     }
   }
 }

@@ -6,17 +6,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 """
-GDPR Compliance Service
-
 Aggregates metrics from breach, DSR, and retention modules
-to provide a single compliance overview for the dashboard.
+to provide a single compliance overview for the dashboard
 """
 
 
 def get_compliance_overview(retention_days=365):
     """
     Returns a dict with compliance status across all GDPR areas.
-    Overall status: 'compliant' (green), 'attention' (amber), or 'non_compliant' (red).
+    Overall status: compliant (green), attentio' (amber), or non_compliant (red).
     """
     breach = get_breach_summary()
     dsr = get_dsr_summary()

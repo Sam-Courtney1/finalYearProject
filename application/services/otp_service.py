@@ -6,31 +6,19 @@ from data.db_connection import get_db
 
 logger = logging.getLogger(__name__)
 
-"""
-OTP Service - One-Time Password generation and verification.
-Used for both:
-  - Email 2FA codes (6-digit, 10-minute expiry, max 3 attempts)
-  - Password reset tokens (URL-safe random string, 1-hour expiry)
-
-Tokens are never stored in plain text — only their SHA-256 hash is kept.
-"""
 
 MAX_OTP_ATTEMPTS = 3
 
 
 def generate_otp() -> str:
-    """Generate a cryptographically-random 6-digit OTP code."""
+    """Generate a cryptographically random 6 digit OTP code."""
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
 def hash_token(token: str) -> str:
-    """Return the SHA-256 hex digest of a token string."""
+    """Return the SHA 256 hex digest of a token string."""
     return hashlib.sha256(token.encode()).hexdigest()
 
-
-# ---------------------------------------------------------------------------
-# 2FA OTP functions
-# ---------------------------------------------------------------------------
 
 def store_otp(user_id: int, otp_code: str) -> bool:
     """
@@ -40,7 +28,12 @@ def store_otp(user_id: int, otp_code: str) -> bool:
     """
     try:
         with get_db() as (conn, cur):
-            # Invalidate previous tokens for this user
+            # Lock existing unused tokens to prevent race conditions, then invalidate
+            cur.execute("""
+                SELECT 1 FROM otp_tokens
+                WHERE user_id = %s AND used = FALSE
+                FOR UPDATE;
+            """, (user_id,))
             cur.execute("""
                 UPDATE otp_tokens SET used = TRUE
                 WHERE user_id = %s AND used = FALSE;
@@ -78,46 +71,42 @@ def verify_otp(user_id: int, entered_code: str) -> tuple[bool, str]:
                 return False, 'not_found'
 
             token_id, stored_hash, expires_at, _used, attempts = row
+            mark_used = False
 
-            # Already exhausted all attempts — block immediately
+            # Already exhausted all attempts, block immediately
             if attempts >= MAX_OTP_ATTEMPTS:
+                mark_used = True
+                result = (False, 'max_attempts')
+            else:
+                # Increment attempt counter
+                cur.execute("""
+                    UPDATE otp_tokens SET attempts = attempts + 1 WHERE id = %s;
+                """, (token_id,))
+
+                now = datetime.now(timezone.utc)
+                if now > expires_at:
+                    mark_used = True
+                    result = (False, 'expired')
+                elif hash_token(entered_code) != stored_hash:
+                    if attempts + 1 >= MAX_OTP_ATTEMPTS:
+                        mark_used = True
+                    result = (False, 'max_attempts' if mark_used else 'invalid')
+                else:
+                    mark_used = True
+                    result = (True, 'ok')
+
+            if mark_used:
                 cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
-                return False, 'max_attempts'
 
-            # Increment attempt counter
-            cur.execute("""
-                UPDATE otp_tokens SET attempts = attempts + 1 WHERE id = %s;
-            """, (token_id,))
-
-            # Check expiry
-            now = datetime.now(timezone.utc)
-            if now > expires_at:
-                cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
-                return False, 'expired'
-
-            # Verify hash
-            if hash_token(entered_code) != stored_hash:
-                # If this was the last allowed attempt, mark as used and return max_attempts
-                if attempts + 1 >= MAX_OTP_ATTEMPTS:
-                    cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
-                    return False, 'max_attempts'
-                return False, 'invalid'
-
-            # Success — mark token as used
-            cur.execute("UPDATE otp_tokens SET used = TRUE WHERE id = %s;", (token_id,))
-            return True, 'ok'
+            return result
 
     except Exception as e:
         logger.error("Error verifying OTP: %s", e)
         return False, 'not_found'
 
 
-# ---------------------------------------------------------------------------
-# Password reset token functions
-# ---------------------------------------------------------------------------
-
 def generate_reset_token() -> str:
-    """Generate a cryptographically-random URL-safe token for password reset."""
+    """Generate a cryptographically random URL safe token for password reset."""
     return secrets.token_urlsafe(32)
 
 
@@ -150,7 +139,7 @@ def verify_reset_token(token: str) -> int | None:
     """
     Verify a password reset token.
     Returns the user_id if valid and not expired, otherwise None.
-    Does NOT mark the token as used — call invalidate_reset_token() after password change.
+    Does NOT mark the token as used, call invalidate_reset_token() after password change.
     """
     try:
         with get_db() as (conn, cur):

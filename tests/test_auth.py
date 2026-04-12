@@ -14,7 +14,7 @@ class TestLoginPage:
              patch('application.routes.pages_and_actions.get_db') as mock_db, \
              patch('application.routes.pages_and_actions.send_otp_email', return_value=(False, 'no ses')), \
              patch('application.routes.pages_and_actions.log_login_success'):
-            # Mock DB call for email lookup — return None so 2FA is skipped
+            # Mock DB call for email lookup return None so 2FA is skipped
             mock_cur = MagicMock()
             mock_cur.fetchone.return_value = None
             mock_db.return_value.__enter__ = MagicMock(return_value=(MagicMock(), mock_cur))

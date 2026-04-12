@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from application.services.decorators import require_user_login
 from application.services.log_form_data import handle_questionnaire_submission
+from application.services.consent_service import validate_consent
 from data.db_connection import get_db
 from application.services.audit_service import audit_log, log_data_create, log_data_update
 from data.submission_database import get_user_submissions, get_submission_answers, update_submission_answers
@@ -17,11 +18,21 @@ questionnaire_bp = Blueprint('questionnaire_bp', __name__)
 Below are all the routes and actions that are assigned to questionnaire_bp
 These include displaying pages to users and allowing them to login and register
 
-
 The questionnaire_form accepts an arugment of client id to identify which companies
 form it is processing. If a post request is recieved then the form will send the data to
 the server to be processed and if it recieves a get request it will display the questionaire page
 """
+
+
+def _valid_questionnaire_name(name):
+    """Validate questionnaire name: non-empty, max 100 chars, no path traversal."""
+    if not name or len(name.strip()) == 0:
+        return False
+    if len(name) > 100:
+        return False
+    if '/' in name or '\\' in name or '..' in name:
+        return False
+    return True
 
 
 @questionnaire_bp.route('/questionnaire/<int:client_id>/<questionnaire_name>', methods=['GET', 'POST'])
@@ -32,17 +43,30 @@ def questionnaire_form(client_id, questionnaire_name):
     Display and submit a specific questionnaire for a client.
     URL now includes questionnaire_name to distinguish between multiple questionnaires.
     """
+    if not _valid_questionnaire_name(questionnaire_name):
+        flash("Invalid questionnaire name.", "danger")
+        return redirect(url_for('questionnaire_bp.select_questionnaire'))
 
     if request.method == 'POST':
         user_id = session['user_id']
-        handle_questionnaire_submission(user_id, client_id, questionnaire_name, request.form)
+        consent_ok, consent_err = validate_consent(request.form)
+        if not consent_ok:
+            flash(consent_err, "danger")
+            return redirect(url_for('questionnaire_bp.questionnaire_form',
+                                    client_id=client_id, questionnaire_name=questionnaire_name))
+        try:
+            handle_questionnaire_submission(user_id, client_id, questionnaire_name, request.form)
+        except ValueError as e:
+            flash(str(e), "danger")
+            return redirect(url_for('questionnaire_bp.questionnaire_form',
+                                    client_id=client_id, questionnaire_name=questionnaire_name))
         # Log questionnaire submission
         log_data_create('questionnaire_submission', user_id, {
             'client_id': client_id,
             'questionnaire_name': questionnaire_name,
             'fields_submitted': len([k for k in request.form.keys() if k != 'client_id'])
         }, client_id=client_id)
-        flash(f"Questionnaire '{questionnaire_name}' submitted successfully!")
+        flash(f"Questionnaire '{questionnaire_name}' submitted successfully!", "success")
         return redirect(url_for('home_bp.homepage'))
 
     # GET request: fetch fields for this specific questionnaire
@@ -61,9 +85,6 @@ def questionnaire_form(client_id, questionnaire_name):
         client_name_row = cur.fetchone()
         client_name = client_name_row[0] if client_name_row else "Unknown"
 
-    # Redundant for now as I want core info to only appear once
-    # No longer appears in questionnaires as a must answer field
-    # Not removing yet as it will be used in the coming weeks
     static_fields = []
 
     return render_template(
@@ -74,12 +95,6 @@ def questionnaire_form(client_id, questionnaire_name):
         questionnaire_name=questionnaire_name,
         client_name=client_name
     )
-
-# Note: The old /questionnaire POST route is now redundant
-# Submissions are handled by the route above with client_id and questionnaire_name
-
-# The below function shows all available questionnaires grouped by client/organization.
-# Displays organization name with their available questionnaires.
 
 
 @questionnaire_bp.route('/questionnaire', methods=['GET'])
@@ -112,7 +127,7 @@ def select_questionnaire():
 
 """
 The below routes allow users to edit their previously submitted questionnaire answers.
-The user first selects which client's submission to edit, then sees a pre-populated
+The user first selects which client's submission to edit, then sees a pre populated
 form with their current answers (decrypted), and can save changes.
 """
 
@@ -131,7 +146,7 @@ def select_submission_to_edit():
 def edit_submission(submission_id):
     answers = get_submission_answers(submission_id, session['user_id'])
     if answers is None:
-        flash("Submission not found or access denied.")
+        flash("Submission not found or access denied.", "danger")
         return redirect(url_for('questionnaire_bp.select_submission_to_edit'))
 
     return render_template('edit_answers.html', fields=answers, submission_id=submission_id)
@@ -153,7 +168,7 @@ def save_edited_submission(submission_id):
     count = update_submission_answers(submission_id, user_id, updated_fields)
 
     if count is None:
-        flash("Submission not found or access denied.")
+        flash("Submission not found or access denied.", "danger")
         return redirect(url_for('questionnaire_bp.select_submission_to_edit'))
 
     log_data_update('answers', submission_id, {
@@ -162,5 +177,5 @@ def save_edited_submission(submission_id):
         'field_ids': list(updated_fields.keys())
     })
 
-    flash(f"Your answers have been updated ({count} field(s) changed).")
+    flash(f"Your answers have been updated ({count} field(s) changed).", "success")
     return redirect(url_for('pages_bp.right_to_access'))

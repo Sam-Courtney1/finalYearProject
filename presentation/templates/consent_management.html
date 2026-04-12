@@ -8,17 +8,17 @@
 
     <div class="user-info-banner" style="animation: fadeInUp 0.5s ease-out 0.1s both;">
         <p><i class="bi bi-info-circle me-2"></i>Under GDPR Article 7(3), you have the right to withdraw your consent at any time.
-        Withdrawing consent prevents the organisation from accessing your data, but keeps it stored so you can re-give consent later.
-        You can also permanently delete individual submissions.</p>
+        <strong>Withdrawing consent</strong> hides your data from the organisation (they can no longer view it), but your data remains stored so you can re-give consent later.
+        To permanently remove your data, use the <strong>Delete</strong> button, this is irreversible and removes all answers for that submission.</p>
     </div>
 
-    {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="alert alert-modern text-center">
-        {% for message in messages %}
-        <p class="mb-0">{{ message }}</p>
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} text-center">
+            <p class="mb-0">{{ message }}</p>
+        </div>
         {% endfor %}
-    </div>
     {% endif %}
     {% endwith %}
 

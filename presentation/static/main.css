@@ -1,11 +1,3 @@
-/* =================================================================
-   Organ Donation System - Main Stylesheet
-   Consolidated from style.css, questionare.css, audit_dashboard.css
-   ================================================================= */
-
-/* -----------------------------------------------------------------
-   1. CSS Custom Properties
-   ----------------------------------------------------------------- */
 :root {
     /* Primary palette */
     --color-primary: #7c3aed;
@@ -57,9 +49,6 @@
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* -----------------------------------------------------------------
-   2. Reset & Base
-   ----------------------------------------------------------------- */
 * {
     margin: 0;
     padding: 0;
@@ -77,9 +66,6 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* -----------------------------------------------------------------
-   3. Animations
-   ----------------------------------------------------------------- */
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(18px); }
     to { opacity: 1; transform: translateY(0); }
@@ -110,9 +96,6 @@ body {
     100% { background-position: 200% 0; }
 }
 
-/* -----------------------------------------------------------------
-   4. Typography
-   ----------------------------------------------------------------- */
 h1 { font-size: 2.25rem; font-weight: 700; letter-spacing: -0.025em; line-height: 1.2; }
 h2 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; }
 h3 { font-size: 1.25rem; font-weight: 600; line-height: 1.4; }
@@ -126,9 +109,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     background-clip: text;
 }
 
-/* -----------------------------------------------------------------
-   5. Navbar (all variants)
-   ----------------------------------------------------------------- */
 .navbar-modern {
     background: var(--color-surface) !important;
     border-bottom: 1px solid var(--color-border);
@@ -157,7 +137,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 }
 
 .navbar-modern .nav-link {
-    color: #374151 !important;
+    color: var(--color-text-secondary) !important;
     text-decoration: none;
     font-weight: 500;
     transition: all var(--transition-base);
@@ -210,9 +190,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     gap: 6px;
 }
 
-/* -----------------------------------------------------------------
-   6. Auth Pages (.auth-*)
-   ----------------------------------------------------------------- */
 .auth-background {
     min-height: 100vh;
     display: flex;
@@ -388,9 +365,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     background: linear-gradient(135deg, var(--color-primary-hover) 0%, #9333ea 100%);
 }
 
-/* -----------------------------------------------------------------
-   7. Flash Messages
-   ----------------------------------------------------------------- */
 .flash-message {
     background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
     color: #991b1b;
@@ -435,9 +409,33 @@ h5 { font-size: 1rem; font-weight: 600; }
     border-left: 4px solid var(--color-danger);
 }
 
-/* -----------------------------------------------------------------
-   8. Homepage
-   ----------------------------------------------------------------- */
+.alert-modern.alert-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border-left: 4px solid var(--color-warning);
+}
+
+.alert-modern.alert-info {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1e40af;
+    border-left: 4px solid var(--color-info);
+}
+
+.alert-modern .btn-close {
+    filter: none;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.alert-modern .btn-close:hover {
+    opacity: 0.8;
+}
+
+.alert-modern i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
 .homepage-main {
     text-align: center;
     max-width: 800px;
@@ -546,9 +544,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%);
 }
 
-/* -----------------------------------------------------------------
-   9. Content Pages (data display, forms)
-   ----------------------------------------------------------------- */
 .page-content {
     max-width: 1200px;
     margin: 40px auto;
@@ -584,9 +579,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     text-align: center;
 }
 
-/* -----------------------------------------------------------------
-   9.5. Modern Forms
-   ----------------------------------------------------------------- */
 .form-card {
     background: var(--color-surface);
     border-radius: var(--radius-xl);
@@ -640,9 +632,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     display: block;
 }
 
-/* -----------------------------------------------------------------
-   10. Cards
-   ----------------------------------------------------------------- */
 .data-card {
     background: var(--color-surface);
     border-radius: var(--radius-lg);
@@ -692,9 +681,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     transform: translateY(-2px);
 }
 
-/* -----------------------------------------------------------------
-   11. Tables
-   ----------------------------------------------------------------- */
 .table-wrapper {
     background: var(--color-surface);
     border-radius: var(--radius-lg);
@@ -735,7 +721,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     vertical-align: middle;
     padding: 14px 16px;
     border-top: 1px solid var(--color-border-light);
-    color: #374151;
+    color: var(--color-text-secondary);
 }
 
 .table-modern tbody tr {
@@ -750,9 +736,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
 }
 
-/* -----------------------------------------------------------------
-   12. Forms & Inputs
-   ----------------------------------------------------------------- */
 .form-control,
 .form-select {
     border: 2px solid var(--color-border);
@@ -775,7 +758,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 .form-label {
     font-size: 0.875rem; /* rem for scalable text */
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-secondary);
     margin-bottom: 6px;
     letter-spacing: 0.2px;
 }
@@ -798,7 +781,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     font-size: 15px;
     font-weight: 600;
     margin-bottom: 8px;
-    color: #374151;
+    color: var(--color-text-secondary);
     text-align: left;
     letter-spacing: 0.2px;
 }
@@ -846,7 +829,7 @@ h5 { font-size: 1rem; font-weight: 600; }
 .consent-check .form-check-label {
     font-size: 15px;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text-secondary);
     cursor: pointer;
     user-select: none;
 }
@@ -885,9 +868,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     text-align: center;
 }
 
-/* -----------------------------------------------------------------
-   13. Buttons
-   ----------------------------------------------------------------- */
 .btn {
     border-radius: var(--radius-md);
     padding: 10px 20px;
@@ -902,42 +882,42 @@ h5 { font-size: 1rem; font-weight: 600; }
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%) !important;
-    color: white !important;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    color: white;
     box-shadow: 0 4px 12px var(--color-primary-shadow);
-    border: none !important;
+    border: none;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4) !important;
-    background: linear-gradient(135deg, var(--color-primary-hover) 0%, #9333ea 100%) !important;
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+    background: linear-gradient(135deg, var(--color-primary-hover) 0%, #9333ea 100%);
 }
 
 .btn-success {
-    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-light) 100%) !important;
-    color: white !important;
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-light) 100%);
+    color: white;
     box-shadow: 0 4px 12px var(--color-success-shadow);
-    border: none !important;
+    border: none;
 }
 
 .btn-success:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4) !important;
-    background: linear-gradient(135deg, #047857 0%, var(--color-success) 100%) !important;
+    box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4);
+    background: linear-gradient(135deg, #047857 0%, var(--color-success) 100%);
 }
 
 .btn-danger {
-    background: linear-gradient(135deg, var(--color-danger) 0%, var(--color-danger-light) 100%) !important;
-    color: white !important;
+    background: linear-gradient(135deg, var(--color-danger) 0%, var(--color-danger-light) 100%);
+    color: white;
     box-shadow: 0 4px 12px var(--color-danger-shadow);
-    border: none !important;
+    border: none;
 }
 
 .btn-danger:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4) !important;
-    background: linear-gradient(135deg, #b91c1c 0%, var(--color-danger) 100%) !important;
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+    background: linear-gradient(135deg, #b91c1c 0%, var(--color-danger) 100%);
 }
 
 .btn-submit-questionnaire {
@@ -964,9 +944,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     background: linear-gradient(135deg, #047857 0%, var(--color-success) 100%);
 }
 
-/* -----------------------------------------------------------------
-   14. Badges
-   ----------------------------------------------------------------- */
 .status-badge {
     font-size: 0.75rem;
     font-weight: 600;
@@ -986,10 +963,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     background: linear-gradient(135deg, #fee2e2, #fecaca);
     color: #991b1b;
 }
-
-/* -----------------------------------------------------------------
-   15. Audit Dashboard
-   ----------------------------------------------------------------- */
 
 /* Stat Cards */
 .stat-card {
@@ -1066,10 +1039,10 @@ h5 { font-size: 1rem; font-weight: 600; }
 }
 
 .action-login { background-color: #059669; color: white; }
-.action-logout { background-color: #6b7280; color: white; }
+.action-logout { background-color: var(--color-text-secondary); color: white; }
 .action-view { background-color: #0891b2; color: white; }
 .action-create { background-color: var(--color-info); color: white; }
-.action-update { background-color: var(--color-warning); color: #1a1a1a; }
+.action-update { background-color: var(--color-warning); color: var(--color-text); }
 .action-delete { background-color: var(--color-danger); color: white; }
 .action-export { background-color: var(--color-primary); color: white; }
 .action-login_failed { background-color: var(--color-danger); color: white; }
@@ -1130,9 +1103,12 @@ h5 { font-size: 1rem; font-weight: 600; }
 
 #activity-map {
     height: 350px;
+    width: 100%;
     border-radius: var(--radius-md);
     border: 2px solid var(--color-border);
     z-index: 1;
+    overflow: hidden;
+    position: relative;
 }
 
 .map-info-bar {
@@ -1165,9 +1141,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     background-clip: text;
 }
 
-/* -----------------------------------------------------------------
-   16. Container Overrides (for pages using .container)
-   ----------------------------------------------------------------- */
 .page-container {
     animation: fadeInUp 0.6s ease-out;
     max-width: 900px;
@@ -1184,9 +1157,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     margin-bottom: 12px;
 }
 
-/* -----------------------------------------------------------------
-   17. Responsive Breakpoints
-   ----------------------------------------------------------------- */
 
 /* Tablet (768px and below) */
 @media (max-width: 768px) {
@@ -1306,16 +1276,12 @@ h5 { font-size: 1rem; font-weight: 600; }
 }
 
 /* Audit table mobile */
-@media (max-width: 767px) {
+@media (max-width: 768px) {
     .log-table .details-cell,
     .log-table th:last-child {
         display: none;
     }
 }
-
-/* -----------------------------------------------------------------
-   18. Landing Page
-   ----------------------------------------------------------------- */
 
 .landing-page {
     background: #0a0a12 !important;
@@ -1507,7 +1473,8 @@ h5 { font-size: 1rem; font-weight: 600; }
     border: 1px solid rgba(124, 58, 237, 0.15);
     border-radius: var(--radius-xl);
     padding: 36px 32px;
-    width: 380px;
+    max-width: 380px;
+    width: 100%;
     animation: scaleIn 0.7s ease-out 0.3s both;
     transition: all var(--transition-base);
 }
@@ -1704,10 +1671,6 @@ h5 { font-size: 1rem; font-weight: 600; }
         display: none;
     }
 }
-
-/* -----------------------------------------------------------------
-   19. Client Landing Page
-   ----------------------------------------------------------------- */
 
 .client-landing-page {
     background: #000000 !important;
@@ -2172,9 +2135,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     }
 }
 
-/* -----------------------------------------------------------------
-   15. Cookie/Privacy Notice Banner
-   ----------------------------------------------------------------- */
 .cookie-banner {
     position: fixed;
     bottom: 0;
@@ -2246,9 +2206,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     }
 }
 
-/* -----------------------------------------------------------------
-   16. Privacy Policy Page
-   ----------------------------------------------------------------- */
 .privacy-page {
     background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-alt) 100%);
 }
@@ -2470,9 +2427,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     }
 }
 
-/* -----------------------------------------------------------------
-   17. Consent & Export Enhancements
-   ----------------------------------------------------------------- */
 .consent-privacy-link {
     display: block;
     margin-top: 10px;
@@ -2497,13 +2451,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     margin-bottom: 8px;
 }
 
-/* =================================================================
-   20. Design System Upgrade – Premium Component Library
-   ================================================================= */
-
-/* -----------------------------------------------------------------
-   20.1 Skip Link & Screen Reader Utilities
-   ----------------------------------------------------------------- */
 .skip-link {
     position: absolute;
     top: -100%;
@@ -2537,9 +2484,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     border: 0;
 }
 
-/* -----------------------------------------------------------------
-   20.2 Navbar Active Indicator
-   ----------------------------------------------------------------- */
 .navbar-modern .nav-link.active {
     color: var(--color-primary) !important;
     background: var(--color-primary-bg);
@@ -2557,9 +2501,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     border-radius: 2px 2px 0 0;
 }
 
-/* -----------------------------------------------------------------
-   20.3 User Homepage Grid & Action Cards
-   ----------------------------------------------------------------- */
 .user-homepage-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -2683,9 +2624,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     }
 }
 
-/* -----------------------------------------------------------------
-   20.4 Client Homepage Grid & Action Cards
-   ----------------------------------------------------------------- */
 .client-homepage-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -2789,9 +2727,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     }
 }
 
-/* -----------------------------------------------------------------
-   20.5 Selection Cards (user-select-card)
-   ----------------------------------------------------------------- */
 .user-select-card {
     display: flex;
     align-items: center;
@@ -2857,9 +2792,6 @@ h5 { font-size: 1rem; font-weight: 600; }
 .stagger-item:nth-child(7) { animation-delay: 0.35s !important; }
 .stagger-item:nth-child(8) { animation-delay: 0.4s !important; }
 
-/* -----------------------------------------------------------------
-   20.6 Info Banners
-   ----------------------------------------------------------------- */
 .user-info-banner,
 .client-info-banner {
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
@@ -2883,9 +2815,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     color: var(--color-info);
 }
 
-/* -----------------------------------------------------------------
-   20.7 Empty States
-   ----------------------------------------------------------------- */
 .empty-state {
     text-align: center;
     padding: 48px 24px;
@@ -2920,9 +2849,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     line-height: 1.6;
 }
 
-/* -----------------------------------------------------------------
-   20.8 Export Button
-   ----------------------------------------------------------------- */
 .btn-export-data {
     display: inline-flex;
     align-items: center;
@@ -2946,9 +2872,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     color: white;
 }
 
-/* -----------------------------------------------------------------
-   20.9 User Dashboard Stats
-   ----------------------------------------------------------------- */
 .dashboard-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -3052,9 +2975,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     padding: 8px 0 16px;
 }
 
-/* -----------------------------------------------------------------
-   20.10 Breadcrumb Enhancement
-   ----------------------------------------------------------------- */
 .breadcrumb {
     background: none;
     padding: 0;
@@ -3082,9 +3002,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     color: var(--color-text-tertiary);
 }
 
-/* -----------------------------------------------------------------
-   20.11 Modal Enhancement
-   ----------------------------------------------------------------- */
 .modal-content {
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-xl);
@@ -3103,9 +3020,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     padding: 12px 24px 24px;
 }
 
-/* -----------------------------------------------------------------
-   20.12 Error Page Enhancement
-   ----------------------------------------------------------------- */
 .error-page {
     background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-alt) 100%);
 }
@@ -3137,9 +3051,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     line-height: 1.5;
 }
 
-/* -----------------------------------------------------------------
-   20.13 Accessibility Panel
-   ----------------------------------------------------------------- */
 .a11y-toggle-btn {
     position: fixed;
     bottom: 24px;
@@ -3277,9 +3188,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     font-family: 'OpenDyslexic', sans-serif !important;
 }
 
-/* -----------------------------------------------------------------
-   20.14 Button Refinements
-   ----------------------------------------------------------------- */
 .btn:active {
     transform: translateY(0) scale(0.98) !important;
 }
@@ -3312,9 +3220,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     box-shadow: 0 4px 12px var(--color-primary-shadow) !important;
 }
 
-/* -----------------------------------------------------------------
-   20.15 Smooth Behaviors & Polish
-   ----------------------------------------------------------------- */
 html {
     scroll-behavior: smooth;
 }
@@ -3356,79 +3261,399 @@ html {
     background: var(--color-text-tertiary);
 }
 
-/* -----------------------------------------------------------------
-   20.16 Auditor Login Enhancement
-   ----------------------------------------------------------------- */
+
+/* Override body background for auditor page */
+body.auditor-body {
+    background: #0b0f1a;
+}
+
+/* Wrapper */
 .auditor-login-wrapper {
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 32px 16px;
-    background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-alt) 100%);
     position: relative;
     overflow: hidden;
+    background: #0b0f1a;
 }
 
-.auditor-login-wrapper::before {
-    content: '';
+/* Animated grid background */
+.auditor-grid-bg {
     position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: auditorGridDrift 20s linear infinite;
+}
+
+@keyframes auditorGridDrift {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(48px, 48px); }
+}
+
+/* Ambient glow orbs */
+.auditor-glow {
+    position: absolute;
     border-radius: 50%;
-    animation: pulse 8s ease-in-out infinite;
+    filter: blur(80px);
+    opacity: 0.4;
+    pointer-events: none;
 }
 
-.auditor-login-card {
-    background: var(--color-surface);
-    color: var(--color-text);
-    padding: 40px 36px;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
-    width: 100%;
-    max-width: 440px;
-    border: 1px solid var(--color-primary-border);
-    position: relative;
-    z-index: 1;
-    transition: transform var(--transition-base), box-shadow var(--transition-base);
-    animation: scaleIn 0.6s ease-out 0.2s both;
+.auditor-glow--1 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.15), transparent 70%);
+    top: -15%;
+    right: -10%;
+    animation: auditorFloat1 12s ease-in-out infinite;
 }
 
-.auditor-login-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-xl);
+.auditor-glow--2 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.12), transparent 70%);
+    bottom: -10%;
+    left: -10%;
+    animation: auditorFloat2 15s ease-in-out infinite;
 }
 
-.auditor-login-card .card-icon-large {
-    width: 64px;
-    height: 64px;
-    border-radius: var(--radius-lg);
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--color-info);
+@keyframes auditorFloat1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-30px, 20px) scale(1.1); }
+}
+
+@keyframes auditorFloat2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(20px, -30px) scale(1.05); }
+}
+
+/* Floating security badges */
+.auditor-floating-badge {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(56, 189, 248, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
+    color: rgba(56, 189, 248, 0.2);
+    font-size: 1.1rem;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+}
+
+.auditor-floating-badge--1 {
+    top: 18%;
+    left: 12%;
+    animation: auditorBadgeFloat 8s ease-in-out infinite;
+}
+
+.auditor-floating-badge--2 {
+    top: 25%;
+    right: 15%;
+    animation: auditorBadgeFloat 10s ease-in-out 2s infinite;
+}
+
+.auditor-floating-badge--3 {
+    bottom: 20%;
+    left: 20%;
+    animation: auditorBadgeFloat 9s ease-in-out 4s infinite;
+}
+
+@keyframes auditorBadgeFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+    50% { transform: translateY(-12px) rotate(5deg); opacity: 1; }
+}
+
+/* Card, frosted glass */
+.auditor-login-card {
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    color: #e2e8f0;
+    padding: 0;
+    border-radius: 20px;
+    box-shadow:
+        0 0 0 1px rgba(56, 189, 248, 0.1),
+        0 24px 80px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    animation: auditorCardReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes auditorCardReveal {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Status bar at top of card */
+.auditor-status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: rgba(56, 189, 248, 0.04);
+    border-bottom: 1px solid rgba(56, 189, 248, 0.08);
+}
+
+.auditor-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+    animation: auditorPulse 2s ease-in-out infinite;
+}
+
+@keyframes auditorPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.auditor-status-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: rgba(52, 211, 153, 0.7);
+    text-transform: uppercase;
+}
+
+/* Card header */
+.auditor-card-header {
+    padding: 32px 28px 0;
+    text-align: center;
+}
+
+/* Icon ring */
+.auditor-icon-ring {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(124, 58, 237, 0.1));
+    border: 1px solid rgba(56, 189, 248, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
     font-size: 1.75rem;
-    margin: 0 auto 16px;
+    color: #38bdf8;
+    position: relative;
+}
+
+.auditor-icon-ring::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1px dashed rgba(56, 189, 248, 0.12);
+    animation: auditorSpin 20s linear infinite;
+}
+
+@keyframes auditorSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .auditor-login-card h2 {
     margin-bottom: 8px;
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--color-text);
-    letter-spacing: -0.3px;
-    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    letter-spacing: -0.5px;
+    font-family: 'DM Sans', sans-serif;
 }
 
-.auditor-login-card .subtitle {
-    text-align: center;
-    color: var(--color-text-secondary);
+.auditor-subtitle {
+    color: #64748b;
+    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.3px;
+    margin-bottom: 0;
+    line-height: 1.5;
+}
+
+/* Flash messages */
+.auditor-flash {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 28px 0;
+    padding: 12px 16px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 10px;
+    color: #fca5a5;
+    font-size: 0.85rem;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.auditor-flash i {
+    color: #ef4444;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+/* Form */
+.auditor-form {
+    padding: 28px;
+}
+
+.auditor-field {
+    margin-bottom: 20px;
+}
+
+.auditor-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.auditor-label i {
+    font-size: 0.85rem;
+    color: #38bdf8;
+}
+
+.auditor-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(100, 116, 139, 0.2);
+    border-radius: 10px;
+    color: #e2e8f0;
+    font-family: 'DM Sans', sans-serif;
     font-size: 0.9375rem;
-    margin-bottom: 28px;
+    transition: all 0.25s ease;
+    outline: none;
+}
+
+.auditor-input::placeholder {
+    color: #334155;
+    font-size: 0.875rem;
+}
+
+.auditor-input:focus {
+    border-color: rgba(56, 189, 248, 0.4);
+    background: rgba(56, 189, 248, 0.03);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08), 0 0 20px rgba(56, 189, 248, 0.05);
+}
+
+/* Submit button */
+.auditor-submit-btn {
+    width: 100%;
+    padding: 14px 24px;
+    margin-top: 4px;
+    background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+    border: none;
+    border-radius: 10px;
+    color: #0c1222;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.auditor-submit-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s ease;
+}
+
+.auditor-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(56, 189, 248, 0.3);
+}
+
+.auditor-submit-btn:hover::before {
+    transform: translateX(100%);
+}
+
+.auditor-submit-btn:active {
+    transform: translateY(0);
+}
+
+.auditor-submit-btn i {
+    transition: transform 0.3s ease;
+}
+
+.auditor-submit-btn:hover i {
+    transform: translateX(3px);
+}
+
+/* Card footer */
+.auditor-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px 28px;
+    border-top: 1px solid rgba(56, 189, 248, 0.06);
+    background: rgba(0, 0, 0, 0.15);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #334155;
+}
+
+.auditor-card-footer i {
+    color: rgba(56, 189, 248, 0.3);
+    font-size: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .auditor-login-card {
+        max-width: 100%;
+        border-radius: 16px;
+    }
+
+    .auditor-form {
+        padding: 24px 20px;
+    }
+
+    .auditor-card-header {
+        padding: 28px 20px 0;
+    }
+
+    .auditor-floating-badge {
+        display: none;
+    }
 }
 
 .page-title-row .page-title {
@@ -3471,7 +3696,7 @@ html {
 .auth-card .consent-check .form-check-label {
     font-size: 13px;
     font-weight: 400;
-    color: #374151;
+    color: var(--color-text-secondary);
     line-height: 1.5;
 }
 
@@ -3485,9 +3710,79 @@ html {
     text-decoration: underline;
 }
 
-/* =================================================================
-   20. ENHANCED USER-SIDE STYLES (.user-page)
-   ================================================================= */
+/* Password requirements checklist */
+.password-requirements {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+    margin: 0;
+    padding: 0 14px;
+    background: linear-gradient(135deg, #f8f7fc 0%, #f1f0f7 100%);
+    border-radius: var(--radius-md, 12px);
+    border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.password-requirements.show {
+    max-height: 200px;
+    opacity: 1;
+    margin: 8px 0 4px;
+    padding: 12px 14px;
+}
+
+.password-requirements.all-met {
+    border-color: rgba(5, 150, 105, 0.3);
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.pw-req-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted, #9ca3af);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 6px 0;
+}
+
+.pw-req-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+}
+
+.pw-req-list li {
+    font-size: 13px;
+    font-weight: 500;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s ease;
+}
+
+.pw-req-list li i {
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+.pw-req-list li.unmet {
+    color: #9ca3af;
+}
+
+.pw-req-list li.unmet i {
+    color: #d1d5db;
+}
+
+.pw-req-list li.met {
+    color: #059669;
+}
+
+.pw-req-list li.met i {
+    color: #059669;
+}
 
 /* Floating decorative shapes for user pages */
 .user-page .page-content::before,
@@ -3563,9 +3858,6 @@ html {
     font-size: 0.8125rem;
 }
 
-/* =================================================================
-   22. CLIENT-SIDE THEME (.client-page)
-   ================================================================= */
 
 :root {
     --client-primary: #0d9488;
@@ -3789,10 +4081,6 @@ html {
     }
 }
 
-/* =================================================================
-   23. ADDITIONAL ANIMATIONS
-   ================================================================= */
-
 @keyframes slideInRight {
     from { opacity: 0; transform: translateX(20px); }
     to { opacity: 1; transform: translateX(0); }
@@ -3833,10 +4121,6 @@ html {
 .table-wrapper::-webkit-scrollbar-thumb:hover {
     background: var(--color-text-secondary);
 }
-
-/* =================================================================
-   ACCESSIBILITY - screen reader, keyboard, sight impairment support
-   ================================================================= */
 
 /* Screen reader only text - hidden visually but read by assistive tech */
 .sr-only {
@@ -4073,4 +4357,169 @@ html {
 .landing-page .a11y-panel-option,
 .client-landing-page .a11y-panel-option {
     border-color: rgba(255,255,255,0.08);
+}
+
+@keyframes tutorialSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9998;
+    pointer-events: auto;
+}
+
+.tutorial-spotlight {
+    position: fixed;
+    border-radius: var(--radius-lg, 16px);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(124, 58, 237, 0.35);
+    background: transparent;
+    z-index: 9999;
+    transition: top 0.4s ease, left 0.4s ease, width 0.4s ease, height 0.4s ease;
+    pointer-events: none;
+}
+
+.tutorial-tooltip {
+    position: fixed;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 0;
+    max-width: 400px;
+    min-width: 340px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(124, 58, 237, 0.08);
+    z-index: 10000;
+    overflow: hidden;
+}
+
+.tutorial-tooltip.tutorial-animate {
+    animation: tutorialSlideIn 0.35s ease-out;
+}
+
+.tutorial-tooltip-inner {
+    padding: 24px 24px 20px;
+    border-left: 4px solid var(--color-primary, #7c3aed);
+}
+
+.tutorial-dots {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.tutorial-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.tutorial-dot.active {
+    background: var(--color-primary, #7c3aed);
+    transform: scale(1.25);
+}
+
+.tutorial-dot.completed {
+    background: #a78bfa;
+}
+
+.tutorial-step-indicator {
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+}
+
+.tutorial-title {
+    color: var(--color-primary, #7c3aed);
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+}
+
+.tutorial-text {
+    color: var(--color-text-secondary, #4b5563);
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 18px 0;
+}
+
+.tutorial-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.tutorial-btn-next {
+    background: var(--color-primary, #7c3aed);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 9px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.tutorial-btn-next:hover {
+    background: var(--color-primary-hover, #6d28d9);
+    transform: translateY(-1px);
+}
+
+.tutorial-btn-skip {
+    background: transparent;
+    color: var(--color-text-muted, #9ca3af);
+    border: none;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.tutorial-btn-skip:hover {
+    color: var(--color-text-secondary, #4b5563);
+}
+
+.tutorial-progress {
+    height: 3px;
+    background: #f3f4f6;
+}
+
+.tutorial-progress-bar {
+    height: 100%;
+    background: var(--color-primary, #7c3aed);
+    transition: width 0.4s ease;
+    border-radius: 0 3px 0 0;
+}
+
+/* Responsive tooltip for mobile */
+@media (max-width: 576px) {
+    .tutorial-tooltip {
+        min-width: 280px;
+        max-width: calc(100vw - 32px);
+    }
+
+    .tutorial-tooltip-inner {
+        padding: 20px 18px 16px;
+    }
+
+    .tutorial-title {
+        font-size: 18px;
+    }
+
+    .tutorial-text {
+        font-size: 14px;
+    }
 }

@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, session
 from functools import wraps
+import re
 from application.extensions import limiter
-from application.services.jwt_utils import create_token, decode_token
+from application.services.jwt_utils import create_token, decode_token, revoke_token
 from application.services.authentication import register_user, authenticate_user, validate_password
 from data.user_database import (
     find_by_username, get_user_data, delete_user,
@@ -18,7 +19,11 @@ from data.submission_database import (
     withdraw_consent, reinstate_consent, delete_single_submission, get_user_dashboard_stats
 )
 from application.services.dsr_service import log_dsr
+from application.services.consent_service import validate_consent
 from data.dsr_database import get_dsrs_for_user
+
+EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+USERNAME_RE = re.compile(r'^[a-zA-Z0-9_.\-]+$')
 
 """
 API routes for the mobile app
@@ -27,6 +32,17 @@ All routes start with /api/ and use JWT tokens instead of browser cookies for au
 """
 
 api_bp = Blueprint('api_bp', __name__)
+
+
+def _format_submission_list(submissions):
+    """Convert raw submission tuples to a list of dicts for JSON responses."""
+    return [{
+        "submission_id": s[0],
+        "client_id": s[1],
+        "client_name": s[2],
+        "consent_withdrawn": s[3],
+        "questionnaire_name": s[4]
+    } for s in submissions]
 
 
 def token_required(f):
@@ -74,10 +90,21 @@ def api_register():
     if not all([username, password, age, address]):
         return jsonify({"error": "username, password, age, and address are required"}), 400
 
+    # Validate username format and length
+    if not username or len(username.strip()) < 3:
+        return jsonify({"error": "Username must be at least 3 characters"}), 400
+    if len(username) > 50:
+        return jsonify({"error": "Username must be 50 characters or fewer"}), 400
+    if not USERNAME_RE.match(username):
+        return jsonify({"error": "Username may only contain letters, numbers, underscores, hyphens, and dots"}), 400
+
     if not email:
         return jsonify({"error": "Email address is required for account verification"}), 400
 
-    # Validate age — must be 18+ to use the system (GDPR Article 8)
+    if not EMAIL_RE.match(email):
+        return jsonify({"error": "Please enter a valid email address"}), 400
+
+    # Validate age must be 18+ to use the system
     try:
         age_int = int(age)
         if age_int < 18:
@@ -155,9 +182,13 @@ def api_login():
 @api_bp.route('/logout', methods=['POST'])
 @token_required
 def api_logout():
-    """Logs the logout event, the mobile app deletes the token on its side"""
+    """Logs the logout event and revokes the JWT so it cannot be reused"""
     user_id = session['user_id']
     log_logout(user_id, 'user')
+    # Revoke the token server side so a stolen token cannot be reused after logout
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        revoke_token(auth_header.split(' ', 1)[1])
     return jsonify({"message": "Logged out successfully"}), 200
 
 
@@ -167,7 +198,7 @@ def api_logout():
 @token_required
 @audit_log('view', 'user_data')
 def api_user_data():
-    """Returns all data stored about the user as JSON (Right to Access, GDPR Article 15)"""
+    """Returns all data stored about the user as JSON (Right to Access)"""
     user_id = session['user_id']
     log_dsr(user_id, session.get('username'), 'access', source='mobile_api')
     static_data, dynamic_data = get_user_data(user_id)
@@ -232,7 +263,6 @@ def api_delete_data():
 def api_list_clients():
     """
     Returns list of all organizations with their questionnaires.
-    Format: [{"client_id": 1, "name": "HSE", "questionnaires": ["Cardio Health", "Diabetes Study"]}, ...]
     """
     with get_db() as (conn, cur):
         # Get all distinct questionnaires with client info
@@ -265,9 +295,12 @@ def api_list_clients():
 @audit_log('view', 'questionnaire_fields', get_client_id=lambda **kw: kw.get('client_id'))
 def api_get_questionnaire(client_id, questionnaire_name):
     """
-    Returns the questionnaire fields for a specific client's specific questionnaire.
+    Returns the questionnaire fields for a specific clients specific questionnaire.
     Mobile app uses this to build the form.
     """
+    if not questionnaire_name or len(questionnaire_name) > 100:
+        return jsonify({"error": "Invalid questionnaire name"}), 400
+
     with get_db() as (conn, cur):
         cur.execute("""
             SELECT field_id, field_label, field_type, category
@@ -295,15 +328,18 @@ def api_get_questionnaire(client_id, questionnaire_name):
 @token_required
 def api_submit_questionnaire(client_id, questionnaire_name):
     """
-    Submits questionnaire answers for a specific client's specific questionnaire.
-    Request body: {"consent": true, "fields": {"field_id": "value", ...}}
+    Submits questionnaire answers for a specific clients specific questionnaire.
     """
+    if not questionnaire_name or len(questionnaire_name) > 100:
+        return jsonify({"error": "Invalid questionnaire name"}), 400
+
     data = request.get_json()
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
-    if not data.get('consent'):
-        return jsonify({"error": "Consent is required"}), 400
+    consent_ok, consent_err = validate_consent(data)
+    if not consent_ok:
+        return jsonify({"error": consent_err}), 400
 
     user_id = session['user_id']
 
@@ -314,7 +350,10 @@ def api_submit_questionnaire(client_id, questionnaire_name):
         form_dict[f"field_{field_id}"] = value
     form_dict['consent'] = 'on'
 
-    handle_questionnaire_submission(user_id, client_id, questionnaire_name, form_dict)
+    try:
+        handle_questionnaire_submission(user_id, client_id, questionnaire_name, form_dict)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     log_data_create('questionnaire_submission', user_id, {
         'client_id': client_id,
@@ -332,19 +371,11 @@ def api_submit_questionnaire(client_id, questionnaire_name):
 @token_required
 @audit_log('view', 'submissions')
 def api_list_submissions():
-    """Returns list of user's questionnaire submissions with client info and questionnaire names"""
+    """Returns list of users questionnaire submissions with client info and questionnaire names"""
     user_id = session['user_id']
     submissions = get_user_submissions(user_id)
 
-    submission_list = [{
-        "submission_id": s[0],
-        "client_id": s[1],
-        "client_name": s[2],
-        "consent_withdrawn": s[3],
-        "questionnaire_name": s[4]
-    } for s in submissions]
-
-    return jsonify({"submissions": submission_list}), 200
+    return jsonify({"submissions": _format_submission_list(submissions)}), 200
 
 
 @api_bp.route('/submissions/<int:submission_id>/answers', methods=['GET'])
@@ -375,7 +406,6 @@ def api_get_submission_answers(submission_id):
 def api_update_submission_answers(submission_id):
     """
     Updates answers for a submission.
-    Request body: {"fields": {"<field_id>": "<new_value>", ...}}
     """
     data = request.get_json()
     if not data or 'fields' not in data:
@@ -405,19 +435,11 @@ def api_update_submission_answers(submission_id):
 @token_required
 @audit_log('view', 'consent_status')
 def api_list_consent_status():
-    """Returns consent status for all of user's submissions with questionnaire names"""
+    """Returns consent status for all of users submissions with questionnaire names"""
     user_id = session['user_id']
     submissions = get_user_submissions(user_id)
 
-    consent_list = [{
-        "submission_id": s[0],
-        "client_id": s[1],
-        "client_name": s[2],
-        "consent_withdrawn": s[3],
-        "questionnaire_name": s[4]
-    } for s in submissions]
-
-    return jsonify({"consents": consent_list}), 200
+    return jsonify({"consents": _format_submission_list(submissions)}), 200
 
 
 @api_bp.route('/submissions/<int:submission_id>/consent/withdraw', methods=['POST'])
@@ -497,7 +519,7 @@ def api_delete_submission(submission_id):
 @token_required
 @audit_log('view', 'data_subject_requests')
 def api_user_dsr_history():
-    """Returns the user's own DSR history (for transparency)"""
+    """Returns the users own DSR history (for transparency)"""
     user_id = session['user_id']
     dsrs = get_dsrs_for_user(user_id)
 

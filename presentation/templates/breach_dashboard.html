@@ -144,7 +144,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <small>{{ breach.discovered_at.strftime('%Y-%m-%d %H:%M') if breach.discovered_at else 'N/A' }}</small>
+                        <small>{% if breach.discovered_at %}<time datetime="{{ breach.discovered_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ breach.discovered_at.strftime('%Y-%m-%d %H:%M') }}</time>{% else %}N/A{% endif %}</small>
                     </td>
                     <td>
                         {% if breach.hours_remaining is none %}

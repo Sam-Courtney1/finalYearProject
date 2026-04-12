@@ -20,9 +20,21 @@
     <label for="regEmail" class="sr-only">Email address</label>
     <input type="email" name="email" id="regEmail" placeholder="Email address (used for login verification)" required>
     <label for="regPassword" class="sr-only">Password</label>
-    <input type="password" name="password" id="regPassword" placeholder="Password (8 characters)" required>
+    <input type="password" name="password" id="regPassword" placeholder="Password" required autocomplete="new-password">
+    <div class="password-requirements" id="passwordReqs">
+        <p class="pw-req-title">Password must contain:</p>
+        <ul class="pw-req-list">
+            <li id="req-length"><i class="bi bi-x-circle"></i> At least 8 characters</li>
+            <li id="req-upper"><i class="bi bi-x-circle"></i> One uppercase letter</li>
+            <li id="req-lower"><i class="bi bi-x-circle"></i> One lowercase letter</li>
+            <li id="req-digit"><i class="bi bi-x-circle"></i> One number</li>
+            <li id="req-special"><i class="bi bi-x-circle"></i> One special character (!@#$%...)</li>
+        </ul>
+    </div>
     <label for="regAge" class="sr-only">Age</label>
-    <input type="number" name="age" id="regAge" placeholder="Age (must be 18+)" min="18" max="120" required>
+    <!-- input validation and sanitization - blocks non-numeric characters (e, E, ., +, -) -->
+    <input type="number" name="age" id="regAge" placeholder="Age (must be 18+)" min="18" max="120" required
+           onkeydown="return !['e','E','.','+','-'].includes(event.key)">
     <label for="regAddress" class="sr-only">Address</label>
     <input type="text" name="address" id="regAddress" placeholder="Address" required>
     <div class="consent-check">
@@ -38,4 +50,60 @@
         </button>
     </div>
 </form>
+<script>
+(function() {
+    var pw = document.getElementById('regPassword');
+    var reqs = {
+        length:  { el: document.getElementById('req-length'),  test: function(v) { return v.length >= 8; } },
+        upper:   { el: document.getElementById('req-upper'),   test: function(v) { return /[A-Z]/.test(v); } },
+        lower:   { el: document.getElementById('req-lower'),   test: function(v) { return /[a-z]/.test(v); } },
+        digit:   { el: document.getElementById('req-digit'),   test: function(v) { return /\d/.test(v); } },
+        special: { el: document.getElementById('req-special'), test: function(v) { return /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'`~]/.test(v); } }
+    };
+
+    var reqsBox = document.getElementById('passwordReqs');
+
+    pw.addEventListener('focus', function() {
+        reqsBox.classList.add('show');
+    });
+
+    pw.addEventListener('input', function() {
+        var val = pw.value;
+        var allMet = true;
+        for (var key in reqs) {
+            var met = reqs[key].test(val);
+            var li = reqs[key].el;
+            var icon = li.querySelector('i');
+            if (met) {
+                li.classList.add('met');
+                li.classList.remove('unmet');
+                icon.className = 'bi bi-check-circle-fill';
+            } else {
+                li.classList.remove('met');
+                li.classList.add('unmet');
+                icon.className = 'bi bi-x-circle';
+                allMet = false;
+            }
+        }
+        if (allMet) {
+            reqsBox.classList.add('all-met');
+        } else {
+            reqsBox.classList.remove('all-met');
+        }
+    });
+
+    // Prevent form submission if password requirements not met
+    pw.closest('form').addEventListener('submit', function(e) {
+        var val = pw.value;
+        for (var key in reqs) {
+            if (!reqs[key].test(val)) {
+                e.preventDefault();
+                reqsBox.classList.add('show');
+                pw.focus();
+                return;
+            }
+        }
+    });
+})();
+</script>
 {% endblock card_content %}

@@ -2,25 +2,10 @@ from functools import wraps
 from flask import request, session
 from data.audit_database import insert_audit_log
 
-"""
-Audit Service - Decorator and Helper Functions
-GDPR Article 32 - Security of Processing
-
-This module provides the @audit_log decorator for automatically logging
-access to routes, plus helper functions for manual audit logging.
-
-The decorator captures:
-- Who performed the action (user/client ID from session)
-- What action was performed
-- When it happened (automatic timestamp)
-- From where (IP address, user agent)
-- What data was accessed (target table/ID)
-"""
-
 
 def get_client_ip():
     """
-    Gets the real client IP address, handling proxies.
+    Gets the real client IP address
     """
     # Check for forwarded IP (when behind load balancer/proxy)
     if request.headers.get('X-Forwarded-For'):
@@ -58,26 +43,8 @@ def get_audit_client_id(actor_type=None):
 
 
 def audit_log(action, target_table=None, get_target_id=None, get_client_id=None):
-    """
-    Decorator for automatically logging route access.
+    """ Decorator for automatically logging route access."""
 
-    Parameters:
-    - action: The action being performed ('view', 'create', 'update', 'delete', 'export', 'login', 'logout')
-    - target_table: The database table being accessed (optional)
-    - get_target_id: Function to extract target_id from request/kwargs (optional)
-    - get_client_id: Function to extract client_id from request/kwargs (optional)
-
-    Usage:
-        @app.route('/user/<int:user_id>')
-        @audit_log('view', 'users', lambda **kw: kw.get('user_id'))
-        def view_user(user_id):
-            ...
-
-        @app.route('/questionnaire/<int:client_id>/<name>')
-        @audit_log('view', 'questionnaire_fields', get_client_id=lambda **kw: kw.get('client_id'))
-        def questionnaire_form(client_id, name):
-            ...
-    """
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -139,7 +106,7 @@ def audit_log(action, target_table=None, get_target_id=None, get_client_id=None)
 def log_login_success(user_id, user_type='user'):
     """
     Logs a successful login event.
-    Client logins are tagged with client_id; user logins are not client-specific.
+    Client logins are tagged with client_id, user logins are not client specific.
     """
     client_id = user_id if user_type == 'client' else None
     insert_audit_log(
@@ -184,9 +151,9 @@ def log_logout(user_id, user_type='user'):
     )
 
 
-def log_data_access(user_id, target_table, target_id=None, details=None, client_id=None):
+def _log_data_event(action, target_table=None, target_id=None, details=None, client_id=None):
     """
-    Logs data access event.
+    Shared helper for logging data events (view, create, update, delete, export).
     """
     actor_id, actor_type = get_actor_info()
     if client_id is None:
@@ -194,7 +161,7 @@ def log_data_access(user_id, target_table, target_id=None, details=None, client_
     insert_audit_log(
         actor_id=actor_id,
         actor_type=actor_type,
-        action='view',
+        action=action,
         target_table=target_table,
         target_id=target_id,
         ip_address=get_client_ip(),
@@ -202,87 +169,26 @@ def log_data_access(user_id, target_table, target_id=None, details=None, client_
         details=details,
         client_id=client_id
     )
+
+
+def log_data_access(user_id, target_table, target_id=None, details=None, client_id=None):
+    _log_data_event('view', target_table, target_id, details, client_id)
 
 
 def log_data_create(target_table, target_id, details=None, client_id=None):
-    """
-    Logs data creation event.
-    """
-    actor_id, actor_type = get_actor_info()
-    if client_id is None:
-        client_id = get_audit_client_id(actor_type)
-    insert_audit_log(
-        actor_id=actor_id,
-        actor_type=actor_type,
-        action='create',
-        target_table=target_table,
-        target_id=target_id,
-        ip_address=get_client_ip(),
-        user_agent=request.headers.get('User-Agent'),
-        details=details,
-        client_id=client_id
-    )
+    _log_data_event('create', target_table, target_id, details, client_id)
 
 
 def log_data_update(target_table, target_id, details=None, client_id=None):
-    """
-    Logs data update event.
-    """
-    actor_id, actor_type = get_actor_info()
-    if client_id is None:
-        client_id = get_audit_client_id(actor_type)
-    insert_audit_log(
-        actor_id=actor_id,
-        actor_type=actor_type,
-        action='update',
-        target_table=target_table,
-        target_id=target_id,
-        ip_address=get_client_ip(),
-        user_agent=request.headers.get('User-Agent'),
-        details=details,
-        client_id=client_id
-    )
+    _log_data_event('update', target_table, target_id, details, client_id)
 
 
 def log_data_delete(target_table, target_id, details=None, client_id=None):
-    """
-    Logs data deletion event.
-    """
-    actor_id, actor_type = get_actor_info()
-    if client_id is None:
-        client_id = get_audit_client_id(actor_type)
-    insert_audit_log(
-        actor_id=actor_id,
-        actor_type=actor_type,
-        action='delete',
-        target_table=target_table,
-        target_id=target_id,
-        ip_address=get_client_ip(),
-        user_agent=request.headers.get('User-Agent'),
-        details=details,
-        client_id=client_id
-    )
+    _log_data_event('delete', target_table, target_id, details, client_id)
 
 
 def log_data_export(user_id, export_format='json', details=None, client_id=None):
-    """
-    Logs data export event.
-    """
-    actor_id, actor_type = get_actor_info()
-    if client_id is None:
-        client_id = get_audit_client_id(actor_type)
     export_details = {'format': export_format}
     if details:
         export_details.update(details)
-
-    insert_audit_log(
-        actor_id=actor_id,
-        actor_type=actor_type,
-        action='export',
-        target_table='user_data',
-        target_id=user_id,
-        ip_address=get_client_ip(),
-        user_agent=request.headers.get('User-Agent'),
-        details=export_details,
-        client_id=client_id
-    )
+    _log_data_event('export', 'user_data', user_id, export_details, client_id)
