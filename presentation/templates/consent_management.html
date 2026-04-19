@@ -12,16 +12,6 @@
         To permanently remove your data, use the <strong>Delete</strong> button, this is irreversible and removes all answers for that submission.</p>
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }} text-center">
-            <p class="mb-0">{{ message }}</p>
-        </div>
-        {% endfor %}
-    {% endif %}
-    {% endwith %}
-
     {% if submissions %}
     <div class="table-wrapper mt-4" style="animation: fadeInUp 0.5s ease-out 0.2s both;">
         <table class="table table-modern align-middle text-center">

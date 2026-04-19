@@ -17,16 +17,6 @@
     </h2>
     <p class="text-center text-muted mb-4" style="animation: slideInUp 0.5s ease-out 0.1s both;">Add and manage fields for this questionnaire</p>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-modern alert-{{ category }} text-center">
-            <p class="mb-0">{{ message }}</p>
-        </div>
-        {% endfor %}
-    {% endif %}
-    {% endwith %}
-
     <div class="form-card mb-4" style="animation: slideInUp 0.5s ease-out 0.15s both;">
         <h5 style="margin-bottom:16px;font-weight:600;color:var(--color-text);"><i class="bi bi-plus-circle me-2" style="color:var(--client-primary);"></i>Add New Field</h5>
         <form method="post" class="row g-2">

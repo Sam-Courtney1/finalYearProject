@@ -98,7 +98,6 @@
 <div class="container-fluid mt-4">
     <h1 class="mb-2"><i class="bi bi-shield-lock me-2"></i>Audit Log Dashboard</h1>
     <p class="text-muted mb-4">
-        GDPR Article 32 - Security of Processing |
         {% if is_auditor %}
         Full system audit trail (all clients and users)
         {% else %}
@@ -338,20 +337,7 @@
         </ul>
     </nav>
     {% endif %}
-
-    <!-- Action Summary -->
-    <div class="row mt-4 mb-4">
-        <div class="col-12">
-            <h5><i class="bi bi-bar-chart me-2"></i>Action Summary (Current Filter)</h5>
-            <div class="d-flex flex-wrap gap-2">
-                {% for action, count in action_summary.items() %}
-                <span class="badge bg-secondary p-2">
-                    {{ action }}: {{ count }}
-                </span>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
+    
 </div>
 {% endblock content %}
 
@@ -414,12 +400,6 @@
                         weight: 1,
                         dashArray: '5,5'
                     }).addTo(map);
-
-                    currentMarker.bindPopup(
-                        '<strong>IP:</strong> ' + data.ip + '<br>' +
-                        '<strong>Approx. Location:</strong> ' + data.city + ', ' + data.country + '<br>' +
-                        '<strong>ISP:</strong> ' + data.isp
-                    ).openPopup();
 
                     map.flyTo([data.lat, data.lon], 10, { duration: 1.5 });
 

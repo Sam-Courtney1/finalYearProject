@@ -59,7 +59,7 @@ def handle_questionnaire_submission(user_id, client_id, questionnaire_name, form
             if category in ("PII", "Medical"):
                 cur.execute("""
                             INSERT INTO answers (submission_id, field_id, value)
-                            VALUES (%s, %s, pgp_sym_encrypt(%s, %s)::text);
+                            VALUES (%s, %s, pgp_sym_encrypt(%s, %s, 'cipher-algo=aes256')::text);
                             """, (submission_id, field_id, value, key))
             elif category == "Hashed":
                 hashed_val = generate_password_hash(value)

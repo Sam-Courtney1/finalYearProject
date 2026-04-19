@@ -231,7 +231,7 @@ def api_user_data():
 @token_required
 @audit_log('delete', 'users')
 def api_delete_account():
-    """Deletes the user account and all their data (Right to Forget, GDPR Article 17)"""
+    """Deletes the user account and all their data"""
     user_id = session['user_id']
     log_dsr(user_id, session.get('username'), 'erasure', source='mobile_api')
     log_data_delete('users', user_id, {'action': 'right_to_forget', 'complete_deletion': True, 'source': 'mobile_api'})
@@ -528,7 +528,6 @@ def api_user_dsr_history():
         "request_type": d['request_type'],
         "status": d['status'],
         "created_at": d['created_at'].isoformat() if d['created_at'] else None,
-        "completed_at": d['completed_at'].isoformat() if d['completed_at'] else None,
         "deadline": d['deadline'].isoformat() if d['deadline'] else None
     } for d in dsrs]
 
@@ -557,8 +556,7 @@ def api_user_dashboard():
     dsr_list = [{
         "request_type": d['request_type'],
         "status": d['status'],
-        "created_at": d['created_at'].isoformat() if d['created_at'] else None,
-        "completed_at": d['completed_at'].isoformat() if d['completed_at'] else None
+        "created_at": d['created_at'].isoformat() if d['created_at'] else None
     } for d in dsrs]
 
     return jsonify({

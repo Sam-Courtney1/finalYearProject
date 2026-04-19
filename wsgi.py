@@ -127,7 +127,7 @@ def create_app():
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net unpkg.com cdnjs.cloudflare.com; "
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; "
             "font-src 'self' fonts.gstatic.com cdn.jsdelivr.net; "
-            "img-src 'self' data: tile.openstreetmap.org *.tile.openstreetmap.org; "
+            "img-src 'self' data: tile.openstreetmap.org *.tile.openstreetmap.org cdnjs.cloudflare.com; "
             "connect-src 'self' ip-api.com"
         )
         return response
@@ -149,7 +149,6 @@ def create_app():
 
     # Inactivity session timeout, checked on every request for logged-in users.
     # The JavaScript timer in base_user.html warns at 9 min and redirects at 10 min,
-    # but this server-side check is the authoritative enforcement.
     SESSION_TIMEOUT_SECONDS = 600  # 10 minutes
 
     # Check_session_timeout is called by browser not be a specific file
@@ -172,11 +171,6 @@ def create_app():
     # only if it does not exist yet
     from data.audit_database import create_audit_table
     create_audit_table()
-
-    # Run database migrations for new columns
-    # This will again execute sql if tables or rows don't exist
-    from data.migrations import run_migrations
-    run_migrations()
 
     # Create performance index on submissions.created_at for retention queries.
     # IF NOT EXISTS makes this safe to run on every startup.

@@ -89,6 +89,22 @@
   var elevatedElement = null;
   var TOOLTIP_W = 360;
   var GAP = 20;
+  var VIEWPORT_PAD = 16;
+
+  function getTooltipWidth() {
+    return Math.min(TOOLTIP_W, window.innerWidth - VIEWPORT_PAD * 2);
+  }
+
+  function clampToViewport() {
+    var tooltipH = tooltip.offsetHeight;
+    var tooltipW = tooltip.offsetWidth;
+    var currentTop = parseFloat(tooltip.style.top) || 0;
+    var currentLeft = parseFloat(tooltip.style.left) || 0;
+    var maxTop = window.innerHeight - tooltipH - VIEWPORT_PAD;
+    var maxLeft = window.innerWidth - tooltipW - VIEWPORT_PAD;
+    tooltip.style.top = Math.max(VIEWPORT_PAD, Math.min(currentTop, maxTop)) + 'px';
+    tooltip.style.left = Math.max(VIEWPORT_PAD, Math.min(currentLeft, maxLeft)) + 'px';
+  }
 
   function buildDots(activeIndex) {
     dotsEl.innerHTML = '';
@@ -122,44 +138,54 @@
 
   function positionTooltip(rect, placement) {
     tooltip.style.transform = '';
-    tooltip.style.width = TOOLTIP_W + 'px';
+    var tooltipW = getTooltipWidth();
+    tooltip.style.width = tooltipW + 'px';
 
     var pad = 12;
 
-    if (placement === 'right') {
+    // On narrow viewports there isn't room beside a target, force below/above
+    var narrowViewport = window.innerWidth < 768;
+    var effectivePlacement = (narrowViewport && (placement === 'right' || placement === 'left'))
+      ? 'below'
+      : placement;
+
+    if (effectivePlacement === 'right') {
       // To the right of the target
       var leftPos = rect.right + pad + GAP;
       // If it overflows the right edge, fall back to left
-      if (leftPos + TOOLTIP_W > window.innerWidth - 16) {
-        leftPos = rect.left - pad - GAP - TOOLTIP_W;
+      if (leftPos + tooltipW > window.innerWidth - VIEWPORT_PAD) {
+        leftPos = rect.left - pad - GAP - tooltipW;
       }
       tooltip.style.left = leftPos + 'px';
       // Vertically center on target
-      tooltip.style.top = Math.max(16, rect.top + rect.height / 2 - 140) + 'px';
+      tooltip.style.top = Math.max(VIEWPORT_PAD, rect.top + rect.height / 2 - 140) + 'px';
 
-    } else if (placement === 'left') {
+    } else if (effectivePlacement === 'left') {
       // To the left of the target
-      var leftPos2 = rect.left - pad - GAP - TOOLTIP_W;
+      var leftPos2 = rect.left - pad - GAP - tooltipW;
       // If it overflows the left edge, fall back to right
-      if (leftPos2 < 16) {
+      if (leftPos2 < VIEWPORT_PAD) {
         leftPos2 = rect.right + pad + GAP;
       }
       tooltip.style.left = leftPos2 + 'px';
-      tooltip.style.top = Math.max(16, rect.top + rect.height / 2 - 140) + 'px';
+      tooltip.style.top = Math.max(VIEWPORT_PAD, rect.top + rect.height / 2 - 140) + 'px';
 
     } else {
       // Below or above (for navbar, greeting, etc.)
-      var tooltipLeft = rect.left + rect.width / 2 - TOOLTIP_W / 2;
-      tooltipLeft = Math.max(16, Math.min(tooltipLeft, window.innerWidth - TOOLTIP_W - 16));
+      var tooltipLeft = rect.left + rect.width / 2 - tooltipW / 2;
+      tooltipLeft = Math.max(VIEWPORT_PAD, Math.min(tooltipLeft, window.innerWidth - tooltipW - VIEWPORT_PAD));
       tooltip.style.left = tooltipLeft + 'px';
 
       var spaceBelow = window.innerHeight - rect.bottom;
       if (spaceBelow > 300) {
         tooltip.style.top = (rect.bottom + pad + GAP) + 'px';
       } else {
-        tooltip.style.top = Math.max(16, rect.top - pad - GAP - 280) + 'px';
+        tooltip.style.top = Math.max(VIEWPORT_PAD, rect.top - pad - GAP - 280) + 'px';
       }
     }
+
+    // Final viewport clamp, guarantees Skip/Next stay visible
+    requestAnimationFrame(clampToViewport);
   }
 
   function showStep(index) {
@@ -192,7 +218,7 @@
       tooltip.style.top = '50%';
       tooltip.style.left = '50%';
       tooltip.style.transform = 'translate(-50%, -50%)';
-      tooltip.style.width = TOOLTIP_W + 'px';
+      tooltip.style.width = getTooltipWidth() + 'px';
       triggerAnimation();
       return;
     }

@@ -7,16 +7,6 @@
     <h2 class="text-center mb-2" style="animation: slideInUp 0.5s ease-out;"><i class="bi bi-plus-circle me-2"></i>Create New Questionnaire</h2>
     <p class="text-center text-muted mb-4" style="animation: slideInUp 0.5s ease-out 0.1s both;">Set up a new questionnaire for respondents to fill out</p>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-modern alert-{{ category }} text-center">
-            <p class="mb-0">{{ message }}</p>
-        </div>
-        {% endfor %}
-    {% endif %}
-    {% endwith %}
-
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="form-card" style="animation: slideInUp 0.5s ease-out 0.2s both;">
