@@ -48,7 +48,7 @@ def get_all_dsrs(status=None, limit=100, offset=0):
             if status:
                 cur.execute("""
                     SELECT dsr_id, user_id, username, request_type, status,
-                           created_at, completed_at, deadline, notes, source
+                           created_at, deadline, notes, source
                     FROM data_subject_requests
                     WHERE status = %s
                     ORDER BY created_at DESC
@@ -57,7 +57,7 @@ def get_all_dsrs(status=None, limit=100, offset=0):
             else:
                 cur.execute("""
                     SELECT dsr_id, user_id, username, request_type, status,
-                           created_at, completed_at, deadline, notes, source
+                           created_at, deadline, notes, source
                     FROM data_subject_requests
                     ORDER BY created_at DESC
                     LIMIT %s OFFSET %s;
@@ -98,7 +98,7 @@ def get_dsrs_for_user(user_id):
     try:
         with get_db() as (conn, cur):
             cur.execute("""
-                SELECT dsr_id, request_type, status, created_at, completed_at, deadline
+                SELECT dsr_id, request_type, status, created_at, deadline
                 FROM data_subject_requests
                 WHERE user_id = %s
                 ORDER BY created_at DESC;

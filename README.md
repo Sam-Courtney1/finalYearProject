@@ -1,215 +1,216 @@
-# GDPR-Compliant Organ Donation System
+# Organ Donation System — GDPR-Compliant Data Platform
 
-A full-stack organ donation data management system built for GDPR compliance. Organisations create questionnaires, users fill them out with encrypted data storage, and an audit dashboard tracks all data access.
+A Flask web application and companion React Native mobile app that lets data subjects
+exercise their GDPR rights (access, rectification, erasure, portability, consent
+withdrawal) over an encrypted organ-donor questionnaire database. External auditors
+and organisations ("clients") can monitor activity through a tamper-evident audit
+log backed by a SHA-256 hash chain.
 
-## Stack
+---
 
-- **Backend:** Python 3.12, Flask 3.0, PostgreSQL (pgcrypto for field-level encryption)
-- **Frontend:** Jinja2 templates, Bootstrap 5.3.3, custom CSS
-- **Mobile:** React Native (Expo) with JWT authentication
-- **Hosting:** AWS Elastic Beanstalk (gunicorn + nginx)
-- **Email:** Gmail SMTP for 2FA OTP and password reset
+## Tech stack
 
-## Project Structure
+| Layer | Technology |
+| --- | --- |
+| Backend | Flask 3, Python 3.11, Gunicorn |
+| Database | PostgreSQL + `pgcrypto` (AES-256 encryption at rest) |
+| Web frontend | Jinja2 templates, Bootstrap 5.3, custom CSS, Leaflet.js (audit map) |
+| Mobile app | React Native via Expo 54 (WebView wrapper) |
+| Hosting | AWS Elastic Beanstalk (Amazon Linux 2023) + AWS RDS (PostgreSQL) |
+| Build tool (mobile) | EAS Build |
+
+---
+
+## Project structure
 
 ```
-wsgi.py                          # Flask app factory + blueprint registration
-application/
-  routes/
-    pages_and_actions.py         # User auth (login/register/2FA) + GDPR rights
-    client_routes.py             # Organisation login + questionnaire management
-    admin_routes.py              # Audit dashboard, breach, retention, DSR, compliance
-    questionnaire_routes.py      # Questionnaire fill + edit
-    api_routes.py                # Mobile app JSON API (JWT auth)
-    home_route.py                # Homepage
-  services/
-    audit_service.py             # @audit_log decorator + hash-chained audit trail
-    authentication.py            # Password hashing + validation
-    otp_service.py               # 2FA OTP + password reset tokens (SHA-256 hashed)
-    email_service.py             # SMTP email sending
-    jwt_utils.py                 # JWT token create/decode for mobile API
-    retention_service.py         # Data retention cleanup (GDPR Art. 5(1)(e))
-    breach_service.py            # 72-hour breach deadline tracking
-    breach_notification_service.py # Breach email notifications (GDPR Art. 34)
-    dsr_service.py               # Data subject request tracking (GDPR Art. 12-23)
-    compliance_service.py        # Aggregated GDPR compliance dashboard
-    decorators.py                # @require_user_login, @require_client_login
-    log_form_data.py             # Questionnaire submission processing + encryption
-  extensions.py                  # Flask-Limiter instance
-data/
-  db_connection.py               # PostgreSQL connection + context manager
-  migrations.py                  # Schema migrations (idempotent, IF NOT EXISTS)
-  user_database.py               # User CRUD
-  client_database.py             # Organisation CRUD
-  questionnaire.py               # Questionnaire data operations
-  questionnaire_client.py        # Organisation questionnaire field management
-  submission_database.py         # Submission + consent + answer operations
-  audit_database.py              # Audit log insert/query + hash chain verification
-  breach_database.py             # Breach CRUD
-  breach_notification_database.py
-  dsr_database.py                # Data subject request CRUD
-  retention_database.py          # Inactive user + expired submission queries
-presentation/
-  templates/                     # 29 Jinja2 templates (4 base + 25 pages)
-  static/
-    main.css                     # Single CSS file (~4000 lines)
-    landing.js                   # User landing page animations
-    client_landing.js            # Organisation landing page animations
-mobile_app/                      # React Native (Expo) mobile client
-  src/
-    api/                         # Axios API client + endpoint modules
-    context/AuthContext.js        # JWT auth state management
-    screens/                     # 10 screens (Login, Home, Questionnaire, etc.)
-    components/                  # Reusable components (MenuCard, LoadingScreen)
-    theme/theme.js               # Design tokens
-tests/                           # 102 pytest tests across 10 test files
+finalYearProject/
+├── application/
+│   ├── routes/              # Flask blueprints (6 files)
+│   │   ├── admin_routes.py      # /admin  - auditor + client audit dashboard
+│   │   ├── api_routes.py        # /api    - mobile JSON endpoints (JWT auth)
+│   │   ├── client_routes.py     # /client - organisation management
+│   │   ├── home_route.py        # /homepage
+│   │   ├── pages_and_actions.py # /, /login, /register, GDPR rights
+│   │   └── questionnaire_routes.py
+│   ├── services/            # Business logic (auth, audit, DSR, breach, etc.)
+│   └── extensions.py        # flask-limiter instance
+├── data/                    # Database layer (psycopg2)
+├── presentation/
+│   ├── templates/           # Jinja2 templates (18 files)
+│   └── static/              # main.css, tutorial.js
+├── mobile_app/              # Expo / React Native wrapper
+├── tests/                   # pytest test suite
+├── seed_database.sql        # Full DB reset + sample data
+├── wsgi.py                  # Flask entrypoint (create_app factory)
+├── requirements.txt
+├── pytest.ini
+└── Procfile                 # gunicorn command for Elastic Beanstalk
 ```
 
-## Prerequisites
+---
 
-- Python 3.10+
-- PostgreSQL 14+ with the `pgcrypto` extension enabled
-- Node.js 18+ (for mobile app only)
+## Environment variables
 
-## Setup
+Create a `.env` file in the project root (gitignored). All required in production:
 
-### 1. Clone and install dependencies
+| Variable | Purpose |
+| --- | --- |
+| `FLASK_SECRET_KEY` | Flask session cookie signing key. |
+| `APP_ENC_KEY` | pgcrypto symmetric key for encrypting PII / Medical / email columns. **Do not rotate without re-encrypting existing rows.** |
+| `JWT_SECRET_KEY` | HS256 signing key for mobile JWT tokens. |
+| `DB_HOST` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | PostgreSQL connection details. |
+| `SMTP_EMAIL` / `SMTP_PASSWORD` | Gmail SMTP credentials for 2FA OTP + breach notifications. |
+| `APP_BASE_URL` | Public base URL, used in password reset emails. |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated list of origins allowed to call `/api/*`. |
+| `LOG_LEVEL` | `INFO` / `DEBUG` / `WARNING` (default INFO). |
 
-```bash
-git clone <repo-url>
-cd finalYearProject
+Each of `FLASK_SECRET_KEY`, `APP_ENC_KEY`, `JWT_SECRET_KEY` is rejected if set to the literal string `"test"` in production — see `wsgi.py` and `jwt_utils.py`.
+
+---
+
+## Local development
+
+```powershell
+# 1. Install Python dependencies
 pip install -r requirements.txt
-```
 
-### 2. Configure environment variables
+# 2. Create .env with the variables listed above
 
-```bash
-cp .env.example .env
-# Edit .env with your database credentials and keys
-```
+# 3. Enable pgcrypto on your database (one-off)
+psql -d your_db -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
 
-Required variables: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `APP_ENC_KEY`
+# 4. Seed the database (see section below)
 
-### 3. Set up the database
-
-Connect to PostgreSQL and create the database with pgcrypto:
-
-```sql
-CREATE DATABASE organ_donation;
-\c organ_donation
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-```
-
-Then create the core tables (migrations handle the rest automatically on app startup):
-
-```sql
-CREATE TABLE users (
-    id       SERIAL PRIMARY KEY,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL
-);
-
-CREATE TABLE clients (
-    client_id SERIAL PRIMARY KEY,
-    username  VARCHAR(100) UNIQUE NOT NULL,
-    password  VARCHAR(255) NOT NULL
-);
-
-CREATE TABLE questionnaire_fields (
-    field_id   SERIAL PRIMARY KEY,
-    client_id  INTEGER NOT NULL REFERENCES clients(client_id),
-    field_label VARCHAR(255) NOT NULL,
-    field_type  VARCHAR(50) NOT NULL,
-    category    VARCHAR(50) NOT NULL
-);
-
-CREATE TABLE submissions (
-    submission_id SERIAL PRIMARY KEY,
-    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    client_id     INTEGER REFERENCES clients(client_id),
-    consent       BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at    TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE pii (
-    pii_id         SERIAL PRIMARY KEY,
-    submission_id  INTEGER NOT NULL REFERENCES submissions(submission_id) ON DELETE CASCADE,
-    first_name_enc BYTEA,
-    address_enc    BYTEA
-);
-
-CREATE TABLE demographic_data (
-    demo_id       SERIAL PRIMARY KEY,
-    submission_id INTEGER NOT NULL REFERENCES submissions(submission_id) ON DELETE CASCADE,
-    age           INTEGER
-);
-
-CREATE TABLE answers (
-    answer_id     SERIAL PRIMARY KEY,
-    submission_id INTEGER NOT NULL REFERENCES submissions(submission_id) ON DELETE CASCADE,
-    field_id      INTEGER NOT NULL REFERENCES questionnaire_fields(field_id),
-    value_enc     BYTEA,
-    value_plain   TEXT,
-    value_hashed  TEXT
-);
-```
-
-Additional tables (audit_logs, otp_tokens, password_reset_tokens, data_breaches, data_subject_requests, auditors, breach_notifications) are created automatically by `data/migrations.py` on first startup.
-
-### 4. Run the application
-
-```bash
-# Development
-flask --app wsgi run --debug
-
-# Or directly
+# 5. Run
 python wsgi.py
-
-# Production (Elastic Beanstalk uses this via Procfile)
-gunicorn --bind 0.0.0.0:8000 --workers 3 wsgi:application
+# Default: http://0.0.0.0:5000
 ```
 
-The app will be available at `http://localhost:5000`.
+Tests:
 
-### 5. Run tests
-
-```bash
-# Run all tests
+```powershell
 pytest
-
-# Run with coverage report
-pytest --cov=application --cov=data --cov-report=term-missing
-
-# Run a specific test file
-pytest tests/test_auth.py -v
 ```
 
-### 6. Mobile app (optional)
+---
 
-```bash
+## Database seeding
+
+`seed_database.sql` wipes and re-populates the database with sample auditors,
+clients, users, questionnaires, submissions, DSRs, and a test breach. It also
+truncates `audit_logs` so the hash chain resets to a valid `GENESIS` state.
+
+Run in DBeaver (open the file → select all → Alt+X) or via psql:
+
+```powershell
+psql "host=your-db-host dbname=your-db user=your-user" -f seed_database.sql
+```
+
+**Important:** The file assumes `APP_ENC_KEY=sam`. If you use a different key, find-and-replace
+`'sam'` in the `pgp_sym_encrypt(..., 'sam', ...)` calls before running.
+
+### Seeded login credentials
+
+Every seeded account uses the password `Password123!`.
+
+| Role | Username | Login path |
+| --- | --- | --- |
+| Auditor | `auditor1` | `/admin/auditor-login` |
+| Client (organisation) | `HospitalA` / `ResearchOrg` / `DonorNetwork` | `/client` |
+| End user | `alice` / `bob` / `carol` / `dave` / `eve` | `/` |
+
+Note: `dave`'s submission to `DonorNetwork` has consent withdrawn on purpose, so
+DonorNetwork's "View Submissions" page will correctly appear empty. Use HospitalA
+or ResearchOrg to see populated data.
+
+---
+
+## Deployment — AWS Elastic Beanstalk
+
+```powershell
+# First time: initialise EB on this directory
+eb init
+
+# Set production environment variables (one line)
+eb setenv FLASK_SECRET_KEY=xxx APP_ENC_KEY=xxx JWT_SECRET_KEY=xxx `
+         DB_HOST=xxx DB_NAME=xxx DB_USER=xxx DB_PASSWORD=xxx `
+         SMTP_EMAIL=xxx SMTP_PASSWORD=xxx APP_BASE_URL=https://your-domain
+
+# Deploy latest commit
+eb deploy
+
+# Inspect live status and logs
+eb status
+eb health
+eb logs --all
+```
+
+`Procfile` tells EB to start the app with gunicorn. The health check hits `/health`,
+defined in `wsgi.py`.
+
+---
+
+## Mobile app
+
+The mobile app is a thin WebView wrapper around the deployed website, so **web-only
+changes do not require a mobile rebuild** — the next launch of the existing APK will
+pick up the new CSS / JS / templates automatically.
+
+```powershell
 cd mobile_app
-npm install
-npx expo start
+npm install          # once
+npm run build:android  # runs: eas build --platform android --profile preview
 ```
 
-Edit `app.json` > `expo.extra.apiBaseUrl` to point to your Flask server's IP.
+Change `app.json` → `extra.websiteUrl` to point at the EB CNAME or a custom domain.
 
-## User Roles
+---
 
-| Role | Login URL | Capabilities |
-|------|-----------|-------------|
-| **User** | `/` | Register, fill questionnaires, manage consent, export/delete data |
-| **Organisation** | `/client` | Create questionnaires, view anonymised submissions |
-| **Auditor** | `/admin/auditor-login` | Full audit trail, breach management, DSR tracking, compliance dashboard |
+## Key features
 
-## GDPR Features
+### GDPR rights (end user)
+- **Right to access** — decrypts and displays all stored PII/Medical fields
+- **Right to rectification** — edit previously submitted answers; re-encrypted transparently
+- **Right to erasure** — full account deletion (with audit log anonymisation)
+  or per-submission deletion
+- **Right to data portability** — CSV export
+- **Consent management** — per-submission withdrawal and reinstatement
 
-- **Article 5(1)(e)** - Data retention with configurable cleanup
-- **Article 7** - Per-organisation consent withdrawal and reinstatement
-- **Article 15** - Right to Access (view all stored data)
-- **Article 17** - Right to Erasure (delete account or data only)
-- **Article 20** - Right to Data Portability (CSV export)
-- **Article 32** - Security (pgcrypto encryption, 2FA, CSRF, rate limiting, hash-chained audit trail)
-- **Article 33** - Breach notification with 72-hour deadline tracking
-- **Article 34** - Automated breach notification emails to affected users
-- **Articles 12-23** - Data Subject Request tracking with 30-day deadlines
+### Client (organisation) features
+- Create / edit questionnaires with custom fields categorised as PII, Medical,
+  Demographic, or Hashed
+- View anonymised respondent data ("Respondent 1", "Respondent 2" …) with PII
+  decrypted on demand; rows with withdrawn consent are hidden
+
+### Auditor / admin features
+- Full audit log dashboard with action / actor / date filtering
+- SHA-256 hash-chain integrity verification (tamper evidence)
+- Leaflet IP geolocation map
+- Breach register with 72-hour GDPR reporting countdown and user email notifications
+- DSR dashboard with 30-day deadline tracking
+- Data retention dashboard (inactive users, expired submissions) with dry-run preview
+- Compliance overview rolling up breach / DSR / retention / backup status
+- CSV export of audit logs (formula-injection sanitised)
+
+### Security
+- **Encryption at rest** — pgcrypto `pgp_sym_encrypt` (AES-256) on PII, Medical,
+  and email columns
+- **Password hashing** — werkzeug scrypt
+- **2FA** — email-delivered 6-digit OTP on every login (SMTP)
+- **JWT** — mobile API auth, in-memory revocation list
+- **CSRF** — Flask-WTF on all browser POST forms (mobile API exempted)
+- **Rate limiting** — Flask-Limiter on `/login`, `/register`, `/forgot-password`, etc.
+- **Audit log chain** — every entry carries `previous_hash`; `verify_audit_chain()`
+  detects any edit / delete
+- **Headers** — CSP, HSTS (prod), X-Frame-Options, X-Content-Type-Options
+- **Retention** — 365-day default with anonymisation after 7 years for audit logs
+
+---
+
+## Health checks
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health` | Returns `{"status": "healthy"}`. Used by the Elastic Beanstalk ELB. Exempt from rate limiting. |
+| `GET /ping` | Lightweight keep-alive hit by the "Stay Logged In" button in the user navbar. |

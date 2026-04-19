@@ -34,7 +34,7 @@ def create_user_profile(user_id, username, email, address, age):
     key = os.getenv("APP_ENC_KEY")
     with get_db() as (conn, cur):
         cur.execute("""
-            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s) WHERE id = %s;
+            UPDATE users SET email_enc = pgp_sym_encrypt(%s, %s, 'cipher-algo=aes256') WHERE id = %s;
         """, (email, key, user_id))
 
         cur.execute("""
@@ -45,7 +45,7 @@ def create_user_profile(user_id, username, email, address, age):
 
         cur.execute("""
             INSERT INTO pii (submission_id, first_name_enc, address_enc)
-            VALUES (%s, pgp_sym_encrypt(%s, %s), pgp_sym_encrypt(%s, %s));
+            VALUES (%s, pgp_sym_encrypt(%s, %s, 'cipher-algo=aes256'), pgp_sym_encrypt(%s, %s, 'cipher-algo=aes256'));
         """, (submission_id, username, key, address, key))
 
         cur.execute("""

@@ -41,7 +41,7 @@ def client_login():
 
         client = find_client_by_username(username)
         if client and check_password_hash(client[2], password):
-            # Clear any stale auditor session to prevent role bleed
+            # Clear any stale auditor session
             session.pop('auditor_id', None)
             session.pop('auditor_username', None)
             session["client_id"] = client[0]

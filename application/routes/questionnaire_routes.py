@@ -177,5 +177,5 @@ def save_edited_submission(submission_id):
         'field_ids': list(updated_fields.keys())
     })
 
-    flash(f"Your answers have been updated ({count} field(s) changed).", "success")
+    flash(f"Your answers have been updated", "success")
     return redirect(url_for('pages_bp.right_to_access'))

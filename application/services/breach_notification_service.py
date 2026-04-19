@@ -65,11 +65,6 @@ def send_breach_notification_email(to_email, breach_title, description,
             <h3 style="color: #dc3545;">Contact Us</h3>
             <p>If you have questions about this incident, please contact our Data Protection Officer at:
                <a href="mailto:{contact_email}">{contact_email}</a></p>
-
-            <p style="color: #666; font-size: 12px; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px;">
-                This notification is sent in accordance with GDPR Article 34
-                (Communication of a personal data breach to the data subject).
-            </p>
         </div>
     </div>
     </body></html>
@@ -77,7 +72,7 @@ def send_breach_notification_email(to_email, breach_title, description,
     return _send_email(to_email, subject, body_html)
 
 
-def notify_all_affected_users(breach_id, contact_email='dpo@organdonation.ie'):
+def notify_all_affected_users(breach_id, contact_email='organdonationfyp@gmail.com'):
     """
     Send breach notification emails to all users with an email on file.
     Returns summary dict: {total, sent, failed}.

@@ -9,16 +9,6 @@
         Select a submission to modify your responses
     </p>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }} text-center">
-            <p class="mb-0">{{ message }}</p>
-        </div>
-        {% endfor %}
-    {% endif %}
-    {% endwith %}
-
     {% if submissions %}
     <div class="row justify-content-center">
         {% for s in submissions %}

@@ -249,7 +249,7 @@ def auditor_login():
 
         auditor = find_auditor_by_username(username)
         if auditor and check_password_hash(auditor[2], password):
-            # Clear any stale client session to prevent role bleed
+            # Clear any stale client session 
             session.pop('client_id', None)
             session.pop('client_username', None)
             session['auditor_id'] = auditor[0]

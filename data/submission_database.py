@@ -127,7 +127,7 @@ def update_submission_answers(submission_id, user_id, updated_fields):
             if category in ("PII", "Medical"):
                 cur.execute("""
                     UPDATE answers
-                    SET value = pgp_sym_encrypt(%s, %s)::text, updated_at = NOW()
+                    SET value = pgp_sym_encrypt(%s, %s, 'cipher-algo=aes256')::text, updated_at = NOW()
                     WHERE submission_id = %s AND field_id = %s
                 """, (new_value, key, submission_id, field_id))
             else:

@@ -500,6 +500,7 @@ h5 { font-size: 1rem; font-weight: 600; }
     justify-content: center;
     gap: 10px;
     color: white;
+    text-decoration: none;
 }
 
 .action-btn-primary {
@@ -1025,7 +1026,6 @@ h5 { font-size: 1rem; font-weight: 600; }
     background: linear-gradient(135deg, #fee2e2, #fecaca);
     color: #991b1b;
     border: 1px solid #fca5a5;
-    animation: pulse 2s ease-in-out infinite;
 }
 
 /* Action Badges */
@@ -3956,6 +3956,8 @@ body.auditor-body {
 .client-action-card:nth-child(1) { animation: fadeInUp 0.5s ease-out 0.1s both; }
 .client-action-card:nth-child(2) { animation: fadeInUp 0.5s ease-out 0.2s both; }
 .client-action-card:nth-child(3) { animation: fadeInUp 0.5s ease-out 0.3s both; }
+.client-action-card:nth-child(4) { animation: fadeInUp 0.5s ease-out 0.4s both; }
+.client-action-card:nth-child(4):last-child { grid-column: 2; }
 
 /* Client buttons - teal instead of purple */
 .client-page .btn-primary {
@@ -4079,6 +4081,7 @@ body.auditor-body {
     .client-homepage-grid {
         grid-template-columns: 1fr;
     }
+    .client-action-card:nth-child(4):last-child { grid-column: auto; }
 }
 
 @keyframes slideInRight {

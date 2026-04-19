@@ -91,7 +91,6 @@
                     <th scope="col">Created</th>
                     <th scope="col">Deadline</th>
                     <th scope="col">Days Remaining</th>
-                    <th scope="col">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -135,13 +134,6 @@
                         {% else %}
                             <span class="text-muted">-</span>
                         {% endif %}
-                    </td>
-                    <td>
-                        <small class="text-muted">
-                            {% if dsr.completed_at %}
-                                <time datetime="{{ dsr.completed_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}" data-format="date">{{ dsr.completed_at.strftime('%Y-%m-%d') }}</time>
-                            {% endif %}
-                        </small>
                     </td>
                 </tr>
                 {% else %}

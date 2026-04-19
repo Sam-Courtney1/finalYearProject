@@ -1,12 +1,31 @@
+# Secrets
 .env
+
+# Elastic Beanstalk - ignore local state/logs, keep committed configs
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
-project_overview.md
+
+# Python
 __pycache__/
-node_modules/
-mobile_app
+*.pyc
+*.pyo
+.pytest_cache/
 .coverage
 htmlcov/
-explained.md
+
+# Node / Expo
+node_modules/
+mobile_app/.expo/
+*.apk
+*.aab
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local notes
 project_overview.md
+explained.md

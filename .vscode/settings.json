@@ -1,0 +1,11 @@
+{
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+        "tests",
+        "--cov=application",
+        "--cov=data",
+        "--cov-report=term-missing",
+        "--cov-report=html"
+    ]
+}

@@ -2,7 +2,6 @@
 Tests that all protected routes redirect unauthenticated users to login.
 """
 
-
 class TestUserRoutesRequireLogin:
     """Every route with @require_user_login should 302 to login when not authenticated."""
 

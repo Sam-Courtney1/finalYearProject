@@ -7,16 +7,6 @@
     <h2 class="text-center mb-2" style="animation: slideInUp 0.5s ease-out;"><i class="bi bi-list-ul me-2"></i>My Questionnaires</h2>
     <p class="text-center text-muted mb-4" style="animation: slideInUp 0.5s ease-out 0.1s both;">Manage your questionnaires and view collected data</p>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-modern alert-{{ category }} text-center">
-            <p class="mb-0">{{ message }}</p>
-        </div>
-        {% endfor %}
-    {% endif %}
-    {% endwith %}
-
     <div class="text-center mb-4" style="animation: slideInUp 0.5s ease-out 0.15s both;">
         <a href="{{ url_for('client_bp.client_create_questionnaire') }}" class="action-btn action-btn-success" style="display:inline-flex;">
             <i class="bi bi-plus-lg me-1"></i>Create New Questionnaire

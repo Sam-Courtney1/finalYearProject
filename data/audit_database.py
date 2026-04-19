@@ -7,7 +7,6 @@ from data.db_connection import get_db_connection, get_db
 logger = logging.getLogger(__name__)
 
 # Audit Logging Database Operations
-# GDPR Article 32 - Security of Processing
 #
 # This module handles all database operations for the audit logging system.
 # It provides tamper evident logging through hash chaining, where each log
