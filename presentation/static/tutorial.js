@@ -25,28 +25,28 @@
     },
     {
       target: '#card-access',
-      title: 'Right to Access',
+      title: 'Right to Access (Art. 15)',
       text: 'View all your stored personal data. Encrypted fields are decrypted on demand so you can see exactly what information is held about you. You can also export everything as a CSV file.',
       buttonText: 'Next',
       placement: 'right'
     },
     {
       target: '#card-edit',
-      title: 'Right to Rectification',
+      title: 'Right to Rectification (Art. 16)',
       text: 'Edit any answers you\'ve previously submitted to questionnaires. All changes are recorded in the audit trail so there\'s a full history of modifications.',
       buttonText: 'Next',
       placement: 'left'
     },
     {
       target: '#card-consent',
-      title: 'Consent Management',
+      title: 'Consent Management (Art. 7)',
       text: 'Withdraw or reinstate your consent for any submission. When consent is withdrawn, organisations can no longer see your data. You can reinstate it at any time.',
       buttonText: 'Next',
       placement: 'right'
     },
     {
       target: '#card-delete',
-      title: 'Right to Erasure',
+      title: 'Right to Erasure (Art. 17)',
       text: 'Delete your account and all associated data permanently, or remove individual submissions while keeping your account. This is your right to be forgotten.',
       buttonText: 'Next',
       placement: 'left'

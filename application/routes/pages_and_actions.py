@@ -208,6 +208,8 @@ def login():
         sent, err = send_otp_email(user_email, otp_code)
 
         if not sent:
+            # Email delivery failed, do NOT skip 2FA as this would silently
+            # downgrade security. Clear the pending state and ask user to retry.
             session.pop('pending_2fa_user', None)
             session.pop('pending_2fa_username', None)
             flash("Could not send verification code. Please try again later.", "danger")
@@ -327,6 +329,7 @@ def forgot_password():
         if user_email:
             token = generate_reset_token()
             store_reset_token(user_id, token)
+            # Build reset URL, require APP_BASE_URL in production to prevent Host header injection
             base_url = os.environ.get('APP_BASE_URL')
             if not base_url:
                 if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):

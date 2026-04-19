@@ -4,10 +4,10 @@ import uuid
 import warnings
 from datetime import datetime, timedelta, timezone
 
-# Separate JWT signing key, distinct from the database encryption key 
-# and the Flask session key so a compromise of one does not affect the others.
+# Separate JWT signing key, distinct from the database encryption key (APP_ENC_KEY)
+# and the Flask session key (FLASK_SECRET_KEY) so a compromise of one does not affect the others.
 JWT_SECRET = os.getenv("JWT_SECRET_KEY")
-if not JWT_SECRET:
+if not JWT_SECRET or JWT_SECRET == "test":
     if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):
         raise RuntimeError("JWT_SECRET_KEY must be set in production for JWT signing.")
     warnings.warn("JWT_SECRET_KEY not set, using insecure default. Set it in .env.")

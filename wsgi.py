@@ -39,7 +39,7 @@ def create_app():
     # Flask session secret, separate from the database encryption key (APP_ENC_KEY)
     # so that a leaked session key does not compromise encrypted PII/Medical data.
     flask_secret = os.getenv("FLASK_SECRET_KEY")
-    if not flask_secret:
+    if not flask_secret or flask_secret == "test":
         if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):
             raise RuntimeError("FLASK_SECRET_KEY must be set in production. Do not use the default.")
         warnings.warn("FLASK_SECRET_KEY not set, using insecure default. Set it in .env for development.")
@@ -48,7 +48,7 @@ def create_app():
 
     # Validate that the database encryption key is also set
     db_enc_key = os.getenv("APP_ENC_KEY")
-    if not db_enc_key:
+    if not db_enc_key or db_enc_key == "test":
         if os.getenv("AWS_EXECUTION_ENV") or os.getenv("FLASK_ENV") == "production" or os.getenv("PRODUCTION"):
             raise RuntimeError("APP_ENC_KEY must be set in production. Do not use the default.")
         warnings.warn("APP_ENC_KEY not set, using insecure default. Set it in .env for development.")
@@ -115,7 +115,7 @@ def create_app():
     # API routes use JWT authentication, not session cookies, so CSRF is not needed
     csrf.exempt(api_bp)
 
-    # Security headers
+    # Security headers, defence-in-depth against XSS, clickjacking, MIME sniffing
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
